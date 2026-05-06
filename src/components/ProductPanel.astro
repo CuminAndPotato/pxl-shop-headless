@@ -1,10 +1,10 @@
 ---
 import type { Locale } from '../i18n/strings';
 import { t } from '../i18n/strings';
-import type { ProductSummary } from '../lib/wix';
+import type { Product } from '../lib/shop';
 import WaveOverlay from './WaveOverlay.astro';
 
-interface Props { locale: Locale; product: ProductSummary | null }
+interface Props { locale: Locale; product: Product | null }
 const { locale, product } = Astro.props;
 const s = t(locale);
 
@@ -18,6 +18,11 @@ const stockLabel = !product
 
 const productImage = product?.mainImage
   ?? 'https://static.wixstatic.com/media/5d430b_04dab9727fe54a9cb7cd954d923a5a02~mv2.png/v1/fill/w_1020,h_1066,al_c,q_90,enc_avif,quality_auto/PXL_CLOCK_RPdukt.png';
+
+const hasDiscount = !!product?.discountedPrice;
+const priceLabel = product?.price?.formatted ?? '';
+const discountedLabel = product?.discountedPrice?.formatted ?? '';
+const productHasVariants = !!product?.hasVariants && (product?.variants.length ?? 0) > 0;
 ---
 
 <section class="section product section--bg-whatis">
@@ -30,13 +35,13 @@ const productImage = product?.mainImage
 
       {product && (
         <div class="product__price">
-          {product.hasDiscount ? (
+          {hasDiscount ? (
             <>
-              <span class="price__old">{s.price.salePrefix} {product.price}</span>
-              <span class="price__now">{product.discountedPrice}</span>
+              <span class="price__old">{s.price.salePrefix} {priceLabel}</span>
+              <span class="price__now">{discountedLabel}</span>
             </>
           ) : (
-            <span class="price__now">{product.price}</span>
+            <span class="price__now">{priceLabel}</span>
           )}
         </div>
       )}
@@ -47,13 +52,56 @@ const productImage = product?.mainImage
       )}
       {product && <p class="product__shipping">{s.shipping}</p>}
 
-      <form method="POST" action="/api/buy" class="product__cta">
+      {product && product.hasVariants && product.variants.length > 0 && (
+        <fieldset class="product__variants" aria-label={product.options[0]?.name ?? 'Variant'}>
+          <legend class="visually-hidden">{product.options[0]?.name ?? 'Variant'}</legend>
+          {product.variants.map((v, i) => (
+            <label class={v.inStock ? 'variant-chip' : 'variant-chip is-out'}>
+              <input
+                type="radio"
+                name="selectedVariantId"
+                value={v.id}
+                form="buy-form"
+                checked={i === 0}
+                disabled={!v.inStock}
+              />
+              <span>{v.label}</span>
+            </label>
+          ))}
+        </fieldset>
+      )}
+
+      <form method="POST" action="/api/cart/add" id="buy-form" class="product__cta">
         <input type="hidden" name="productId" value={product?.id ?? ''} />
-        <input type="hidden" name="locale" value={locale} />
+        <input type="hidden" name="back" value={locale === 'de' ? '/de/cart' : '/cart'} />
+        <input type="hidden" name="quantity" value="1" />
+        {!productHasVariants && product && (
+          <input type="hidden" name="variantId" value={product.variants[0]?.id ?? ''} />
+        )}
         <button class="btn" type="submit" disabled={product != null && !product.inStock}>
           {s.whatIs.cta}
         </button>
       </form>
+      <script is:inline>
+        // Wire variant radio buttons → hidden variantId field on submit.
+        (() => {
+          const form = document.getElementById('buy-form');
+          if (!form) return;
+          form.addEventListener('submit', () => {
+            const radio = document.querySelector('input[name="selectedVariantId"]:checked');
+            if (radio && radio.value) {
+              let hidden = form.querySelector('input[name="variantId"]');
+              if (!hidden) {
+                hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = 'variantId';
+                form.appendChild(hidden);
+              }
+              hidden.value = radio.value;
+            }
+          });
+        })();
+      </script>
     </div>
     <div class="product__media">
       <img src={productImage} alt={product?.name ?? 'PXL Clock'} loading="lazy" />
@@ -97,6 +145,25 @@ const productImage = product?.mainImage
   .product__dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
   .product__shipping { color: var(--muted); font-size: 0.92rem; margin: 0 0 1.5rem; }
   .product__cta { margin-top: 1.5rem; }
+  .product__variants {
+    border: 0; padding: 0; margin: 0 0 1rem;
+    display: flex; gap: 0.5rem; flex-wrap: wrap;
+  }
+  .variant-chip {
+    position: relative;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0.5rem 1rem;
+    border: 1.5px solid var(--hairline); border-radius: 4px;
+    cursor: pointer; font-weight: 700; font-size: 0.9rem;
+    user-select: none;
+  }
+  .variant-chip input { position: absolute; opacity: 0; pointer-events: none; }
+  .variant-chip:has(input:checked) { border-color: var(--fg); background: var(--fg); color: #fff; }
+  .variant-chip.is-out { opacity: 0.5; cursor: not-allowed; text-decoration: line-through; }
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
   @media (max-width: 860px) {
     .product__grid { grid-template-columns: 1fr; }
     .product__media { order: -1; max-width: 460px; margin: 0 auto; }

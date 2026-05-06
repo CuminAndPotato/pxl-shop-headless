@@ -9,13 +9,12 @@ import Handmade from '../components/Handmade.astro';
 import CreateItYourself from '../components/CreateItYourself.astro';
 import Setup from '../components/Setup.astro';
 import OurStory from '../components/OurStory.astro';
-import { loadFirstProduct } from '../lib/wix';
 import { t } from '../i18n/strings';
 import { lifestyleGallery, workshopGallery, shapeSpacesBg, startedBg } from '../lib/assets';
 
 const locale = 'en';
 const s = t(locale);
-const product = await loadFirstProduct();
+const product = await Astro.locals.shop.getFirstProduct();
 ---
 
 <Base

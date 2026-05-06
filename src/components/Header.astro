@@ -5,6 +5,13 @@ import { t, homeHref } from '../i18n/strings';
 interface Props { locale: Locale }
 const { locale } = Astro.props;
 const s = t(locale);
+
+const cartHref = locale === 'de' ? '/de/cart' : '/cart';
+let itemCount = 0;
+try {
+  const cart = await Astro.locals.shop.getCart();
+  itemCount = cart.itemCount;
+} catch { /* show 0 on transient errors — header must never crash the page */ }
 ---
 
 <header class="site-header">
@@ -22,12 +29,12 @@ const s = t(locale);
         <a class={locale === 'de' ? 'lang__btn lang__btn--on' : 'lang__btn'} href="/de/">DE</a>
         <a class={locale === 'en' ? 'lang__btn lang__btn--on' : 'lang__btn'} href="/">EN</a>
       </div>
-      <a class="cart" href={homeHref(locale)} aria-label={s.nav.cart}>
+      <a class="cart" href={cartHref} aria-label={`${s.nav.cart} (${itemCount})`}>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M6 7h12l-1.2 10.5a2 2 0 0 1-2 1.8H9.2a2 2 0 0 1-2-1.8L6 7Z" />
           <path d="M9 7a3 3 0 0 1 6 0" />
         </svg>
-        <span class="cart__dot" aria-hidden="true"></span>
+        {itemCount > 0 && <span class="cart__badge">{itemCount}</span>}
       </a>
     </div>
   </div>
@@ -83,13 +90,20 @@ const s = t(locale);
     display: inline-flex;
     align-items: center;
   }
-  .cart__dot {
+  .cart__badge {
     position: absolute;
-    top: -2px; right: -3px;
-    width: 8px; height: 8px;
-    border-radius: 50%;
+    top: -8px; right: -10px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
     background: #fff;
-    border: 2px solid transparent;
+    color: #0a0a0a;
+    font-weight: 700;
+    font-size: 11px;
+    line-height: 18px;
+    text-align: center;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.25);
   }
   /* Variant when header sits over light section (used post-scroll if needed) */
   .site-header--light { color: var(--fg); }
@@ -98,7 +112,7 @@ const s = t(locale);
   .site-header--light .lang__btn { color: var(--fg); }
   .site-header--light .lang__btn--on { background: var(--fg); color: #fff; }
   .site-header--light .cart { color: var(--fg); }
-  .site-header--light .cart__dot { background: var(--fg); }
+  .site-header--light .cart__badge { background: var(--fg); color: #fff; }
 
   @media (max-width: 720px) {
     .header__nav { display: none; }

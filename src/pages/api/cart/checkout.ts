@@ -2,20 +2,12 @@ import type { APIRoute } from 'astro';
 
 export const POST: APIRoute = async ({ request, url, locals }) => {
   const formData = await request.formData();
-  const productId = formData.get('productId')?.toString();
-  const variantId = formData.get('variantId')?.toString() || undefined;
   const locale = formData.get('locale')?.toString() === 'de' ? 'de' : 'en';
-
-  if (!productId) {
-    return new Response('Missing productId', { status: 400 });
-  }
-
   const origin = url.origin;
   const homePath = locale === 'de' ? '/de/' : '/';
   const thankYouPath = locale === 'de' ? '/de/thank-you' : '/thank-you';
 
   try {
-    await locals.shop.addToCart({ productId, variantId, quantity: 1 });
     const { url: redirectUrl } = await locals.shop.createCheckoutRedirect({
       successUrl: `${origin}${thankYouPath}`,
       cancelUrl: `${origin}${homePath}`,
@@ -23,7 +15,7 @@ export const POST: APIRoute = async ({ request, url, locals }) => {
     });
     return Response.redirect(redirectUrl, 303);
   } catch (err) {
-    console.error('[api/buy] failed:', err);
-    return new Response('Failed to create checkout', { status: 500 });
+    console.error('[api/cart/checkout] failed:', err);
+    return new Response('Failed to start checkout', { status: 500 });
   }
 };
