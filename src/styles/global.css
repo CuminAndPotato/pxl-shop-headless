@@ -13,9 +13,14 @@
   --dark-bg: #0a0a0a;
   --dark-fg: #ffffff;
   --max: 1280px;
-  /* Single horizontal padding token used by every .container — header, hero,
-     footer, content sections all share the same left/right edge. */
+  /* Two separate horizontal-padding tokens.
+     --pad-x: outer-rail padding for header / hero / footer (full-width
+              elements that hug the viewport edges).
+     --pad-content: inner padding for .container body sections — small,
+              because .container also has max-width + auto-margin which
+              already produces a side gutter on wide viewports. */
   --pad-x: 160px;
+  --pad-content: clamp(1rem, 2vw, 1.5rem);
   --section-y: clamp(3.5rem, 8vw, 6.5rem);
   --radius: 6px;
   /* Wix radial-gradient compositions, copied verbatim from the live site. */
@@ -69,8 +74,11 @@ button { font-family: inherit; cursor: pointer; }
 .container {
   max-width: var(--max);
   margin: 0 auto;
-  padding-left: var(--pad-x);
-  padding-right: var(--pad-x);
+  /* NOT --pad-x — that's reserved for the outer rail of header/hero/footer.
+     The container already has auto-margin, so it only needs a small inner
+     gutter for narrow viewports. */
+  padding-left: var(--pad-content);
+  padding-right: var(--pad-content);
 }
 
 .section {
