@@ -78,6 +78,26 @@ function mapProduct(p: any): Product {
   };
 }
 
+/**
+ * Wix line items deliver images in one of three shapes:
+ *   - "wix:image://v1/<media-id>/<filename>#originWidth=...&originHeight=..."
+ *   - "https://static.wixstatic.com/media/<media-id>/v1/fill/..."
+ *   - { url: "https://..." } (rare, but observed)
+ * We normalize to a CDN URL with a sensible fill size for the cart thumbnail.
+ */
+function normalizeWixImage(raw: any, w = 200, h = 200): string | undefined {
+  if (!raw) return undefined;
+  if (typeof raw === 'object') return normalizeWixImage(raw.url ?? raw.src, w, h);
+  if (typeof raw !== 'string') return undefined;
+  if (raw.startsWith('https://')) return raw;
+  // wix:image://v1/<id>/<filename>#originWidth=…&originHeight=…
+  const m = raw.match(/^wix:image:\/\/v1\/([^/]+)\/([^#]*)/);
+  if (!m) return undefined;
+  const mediaId = m[1];
+  const filename = m[2] || mediaId;
+  return `https://static.wixstatic.com/media/${mediaId}/v1/fill/w_${w},h_${h},al_c,q_85,enc_avif,quality_auto/${filename}`;
+}
+
 function mapCart(c: any): Cart {
   if (!c) return EMPTY_CART;
   const lineItems: CartLineItem[] = (c.lineItems ?? []).map((li: any) => ({
@@ -89,7 +109,7 @@ function mapCart(c: any): Cart {
     quantity: li.quantity ?? 1,
     unitPrice: fmtMoney(li.price?.formattedAmount, Number(li.price?.amount ?? 0), c.currency ?? 'EUR'),
     lineTotal: fmtMoney(li.fullPrice?.formattedAmount, Number(li.fullPrice?.amount ?? 0), c.currency ?? 'EUR'),
-    image: li.image,
+    image: normalizeWixImage(li.image, 200, 200),
   }));
   const itemCount = lineItems.reduce((n, li) => n + li.quantity, 0);
   const applied = (c.appliedDiscounts ?? []).find((d: any) => d.coupon || d.couponId);
