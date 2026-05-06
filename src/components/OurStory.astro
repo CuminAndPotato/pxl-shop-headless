@@ -10,7 +10,7 @@ const s = t(locale);
 <section class="section story section--white" id="story">
   <div class="container story__grid">
     <div class="story__media">
-      <img src="https://static.wixstatic.com/media/5d430b_72975578b61d4a72a749778c35898f61~mv2.jpg/v1/fill/w_900,h_676,fp_0.47_0.33,q_85,enc_avif,quality_auto/Pxl_clock_19.jpg" alt="Sefa und Ronald, the team behind PXL Clock" loading="lazy" />
+      <img src="https://static.wixstatic.com/media/5d430b_72975578b61d4a72a749778c35898f61~mv2.jpg/v1/fill/w_1200,h_900,fp_0.47_0.33,q_85,enc_avif,quality_auto/Pxl_clock_19.jpg" alt="Sefa und Ronald, the team behind PXL Clock" loading="lazy" />
     </div>
     <div class="story__copy">
       <h3 class="h-sub story__h">{s.story.title}</h3>
@@ -22,13 +22,15 @@ const s = t(locale);
 <style>
   .story__grid {
     display: grid;
-    grid-template-columns: 1fr 1.15fr;
+    /* Wider media column + 4:3 aspect ratio so the team photo isn't cropped
+       so aggressively. */
+    grid-template-columns: 1.25fr 1fr;
     gap: clamp(2rem, 5vw, 4.5rem);
     align-items: center;
   }
   .story__media img {
     width: 100%;
-    aspect-ratio: 4 / 5;
+    aspect-ratio: 4 / 3;
     object-fit: cover;
     border-radius: 4px;
   }
