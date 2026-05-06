@@ -7,13 +7,15 @@ interface Props { locale: Locale }
 const { locale } = Astro.props;
 const s = t(locale);
 
-const heroImg = 'https://static.wixstatic.com/media/5d430b_f1e3cda1718b41d0b40fe277ff6de803~mv2.jpg/v1/fill/w_1100,h_780,al_c,q_85,enc_avif,quality_auto/dev.avif';
+// Hero + thumbnails are the first 7 frames of the live "Create" gallery.
+const heroImg = 'https://static.wixstatic.com/media/5d430b_c2dda73e68f948f9aa4b5c0bd1c0b4c1~mv2.jpg/v1/fill/w_1020,h_648,fp_0.8_0.75,q_90,enc_avif,quality_auto/dev.avif';
 const thumbs = [
-  'https://static.wixstatic.com/media/5d430b_c2dda73e68f948f9aa4b5c0bd1c0b4c1~mv2.jpg/v1/fill/w_220,h_140,q_85,enc_avif,quality_auto/t1.avif',
-  'https://static.wixstatic.com/media/5d430b_fb1d22317a4f43f284b772995ce5ddc7~mv2.jpg/v1/fill/w_220,h_140,q_85,enc_avif,quality_auto/t2.avif',
-  'https://static.wixstatic.com/media/5d430b_3f45f9bd1e594c49bc303ddc5538aa8b~mv2.jpg/v1/fill/w_220,h_140,q_85,enc_avif,quality_auto/t3.avif',
-  'https://static.wixstatic.com/media/5d430b_bacd04b5df084167b055daaab8fa619d~mv2.jpg/v1/fill/w_220,h_140,q_85,enc_avif,quality_auto/t4.avif',
-  'https://static.wixstatic.com/media/5d430b_8171588421ad4eb381e4d586b360c583~mv2.jpg/v1/fill/w_220,h_140,q_85,enc_avif,quality_auto/t5.avif',
+  'https://static.wixstatic.com/media/5d430b_fb1d22317a4f43f284b772995ce5ddc7~mv2.jpg/v1/fill/w_220,h_140,fp_0.56_0.36,q_85,enc_avif,quality_auto/t2.avif',
+  'https://static.wixstatic.com/media/5d430b_fcf22499e4bb4150b5e4e4aff526a1bf~mv2.jpg/v1/fill/w_220,h_140,q_85,enc_avif,quality_auto/t3.avif',
+  'https://static.wixstatic.com/media/5d430b_3f45f9bd1e594c49bc303ddc5538aa8b~mv2.jpg/v1/fill/w_220,h_140,q_85,enc_avif,quality_auto/t4.avif',
+  'https://static.wixstatic.com/media/5d430b_bacd04b5df084167b055daaab8fa619d~mv2.jpg/v1/fill/w_220,h_140,q_85,enc_avif,quality_auto/t5.avif',
+  'https://static.wixstatic.com/media/5d430b_bbb23226bacc40e4a977aee958861cab~mv2.jpg/v1/fill/w_220,h_140,q_85,enc_avif,quality_auto/t6.avif',
+  'https://static.wixstatic.com/media/5d430b_8171588421ad4eb381e4d586b360c583~mv2.jpg/v1/fill/w_220,h_140,q_85,enc_avif,quality_auto/t7.avif',
 ];
 ---
 
@@ -44,8 +46,8 @@ const thumbs = [
   .create { position: relative; padding-top: clamp(8rem, 14vw, 13rem); }
   .create__grid {
     display: grid;
-    grid-template-columns: 1.05fr 1fr;
-    gap: clamp(2rem, 5vw, 5rem);
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    gap: clamp(2rem, 4vw, 3.5rem);
     align-items: center;
     position: relative;
     z-index: 1;
@@ -56,14 +58,14 @@ const thumbs = [
   .create__cta { margin-top: 1.75rem; }
   .create__hero {
     width: 100%;
-    aspect-ratio: 4 / 3;
+    aspect-ratio: 510 / 324;
     object-fit: cover;
     border-radius: 4px;
   }
   .create__thumbs {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 0.4rem;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.5rem;
     margin-top: 0.5rem;
   }
   .create__thumbs img {
