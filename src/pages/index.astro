@@ -1,82 +1,37 @@
 ---
-import { makeWixClient } from '../lib/wix';
+import Base from '../layouts/Base.astro';
+import Hero from '../components/Hero.astro';
+import ProductPanel from '../components/ProductPanel.astro';
+import Gallery from '../components/Gallery.astro';
+import Variants from '../components/Variants.astro';
+import Statement from '../components/Statement.astro';
+import Handmade from '../components/Handmade.astro';
+import CreateItYourself from '../components/CreateItYourself.astro';
+import Setup from '../components/Setup.astro';
+import OurStory from '../components/OurStory.astro';
+import { loadFirstProduct } from '../lib/wix';
+import { t } from '../i18n/strings';
+import { lifestyleGallery, workshopGallery, shapeSpacesBg, startedBg } from '../lib/assets';
 
-const client = makeWixClient();
-const result = await client.products.queryProducts().find();
-const product = result.items[0];
-
-const mainImage = product?.media?.mainMedia?.image?.url ?? '';
-const galleryItems = product?.media?.items ?? [];
-const price = product?.priceData?.formatted?.price ?? '';
-const discountedPrice = product?.priceData?.formatted?.discountedPrice ?? '';
-const hasDiscount = !!product?.priceData?.discountedPrice && product?.priceData?.discountedPrice !== product?.priceData?.price;
+const locale = 'en';
+const s = t(locale);
+const product = await loadFirstProduct();
 ---
 
-<html lang="de">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width" />
-		<title>{product?.name ?? 'PXL Clock'} — Headless Shop</title>
-		<meta name="description" content="Programmierbare 24x24 RGB-LED Pixel-Uhr in C# / .NET" />
-		<style>
-			body { font-family: -apple-system, system-ui, sans-serif; max-width: 960px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; color: #1a1a1a; }
-			.hero { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
-			@media (max-width: 720px) { .hero { grid-template-columns: 1fr; } }
-			.hero img { width: 100%; border-radius: 12px; }
-			.gallery { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-top: 1rem; }
-			.gallery img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; }
-			h1 { font-size: 2.25rem; margin: 0 0 0.5rem; }
-			.brand { color: #666; font-size: 0.95rem; margin-bottom: 1rem; }
-			.price { font-size: 1.75rem; font-weight: 700; }
-			.price-old { text-decoration: line-through; color: #999; font-weight: 400; margin-right: 0.5rem; }
-			.price-new { color: #c2410c; }
-			.buy { background: #1a1a1a; color: white; border: 0; padding: 1rem 2rem; font-size: 1.1rem; border-radius: 8px; cursor: pointer; margin-top: 1.5rem; width: 100%; }
-			.buy:hover { background: #333; }
-			.desc { margin-top: 2rem; }
-			.warn { background: #fff3cd; padding: 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem; }
-		</style>
-	</head>
-	<body>
-		<div class="warn">
-			<strong>Headless-Demo:</strong> Diese Seite zieht Produkte live aus dem Wix-Shop via SDK. Checkout läuft via Wix-Redirect.
-		</div>
-
-		{product ? (
-			<div class="hero">
-				<div>
-					{mainImage && <img src={mainImage} alt={product.name} />}
-					{galleryItems.length > 1 && (
-						<div class="gallery">
-							{galleryItems.slice(0, 8).map((item) => (
-								item.mediaType === 'image' && item.image?.url && (
-									<img src={item.image.url} alt="" loading="lazy" />
-								)
-							))}
-						</div>
-					)}
-				</div>
-				<div>
-					<div class="brand">{product.brand}</div>
-					<h1>{product.name}</h1>
-					<div class="price">
-						{hasDiscount ? (
-							<>
-								<span class="price-old">{price}</span>
-								<span class="price-new">{discountedPrice}</span>
-							</>
-						) : (
-							<span>{price}</span>
-						)}
-					</div>
-					<form method="POST" action="/api/buy">
-						<input type="hidden" name="productId" value={product._id} />
-						<button class="buy" type="submit">Jetzt kaufen</button>
-					</form>
-					<div class="desc" set:html={product.description ?? ''}></div>
-				</div>
-			</div>
-		) : (
-			<p>Kein Produkt gefunden. Prüfe WIX_CLIENT_ID in <code>.env</code>.</p>
-		)}
-	</body>
-</html>
+<Base
+  locale={locale}
+  title={`${product?.name ?? 'PXL Clock'} — programmable pixel clock`}
+  description="Programmable 24x24 RGB-LED pixel clock. C# / .NET. Real glass, handmade in Germany."
+>
+  <Hero locale={locale} />
+  <ProductPanel locale={locale} product={product} />
+  <Gallery images={lifestyleGallery} ariaLabel="Lifestyle gallery" />
+  <Variants locale={locale} />
+  <Statement line1={s.shapeSpaces.line1} line2={s.shapeSpaces.line2} bgImage={shapeSpacesBg} />
+  <Handmade locale={locale} productId={product?.id} />
+  <Gallery images={workshopGallery} ariaLabel="Workshop gallery" />
+  <Statement line1={s.started.line1} line2={s.started.line2} bgImage={startedBg} />
+  <CreateItYourself locale={locale} />
+  <Setup locale={locale} />
+  <OurStory locale={locale} />
+</Base>

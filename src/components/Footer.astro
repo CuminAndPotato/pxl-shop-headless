@@ -1,0 +1,86 @@
+---
+import type { Locale } from '../i18n/strings';
+import { t } from '../i18n/strings';
+
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+const s = t(locale);
+---
+
+<footer class="site-footer">
+  <div class="container footer__logo-wrap">
+    <img class="footer__logo" src="/logos/pxl.svg" alt="PXL" />
+  </div>
+  <div class="container footer__grid">
+    <div>
+      <h4>{s.footer.getInTouch}</h4>
+      <ul>
+        <li><a href="mailto:info@cuminandpotato.com">info@cuminandpotato.com</a></li>
+        <li class="muted">{s.footer.copyright}</li>
+      </ul>
+    </div>
+    <div>
+      <h4>{s.footer.info}</h4>
+      <ul>
+        <li><a href="https://docs.pxlclock.com/agb" target="_blank" rel="noopener">{s.footer.legal.agb}</a></li>
+        <li><a href="https://docs.pxlclock.com/impressum" target="_blank" rel="noopener">{s.footer.legal.impressum}</a></li>
+        <li><a href="https://docs.pxlclock.com/widerrufsformular" target="_blank" rel="noopener">{s.footer.legal.widerruf}</a></li>
+        <li><a href="https://docs.pxlclock.com/dse" target="_blank" rel="noopener">{s.footer.legal.dse}</a></li>
+        <li><a href="https://docs.pxlclock.com/eula" target="_blank" rel="noopener">{s.footer.legal.eula}</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>{s.footer.followUs}</h4>
+      <ul>
+        <li><a href="https://bsky.app/search?q=pxlclock" target="_blank" rel="noopener">Bluesky</a></li>
+        <li><a href="https://www.instagram.com/explore/tags/pxlclock/" target="_blank" rel="noopener">Instagram</a></li>
+        <li><a href="https://x.com/hashtag/pxlclock" target="_blank" rel="noopener">X</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>{s.footer.community}</h4>
+      <ul>
+        <li><a href="https://discord.gg/KDbVdKQh5j" target="_blank" rel="noopener">Discord</a></li>
+        <li><a href="https://github.com/CuminAndPotato/PXL-Clock" target="_blank" rel="noopener">GitHub</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    background: var(--bg-footer), #ffffff;
+    color: var(--fg);
+    padding: clamp(3rem, 6vw, 5rem) 0 3rem;
+    margin-top: 0;
+  }
+  .footer__logo-wrap {
+    display: flex;
+    margin-bottom: clamp(2rem, 4vw, 3.5rem);
+  }
+  .footer__logo {
+    height: clamp(58px, 8vw, 96px);
+    width: auto;
+    color: var(--fg);
+  }
+  .footer__grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: clamp(1.5rem, 3vw, 3rem);
+  }
+  h4 {
+    font-weight: 700;
+    font-size: 0.78rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin: 0 0 1.25rem;
+    color: var(--fg);
+  }
+  ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.55rem; }
+  ul a { color: var(--fg); }
+  ul a:hover { text-decoration: underline; }
+  .muted { color: var(--muted); font-size: 0.875rem; margin-top: 0.5rem; }
+  @media (max-width: 720px) {
+    .footer__grid { grid-template-columns: 1fr 1fr; gap: 1.75rem; }
+  }
+</style>

@@ -1,0 +1,73 @@
+---
+import type { Locale } from '../i18n/strings';
+import { t } from '../i18n/strings';
+
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+const s = t(locale);
+---
+
+<section class="hero">
+  <picture class="hero__pic">
+    <img
+      src="https://static.wixstatic.com/media/5d430b_1d6b6171ff6f4805b39a6858e1805332~mv2.jpg/v1/fill/w_1920,h_1200,al_c,q_90,enc_avif,quality_auto/Pxl_clock_6_edited.avif"
+      alt=""
+      width="1920"
+      height="1200"
+    />
+  </picture>
+  <div class="hero__overlay" aria-hidden="true"></div>
+  <div class="container hero__inner">
+    <h1 class="h-display hero__title">
+      {s.hero.title.map((line) => <span>{line}</span>)}
+    </h1>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    height: 900px;
+    max-height: 100vh;
+    display: flex;
+    align-items: center;
+    color: #fff;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .hero__pic {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+  }
+  .hero__pic img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+  }
+  .hero__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.62) 0%, rgba(255, 255, 255, 0) 60.982%);
+    z-index: -1;
+  }
+  .hero__inner {
+    position: relative;
+    width: 100%;
+    padding-top: 120px;
+    padding-bottom: 80px;
+  }
+  .hero__title {
+    max-width: 14ch;
+  }
+  .hero__title span {
+    display: block;
+    color: #fff;
+  }
+  @media (max-width: 720px) {
+    .hero { height: 80vh; }
+    .hero__inner { padding-top: 96px; padding-bottom: 48px; }
+  }
+</style>

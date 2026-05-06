@@ -1,0 +1,73 @@
+---
+import type { Locale } from '../i18n/strings';
+import { t } from '../i18n/strings';
+import WaveOverlay from './WaveOverlay.astro';
+
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+const s = t(locale);
+---
+
+<section class="section variants section--bg-variants">
+  <WaveOverlay side="top" fill="#ffffff" height="320px" />
+
+  <div class="container variants__inner">
+    <h2 class="h-sub variants__title">{s.variants.title}</h2>
+    <p class="lead variants__lead">{s.variants.body}</p>
+  </div>
+  <div class="variants__grid">
+    <figure>
+      <img src="https://static.wixstatic.com/media/5d430b_6f1c21f17bda4dd685cd9ced1be4878c~mv2.png/v1/fill/w_900,h_900,al_c,q_90,enc_avif,quality_auto/Pxl_clock_Black.png" alt={s.variants.black} loading="lazy" />
+      <figcaption>{s.variants.black}</figcaption>
+    </figure>
+    <figure>
+      <img src="https://static.wixstatic.com/media/5d430b_7d9990aac468487f817ebbef94305747~mv2.png/v1/crop/x_88,y_38,w_824,h_965/fill/w_900,h_900,fp_0.50_0.50,q_90,enc_avif,quality_auto/Pxl_clock_White_V3.png" alt={s.variants.white} loading="lazy" />
+      <figcaption>{s.variants.white}</figcaption>
+    </figure>
+  </div>
+</section>
+
+<style>
+  .variants {
+    position: relative;
+    padding-top: clamp(10rem, 18vw, 18rem);
+  }
+  .variants__inner {
+    text-align: center;
+    max-width: 720px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+  .variants__title { font-weight: 700; }
+  .variants__lead {
+    margin: 1rem auto 0;
+    color: var(--fg-soft);
+  }
+  .variants__grid {
+    margin: clamp(3rem, 6vw, 5rem) auto 0;
+    max-width: 1100px;
+    padding: 0 var(--pad-x);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    position: relative;
+    z-index: 1;
+  }
+  figure { margin: 0; text-align: center; }
+  figure img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
+    filter: drop-shadow(0 25px 50px rgba(0,0,0,0.15));
+  }
+  figcaption {
+    margin-top: 1.5rem;
+    font-weight: 700;
+    font-size: 1rem;
+  }
+  @media (max-width: 720px) {
+    .variants__grid { grid-template-columns: 1fr; gap: 2rem; }
+  }
+</style>

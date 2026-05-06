@@ -1,0 +1,44 @@
+---
+// Mirrors the exact SVG path Wix uses for the live pxlclock.com section curves.
+// Rendered as a background-image (data:url SVG) — identical to how Wix paints it.
+interface Props {
+  /** "top" pins to top of parent; "bottom" pins to bottom */
+  side?: 'top' | 'bottom';
+  /** Fill color of the curve area */
+  fill?: string;
+  /** Height of the curve area in px */
+  height?: string;
+}
+const { side = 'bottom', fill = '#ffffff', height = '180px' } = Astro.props;
+
+// The exact Wix path. For TOP, we vertically flip the path so the curve points
+// downward into the section (instead of upward).
+// Wix's stored path mirrored horizontally (x → 1920 − x), to match the live render
+// where the white area is THICK on the right and THIN on the left.
+const baseSvg = (orient: 'down' | 'up') => {
+  const path = orient === 'down'
+    ? 'M1920 102.446V300h-1920S869.884 102.446 1920 102.446z'
+    : 'M1920 300V102.446h-1920S869.884 300 1920 300z';
+  const id = `wv-${orient}`;
+  return `<svg id='${id}' preserveAspectRatio='none' viewBox='0 102.446 1920 197.554' xmlns='http://www.w3.org/2000/svg'><g><path d='${path}' fill='${fill}'/></g></svg>`;
+};
+
+const svg = baseSvg(side === 'top' ? 'up' : 'down');
+const dataUrl = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+---
+<div class={`wave-overlay wave-overlay--${side}`} style={`--h: ${height}; background-image: ${dataUrl};`} aria-hidden="true"></div>
+
+<style>
+  .wave-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: var(--h);
+    pointer-events: none;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    background-position: center;
+  }
+  .wave-overlay--top { top: 0; }
+  .wave-overlay--bottom { bottom: 0; }
+</style>

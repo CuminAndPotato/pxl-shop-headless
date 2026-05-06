@@ -1,0 +1,56 @@
+---
+import type { Locale } from '../i18n/strings';
+import { t } from '../i18n/strings';
+
+interface Props { locale: Locale; productId?: string }
+const { locale, productId } = Astro.props;
+const s = t(locale);
+---
+
+<section class="section handmade section--white">
+  <div class="container handmade__grid">
+    <div class="handmade__copy">
+      <h3 class="h-sub handmade__h">
+        {s.handmade.title.map((line) => <span>{line}</span>)}
+      </h3>
+      {s.handmade.paragraphs.map((p) => <p class="lead">{p}</p>)}
+      <form method="POST" action="/api/buy" class="handmade__cta">
+        <input type="hidden" name="productId" value={productId ?? ''} />
+        <input type="hidden" name="locale" value={locale} />
+        <button class="btn" type="submit">{s.handmade.cta}</button>
+      </form>
+    </div>
+    <div class="handmade__media">
+      <video autoplay loop muted playsinline preload="metadata"
+        poster="https://static.wixstatic.com/media/5d430b_7c2741fac55546e28a29c372148d715ef000.jpg/v1/fill/w_900,h_1100,al_c,q_85,enc_avif,quality_auto/handmade.avif"
+        aria-label="PXL Clock playing Pac-Man animation">
+        <source src="https://video.wixstatic.com/video/5d430b_7c2741fac55546e28a29c372148d715e/720p/mp4/file.mp4" type="video/mp4" />
+      </video>
+    </div>
+  </div>
+</section>
+
+<style>
+  .handmade__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(2rem, 6vw, 5rem);
+    align-items: center;
+  }
+  .handmade__h { max-width: 14ch; font-weight: 700; }
+  .handmade__h span { display: block; }
+  .handmade__copy .lead { margin-bottom: 1rem; }
+  .handmade__cta { margin-top: 1.5rem; }
+  .handmade__media video,
+  .handmade__media img {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    border-radius: 4px;
+    display: block;
+    background: #000;
+  }
+  @media (max-width: 860px) {
+    .handmade__grid { grid-template-columns: 1fr; }
+  }
+</style>

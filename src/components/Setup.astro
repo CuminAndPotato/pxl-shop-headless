@@ -1,0 +1,54 @@
+---
+import type { Locale } from '../i18n/strings';
+import { t } from '../i18n/strings';
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+const s = t(locale);
+
+const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=0&color=ffffff&bgcolor=000000&data=' + encodeURIComponent('https://pxlclock.com/setup');
+---
+
+<section class="setup section--dark">
+  <div class="container setup__inner">
+    <a class="setup__h" href="https://pxlclock.com/setup" target="_blank" rel="noopener">
+      {s.setup.title}
+    </a>
+    <div class="setup__qr">
+      <img src={qrUrl} alt="QR code to pxlclock.com/setup" width="220" height="220" loading="lazy" />
+    </div>
+  </div>
+</section>
+
+<style>
+  .setup {
+    background: var(--dark-bg);
+    color: var(--dark-fg);
+    padding: clamp(4rem, 8vw, 7rem) 0;
+    text-align: center;
+  }
+  .setup__h {
+    display: inline-block;
+    font-weight: 700;
+    font-size: clamp(2.25rem, 6vw, 5rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: #fff;
+    text-decoration: underline;
+    text-underline-offset: 0.14em;
+    text-decoration-thickness: 3px;
+    word-break: break-word;
+  }
+  .setup__h:hover { opacity: 0.85; }
+  .setup__qr {
+    margin-top: clamp(1.75rem, 3.5vw, 3rem);
+    display: flex;
+    justify-content: center;
+  }
+  .setup__qr img {
+    width: clamp(180px, 22vw, 300px);
+    height: auto;
+    background: #000;
+    padding: 10px;
+    border-radius: 4px;
+  }
+</style>

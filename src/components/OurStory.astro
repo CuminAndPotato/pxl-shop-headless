@@ -1,0 +1,40 @@
+---
+import type { Locale } from '../i18n/strings';
+import { t } from '../i18n/strings';
+
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+const s = t(locale);
+---
+
+<section class="section story section--white" id="story">
+  <div class="container story__grid">
+    <div class="story__media">
+      <img src="https://static.wixstatic.com/media/5d430b_72975578b61d4a72a749778c35898f61~mv2.jpg/v1/fill/w_900,h_676,fp_0.47_0.33,q_85,enc_avif,quality_auto/Pxl_clock_19.jpg" alt="Sefa und Ronald — the team behind PXL Clock" loading="lazy" />
+    </div>
+    <div class="story__copy">
+      <h3 class="h-sub story__h">{s.story.title}</h3>
+      {s.story.paragraphs.map((p) => <p class="lead">{p}</p>)}
+    </div>
+  </div>
+</section>
+
+<style>
+  .story__grid {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    gap: clamp(2rem, 5vw, 4.5rem);
+    align-items: center;
+  }
+  .story__media img {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+  .story__h { font-weight: 700; margin-bottom: 1.5rem; }
+  .story__copy .lead { margin-bottom: 1rem; }
+  @media (max-width: 860px) {
+    .story__grid { grid-template-columns: 1fr; }
+  }
+</style>

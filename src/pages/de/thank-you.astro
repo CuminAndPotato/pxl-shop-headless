@@ -1,0 +1,26 @@
+---
+import Base from '../../layouts/Base.astro';
+const locale = 'de';
+---
+
+<Base locale={locale} title="Danke für deine Bestellung — PXL Clock">
+  <section class="section thanks">
+    <div class="container thanks__inner">
+      <p class="eyebrow">Bestellung eingegangen</p>
+      <h1 class="h-section">Danke für deine Bestellung!</h1>
+      <p class="lead">
+        Du bekommst gleich eine Bestätigungs-E-Mail mit allen Details. Deine PXL Clock wird in Deutschland für dich vorbereitet.
+      </p>
+      <p>
+        <a href="/de/" class="btn btn--ghost">Zurück zum Shop</a>
+      </p>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .thanks__inner { max-width: 60ch; text-align: center; margin: 0 auto; }
+  .thanks .eyebrow { color: var(--accent); }
+  .thanks p { margin-left: auto; margin-right: auto; }
+  .thanks .btn { margin-top: 2rem; }
+</style>

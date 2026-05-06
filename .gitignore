@@ -22,3 +22,6 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# large reference screenshots (kept locally; regenerate via /tmp/pxl-crawler/crawl.mjs)
+reference/screenshots/*.png

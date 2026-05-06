@@ -1,0 +1,24 @@
+---
+const cells = 48;
+const palette = [
+  '#ff3b6e', '#ff7a3b', '#ffd23b', '#82e93b', '#3bd6ff', '#3b79ff', '#a23bff', '#ff3bd6',
+];
+const bars = Array.from({ length: cells }, (_, i) => palette[i % palette.length]);
+---
+
+<div class="stripe" aria-hidden="true">
+  {bars.map((c) => <span style={`background: ${c}`}></span>)}
+</div>
+
+<style>
+  .stripe {
+    display: grid;
+    grid-template-columns: repeat(48, 1fr);
+    height: 8px;
+  }
+  .stripe span { display: block; height: 100%; }
+  @media (max-width: 720px) {
+    .stripe { grid-template-columns: repeat(24, 1fr); }
+    .stripe span:nth-child(n+25) { display: none; }
+  }
+</style>

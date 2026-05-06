@@ -1,0 +1,63 @@
+---
+interface Props {
+  images: string[];
+  ariaLabel?: string;
+  /** Marquee speed in seconds for one full loop */
+  speed?: number;
+}
+const { images, ariaLabel = 'Gallery', speed = 60 } = Astro.props;
+// Duplicate the images so the marquee can loop seamlessly.
+const doubled = [...images, ...images];
+---
+
+<section class="gallery" aria-label={ariaLabel}>
+  <div class="gallery__viewport">
+    <div class="gallery__track" style={`--marquee-duration: ${speed}s; --item-count: ${images.length};`}>
+      {doubled.map((src, i) => (
+        <div class="gallery__item" aria-hidden={i >= images.length ? 'true' : undefined}>
+          <img src={src} alt={i < images.length ? '' : ''} loading="lazy" width="253" height="338" />
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .gallery {
+    padding: clamp(2rem, 4vw, 3.5rem) 0;
+    overflow: hidden;
+    background: #fff;
+  }
+  .gallery__viewport {
+    width: 100%;
+    overflow: hidden;
+  }
+  .gallery__track {
+    display: flex;
+    gap: 16px;
+    width: max-content;
+    animation: marquee var(--marquee-duration) linear infinite;
+    will-change: transform;
+  }
+  .gallery__track:hover { animation-play-state: paused; }
+  .gallery__item {
+    flex: 0 0 253px;
+    height: 338px;
+    overflow: hidden;
+    background: #f0f0f0;
+  }
+  .gallery__item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    /* Move by exactly half (since the track is the original images duplicated) */
+    to { transform: translateX(calc(-1 * (253px + 16px) * var(--item-count))); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .gallery__track { animation: none; }
+  }
+</style>

@@ -1,0 +1,212 @@
+@import url('https://api.fontshare.com/v2/css?f[]=satoshi@500,700,900&display=swap');
+
+:root {
+  --bg: #ffffff;
+  --bg-soft: #f4f5f7;
+  --bg-soft-2: #ecedf2;
+  --bg-warm: #efe5d7;
+  --bg-cool: #d9dbe9;
+  --fg: #0a0a0a;
+  --fg-soft: #1a1a1a;
+  --muted: #5d5d5d;
+  --hairline: #e5e5e5;
+  --dark-bg: #0a0a0a;
+  --dark-fg: #ffffff;
+  --max: 1280px;
+  --pad-x: clamp(1.25rem, 4vw, 3rem);
+  --section-y: clamp(3.5rem, 8vw, 6.5rem);
+  --radius: 6px;
+  /* Wix radial-gradient compositions, copied verbatim from the live site. */
+  --bg-whatis:
+    radial-gradient(circle at 88.2731% 7.99154%, rgb(192, 209, 218) 0%, rgba(192, 209, 218, 0) 35%),
+    radial-gradient(circle at 64.4206% 54.0885%, rgba(251, 182, 56, 0.37) 0%, rgba(251, 182, 56, 0) 51%),
+    radial-gradient(circle at 1.9515% 85.5371%, rgba(192, 209, 218, 0.7) 0%, rgba(192, 209, 218, 0) 50%),
+    radial-gradient(circle at 4.56543% 14.2383%, rgb(240, 240, 240) 0%, rgba(240, 240, 240, 0) 83%),
+    radial-gradient(circle at 93.7728% 12.9785%, rgba(72, 93, 189, 0.56) 0%, rgba(72, 93, 189, 0) 70%),
+    radial-gradient(circle at 48.9014% 49.5215%, rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0) 100%);
+  --bg-variants:
+    radial-gradient(circle at 39.7754% 42.5586%, rgba(251, 178, 56, 0.357) 0%, rgba(251, 178, 56, 0) 52%),
+    radial-gradient(circle at 94.3538% 89.6159%, rgba(231, 250, 152, 0.255) 0%, rgba(231, 250, 152, 0) 40%),
+    radial-gradient(circle at 5.67057% 87.9232%, rgba(240, 240, 240, 0.475) 0%, rgba(240, 240, 240, 0) 50%),
+    radial-gradient(circle at 4.06901% 13.8346%, rgba(192, 209, 218, 0.165) 0%, rgba(192, 209, 218, 0) 70%),
+    radial-gradient(circle at 89.2334% 30.7454%, rgba(72, 93, 189, 0.48) 0%, rgba(72, 93, 189, 0) 70%),
+    radial-gradient(circle at 48.9014% 49.5215%, rgba(255, 255, 255, 0.48) 0%, rgba(255, 255, 255, 0) 100%),
+    #ffffff;
+  --bg-create:
+    radial-gradient(circle at 80.109% 23.4245%, rgb(240, 240, 240) 0%, rgba(240, 240, 240, 0) 40%),
+    radial-gradient(circle at 8.81836% 13.9095%, rgba(240, 240, 240, 0.99) 0%, rgba(240, 240, 240, 0) 50%),
+    radial-gradient(circle at 8.97624% 87.5065%, rgb(192, 209, 218) 0%, rgba(192, 209, 218, 0) 70%),
+    radial-gradient(circle at 29.1081% 60.3646%, rgba(251, 182, 56, 0.52) 0%, rgba(251, 182, 56, 0) 70%),
+    radial-gradient(circle at 48.9014% 49.5215%, rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0) 100%);
+  --bg-footer:
+    radial-gradient(circle at 94.3538% 89.6159%, rgb(192, 209, 218) 0%, rgba(192, 209, 218, 0) 40%),
+    radial-gradient(circle at 6.81315% 90.5534%, rgba(255, 179, 80, 0.57) 0%, rgba(255, 179, 80, 0) 53%),
+    radial-gradient(circle at 6.16536% 12.6172%, rgb(192, 209, 218) 0%, rgba(192, 209, 218, 0) 70%),
+    radial-gradient(circle at 93.6865% 11.4258%, rgba(72, 93, 189, 0.49) 0%, rgba(72, 93, 189, 0) 70%),
+    radial-gradient(circle at 48.9014% 49.5215%, rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0) 100%);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  /* Body / paragraph copy uses Arial/Helvetica (matches live Wix site).
+     Headings opt into Satoshi via dedicated classes (.h-display, .h-section, .h-sub). */
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  scroll-behavior: smooth;
+}
+
+body { margin: 0; line-height: 1.55; font-size: 17px; }
+img { display: block; max-width: 100%; height: auto; }
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+
+.container {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding-left: var(--pad-x);
+  padding-right: var(--pad-x);
+}
+
+.section {
+  padding-top: var(--section-y);
+  padding-bottom: var(--section-y);
+  position: relative;
+}
+
+.section--dark {
+  background: var(--dark-bg);
+  color: var(--dark-fg);
+}
+
+.section--soft { background: var(--bg-soft); }
+.section--white { background: #ffffff; }
+
+.section--bg-whatis { background: var(--bg-whatis), #ffffff; }
+.section--bg-variants { background: var(--bg-variants); }
+.section--bg-create { background: var(--bg-create), #ffffff; }
+.section--bg-footer { background: var(--bg-footer), #ffffff; }
+
+.eyebrow {
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 1.25rem;
+}
+
+.h-display {
+  font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  font-size: 120px;
+  line-height: 120px;
+  letter-spacing: -0.04em;
+  margin: 0;
+}
+
+.h-section {
+  font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+  font-weight: 500;
+  font-size: 50px;
+  line-height: 55px;
+  letter-spacing: -0.015em;
+  margin: 0 0 1rem;
+}
+
+.h-sub {
+  font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  font-size: 40px;
+  line-height: 48px;
+  letter-spacing: -0.012em;
+  margin: 0 0 1rem;
+}
+
+.lead {
+  font-size: 17px;
+  color: var(--fg);
+  max-width: 60ch;
+  line-height: 1.5;
+}
+
+/* Section sub-heading style used in WhatIs / Setup intro lines.
+   Matches the live "What is the PXL Clock?" rendering: 25px, weight 400, line 32.5px. */
+/* Note: live uses Satoshi-Bold *as the font face* via wfont_b57df7_704def...
+   while declaring weight 400. We replicate via explicit Satoshi 700 so the
+   visual weight matches without relying on Wix's custom font file. */
+.h-card {
+  font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  font-size: 25px;
+  line-height: 32.5px;
+  letter-spacing: -0.005em;
+  margin: 0 0 1.25rem;
+}
+
+.lead--muted { color: var(--muted); }
+
+p { margin: 0 0 1rem; }
+p:last-child { margin-bottom: 0; }
+
+/* Black button — matches live Wix dimensions (207x60, 20px text, 5px radius) */
+.btn {
+  font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 60px;
+  padding: 0 32px;
+  border-radius: 5px;
+  font-weight: 400;
+  font-size: 20px;
+  letter-spacing: 0;
+  border: 0;
+  background: #000;
+  color: #fff;
+  transition: background 0.2s ease, transform 0.15s ease;
+  cursor: pointer;
+  text-transform: none;
+  min-width: 207px;
+}
+
+.btn:hover { background: #2a2a2a; }
+.btn:active { transform: translateY(1px); }
+.btn[disabled] { background: #2a2a2a; cursor: default; opacity: 0.85; }
+
+.btn--ghost {
+  background: transparent;
+  color: var(--fg);
+  border: 1.5px solid var(--fg);
+}
+.btn--ghost:hover { background: var(--fg); color: #fff; }
+
+.btn--lg { padding: 1.05rem 2.25rem; font-size: 0.95rem; }
+
+.btn--row { display: inline-flex; gap: 0.875rem; flex-wrap: wrap; }
+
+/* PXL pixel logo (uses currentColor) */
+.pxl-logo {
+  display: inline-block;
+  height: 1.75rem;
+  width: auto;
+  color: inherit;
+}
+
+/* Curved section divider — concave on top of the section that follows */
+.curve-down,
+.curve-up {
+  display: block;
+  width: 100%;
+  height: clamp(40px, 6vw, 90px);
+  margin: 0;
+  padding: 0;
+  line-height: 0;
+}
+
+.curve-down svg,
+.curve-up svg { display: block; width: 100%; height: 100%; }
