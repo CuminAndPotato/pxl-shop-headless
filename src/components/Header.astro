@@ -53,11 +53,8 @@ try {
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
     height: 88px;
-    /* Tighter horizontal padding than the rest of the page — matches live site
-       where the nav and cart icon sit closer to the viewport edges. */
-    padding-left: clamp(1rem, 2vw, 1.75rem);
-    padding-right: clamp(1rem, 2vw, 1.75rem);
-    max-width: none;
+    /* Inherits .container's max-width + padding-x → nav and hero headline
+       share the same left edge (same x-position), like the live site. */
   }
   .header__nav {
     display: flex;
