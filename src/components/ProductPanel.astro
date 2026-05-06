@@ -118,7 +118,9 @@ const productHasVariants = !!product?.hasVariants && (product?.variants.length ?
   .product { position: relative; padding-bottom: clamp(7rem, 14vw, 12rem); }
   .product__grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    /* Make the media column much wider so the clock photo really dominates,
+       like on the live site. Roughly 1 part text, 2 parts image. */
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 2fr);
     gap: clamp(2rem, 5vw, 5rem);
     align-items: center;
   }
@@ -129,7 +131,9 @@ const productHasVariants = !!product?.hasVariants && (product?.variants.length ?
   .product__media img {
     width: 100%;
     height: auto;
-    max-height: 760px;
+    /* Roughly double the previous size — the clock now visually dominates the
+       right side of the section, matching the live page. */
+    max-height: 1100px;
     object-fit: contain;
     background: transparent;
     /* Drop-shadow only renders on the visible (non-transparent) pixels of the
