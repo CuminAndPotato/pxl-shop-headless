@@ -16,9 +16,11 @@ const stockLabel = !product
       ? s.stock.lowStock(product.stockQuantity)
       : s.stock.inStock;
 
-// PNG (not AVIF) so the transparent background is preserved by every browser
-// — the radial gradient flows through, no white rectangle around the clock.
-const productImage = '/img/products/clock-black-1020.png';
+// Same asset the live site shows in the "What is the PXL Clock?" section
+// (PXL_CLOCK_RPdukt.png — Pac-Man on a black frame). Loaded as PNG to keep
+// the transparent background → the section's radial gradient flows around
+// the clock outline, no hard white rectangle.
+const productImage = '/img/products/whatis-clock.png';
 
 const hasDiscount = !!product?.discountedPrice;
 const priceLabel = product?.price?.formatted ?? '';
@@ -127,7 +129,7 @@ const productHasVariants = !!product?.hasVariants && (product?.variants.length ?
   .product__media img {
     width: 100%;
     height: auto;
-    max-height: 520px;
+    max-height: 660px;
     object-fit: contain;
     background: transparent;
     /* Drop-shadow only renders on the visible (non-transparent) pixels of the
