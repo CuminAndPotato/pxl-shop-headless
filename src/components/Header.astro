@@ -15,7 +15,7 @@ try {
 ---
 
 <header class="site-header">
-  <div class="container header__inner">
+  <div class="header__inner">
     <nav class="header__nav" aria-label="Primary">
       <a href={homeHref(locale)}>{s.nav.product}</a>
       <a href="https://discord.gg/KDbVdKQh5j" target="_blank" rel="noopener">{s.nav.community}</a>
@@ -53,8 +53,11 @@ try {
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
     height: 88px;
-    /* Inherits .container's max-width + padding-x → nav and hero headline
-       share the same left edge (same x-position), like the live site. */
+    /* Full-width — same horizontal padding as the hero, so on every viewport
+       (including ultra-wide) the nav and the hero headline share the same
+       left edge. Body sections still sit inside the centered .container. */
+    padding-left: var(--pad-x);
+    padding-right: var(--pad-x);
   }
   .header__nav {
     display: flex;

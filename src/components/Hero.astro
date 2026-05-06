@@ -17,7 +17,7 @@ const s = t(locale);
     />
   </picture>
   <div class="hero__overlay" aria-hidden="true"></div>
-  <div class="container hero__inner">
+  <div class="hero__inner">
     <h1 class="h-display hero__title">
       {s.hero.title.map((line) => <span>{line}</span>)}
     </h1>
@@ -63,11 +63,18 @@ const s = t(locale);
   .hero__inner {
     position: relative;
     width: 100%;
+    /* Full-width — same horizontal padding as the header, so the headline
+       sits at the same x as the nav above. NO .container/max-width, so on
+       ultra-wide monitors the headline doesn't get pulled to the centre. */
     padding-top: 120px;
     padding-bottom: 80px;
+    padding-left: var(--pad-x);
+    padding-right: var(--pad-x);
+    box-sizing: border-box;
   }
   .hero__title {
-    max-width: 14ch;
+    /* Headline can wrap naturally; no fixed max-width pulling it rightward. */
+    max-width: none;
   }
   .hero__title span {
     display: block;
