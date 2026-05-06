@@ -7,7 +7,7 @@ const clientId = import.meta.env.WIX_CLIENT_ID;
 
 export function makeWixClient(sessionTokens?: any) {
   if (!clientId) {
-    throw new Error('Missing WIX_CLIENT_ID — copy .env.example to .env and set it.');
+    throw new Error('Missing WIX_CLIENT_ID. Copy .env.example to .env and set it.');
   }
   return createClient({
     modules: { products, currentCart, redirects },

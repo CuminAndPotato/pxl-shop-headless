@@ -9,7 +9,11 @@ const s = t(locale);
 ---
 
 <section class="section variants section--bg-variants">
-  <WaveOverlay side="top" fill="#ffffff" height="320px" />
+  {/* Wide white wave fills the whole top half of the section. The product
+      images below sit on top of it (z-index 1) so their upper part is over
+      white and their lower part bleeds into the radial-gradient — exactly
+      like the live site. */}
+  <WaveOverlay side="top" fill="#ffffff" height="640px" />
 
   <div class="container variants__inner">
     <h2 class="h-sub variants__title">{s.variants.title}</h2>
@@ -30,7 +34,8 @@ const s = t(locale);
 <style>
   .variants {
     position: relative;
-    padding-top: clamp(10rem, 18vw, 18rem);
+    padding-top: clamp(5rem, 9vw, 8rem);
+    padding-bottom: clamp(5rem, 9vw, 7rem);
   }
   .variants__inner {
     text-align: center;
@@ -45,7 +50,9 @@ const s = t(locale);
     color: var(--fg-soft);
   }
   .variants__grid {
-    margin: clamp(3rem, 6vw, 5rem) auto 0;
+    /* Pull the images UP into the white wave area above so they straddle the
+       white-to-gradient boundary instead of sitting cleanly below it. */
+    margin: clamp(1.5rem, 3vw, 2.5rem) auto 0;
     max-width: 1100px;
     padding: 0 var(--pad-x);
     display: grid;
@@ -60,7 +67,7 @@ const s = t(locale);
     height: auto;
     aspect-ratio: 1 / 1;
     object-fit: contain;
-    filter: drop-shadow(0 25px 50px rgba(0,0,0,0.15));
+    filter: drop-shadow(0 30px 50px rgba(0,0,0,0.18));
   }
   figcaption {
     margin-top: 1.5rem;

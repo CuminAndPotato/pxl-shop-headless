@@ -6,16 +6,29 @@ interface Props {
   speed?: number;
 }
 const { images, ariaLabel = 'Gallery', speed = 60 } = Astro.props;
-// Duplicate the images so the marquee can loop seamlessly.
+// Duplicate the images so the marquee can loop seamlessly:
+// once translation reaches the end of the first copy, it lands exactly on the
+// start of the second copy → visually identical → instant jump back to 0.
 const doubled = [...images, ...images];
+const ITEM_W = 253;
+const GAP = 16;
+const stepPx = (ITEM_W + GAP) * images.length; // distance for one full set
 ---
 
 <section class="gallery" aria-label={ariaLabel}>
   <div class="gallery__viewport">
-    <div class="gallery__track" style={`--marquee-duration: ${speed}s; --item-count: ${images.length};`}>
+    <div class="gallery__track" style={`--marquee-duration: ${speed}s; --step: ${stepPx}px;`}>
       {doubled.map((src, i) => (
         <div class="gallery__item" aria-hidden={i >= images.length ? 'true' : undefined}>
-          <img src={src} alt={i < images.length ? '' : ''} loading="lazy" width="253" height="338" />
+          <img
+            src={src}
+            alt=""
+            loading={i < 5 ? 'eager' : 'lazy'}
+            decoding="async"
+            width="253"
+            height="338"
+            draggable="false"
+          />
         </div>
       ))}
     </div>
@@ -38,24 +51,30 @@ const doubled = [...images, ...images];
     width: max-content;
     animation: marquee var(--marquee-duration) linear infinite;
     will-change: transform;
+    /* GPU compositing → no sub-pixel jitter when the loop wraps. */
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
   }
-  .gallery__track:hover { animation-play-state: paused; }
+  /* Hover does NOT pause anymore. */
   .gallery__item {
     flex: 0 0 253px;
     height: 338px;
     overflow: hidden;
     background: #f0f0f0;
+    user-select: none;
   }
   .gallery__item img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
+    pointer-events: none;
   }
   @keyframes marquee {
-    from { transform: translateX(0); }
-    /* Move by exactly half (since the track is the original images duplicated) */
-    to { transform: translateX(calc(-1 * (253px + 16px) * var(--item-count))); }
+    from { transform: translate3d(0, 0, 0); }
+    /* Translate by exactly one full set: end position is visually identical
+       to start, so the loop wraps without any visible jump. */
+    to   { transform: translate3d(calc(-1 * var(--step)), 0, 0); }
   }
   @media (prefers-reduced-motion: reduce) {
     .gallery__track { animation: none; }

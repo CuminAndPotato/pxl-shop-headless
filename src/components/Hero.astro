@@ -27,8 +27,11 @@ const s = t(locale);
 <style>
   .hero {
     position: relative;
-    height: 900px;
-    max-height: 100vh;
+    /* Always fill the full viewport so the section below never peeks. dvh
+       handles mobile-browser URL-bar collapse; vh is the desktop fallback. */
+    height: 100vh;
+    height: 100dvh;
+    min-height: 640px;
     display: flex;
     align-items: center;
     color: #fff;
@@ -67,7 +70,6 @@ const s = t(locale);
     color: #fff;
   }
   @media (max-width: 720px) {
-    .hero { height: 80vh; }
     .hero__inner { padding-top: 96px; padding-bottom: 48px; }
   }
 </style>
