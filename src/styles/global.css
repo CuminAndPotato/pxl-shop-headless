@@ -12,8 +12,10 @@
   --hairline: #e5e5e5;
   --dark-bg: #0a0a0a;
   --dark-fg: #ffffff;
-  --max: 1320px;
-  --pad-x: clamp(1.25rem, 3vw, 2.25rem);
+  --max: 1280px;
+  /* Single horizontal padding token used by every .container — header, hero,
+     footer, content sections all share the same left/right edge. */
+  --pad-x: clamp(1.5rem, 3vw, 2.5rem);
   --section-y: clamp(3.5rem, 8vw, 6.5rem);
   --radius: 6px;
   /* Wix radial-gradient compositions, copied verbatim from the live site. */

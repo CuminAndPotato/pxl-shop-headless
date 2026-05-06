@@ -16,9 +16,9 @@ const stockLabel = !product
       ? s.stock.lowStock(product.stockQuantity)
       : s.stock.inStock;
 
-// Use the Black-Edition product shot (transparent background) so the section's
-// radial gradient flows through the image. Self-hosted under public/img.
-const productImage = '/img/products/clock-black-1020.avif';
+// PNG (not AVIF) so the transparent background is preserved by every browser
+// — the radial gradient flows through, no white rectangle around the clock.
+const productImage = '/img/products/clock-black-1020.png';
 
 const hasDiscount = !!product?.discountedPrice;
 const priceLabel = product?.price?.formatted ?? '';
