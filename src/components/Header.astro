@@ -14,7 +14,7 @@ try {
 } catch { /* show 0 on transient errors — header must never crash the page */ }
 ---
 
-<header class="site-header">
+<header class={variant === 'light' ? 'site-header site-header--light' : 'site-header'}>
   <div class="header__inner">
     <nav class="header__nav" aria-label="Primary">
       <a href={homeHref(locale)}>{s.nav.product}</a>

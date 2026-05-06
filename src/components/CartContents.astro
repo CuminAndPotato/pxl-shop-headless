@@ -148,17 +148,27 @@ const back = locale === 'de' ? '/de/cart' : '/cart';
     border-radius: 8px;
   }
   .cart__coupon { margin-bottom: 1.5rem; }
-  .cart__coupon-input { display: flex; gap: 0.5rem; }
+  .cart__coupon-input { display: flex; gap: 0.5rem; align-items: stretch; }
   .cart__coupon-input input {
     flex: 1;
-    padding: 0.7rem 0.9rem;
+    height: 44px;
+    padding: 0 0.9rem;
     border: 1px solid var(--hairline); border-radius: 4px;
     font-size: 0.95rem; font-family: inherit;
   }
   .cart__coupon-input button {
+    height: 44px;
+    padding: 0 1.25rem;
     background: #fff; border: 1px solid var(--fg); border-radius: 4px;
-    padding: 0 1.1rem; font-weight: 700; font-size: 0.85rem; cursor: pointer;
+    color: var(--fg);
+    font-family: inherit;
+    font-weight: 700; font-size: 0.9rem;
+    cursor: pointer;
+    white-space: nowrap;
+    /* Override the global .btn min-height/min-width that some browsers apply */
+    min-width: 0;
   }
+  .cart__coupon-input button:hover { background: #f5f5f5; }
   .cart__coupon-applied {
     display: flex; align-items: center; justify-content: space-between;
     padding: 0.7rem 0.9rem;

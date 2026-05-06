@@ -24,7 +24,7 @@ const { locale, title, description } = Astro.props;
     <link rel="alternate" hreflang="de" href={Astro.site ? new URL('/de/', Astro.site).toString() : '/de/'} />
   </head>
   <body>
-    <Header locale={locale} />
+    <Header locale={locale} variant={headerVariant} />
     <main>
       <slot />
     </main>
