@@ -2,6 +2,7 @@
 import type { Locale } from '../i18n/strings';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
 
 interface Props {
@@ -22,12 +23,13 @@ const { locale, title, description } = Astro.props;
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="alternate" hreflang="en" href={Astro.site ? new URL('/', Astro.site).toString() : '/'} />
     <link rel="alternate" hreflang="de" href={Astro.site ? new URL('/de/', Astro.site).toString() : '/de/'} />
+    <ClientRouter />
   </head>
   <body>
-    <Header locale={locale} />
+    <Header locale={locale} transition:persist />
     <main>
       <slot />
     </main>
-    <Footer locale={locale} />
+    <Footer locale={locale} transition:persist />
   </body>
 </html>

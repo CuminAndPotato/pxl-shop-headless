@@ -10,4 +10,5 @@ export default defineConfig({
     locales: ['en', 'de'],
     routing: { prefixDefaultLocale: false },
   },
+  devToolbar: { enabled: false },
 });
