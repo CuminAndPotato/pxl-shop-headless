@@ -37,7 +37,9 @@ const stepPx = (ITEM_W + GAP) * images.length; // distance for one full set
 
 <style>
   .gallery {
-    padding: clamp(2rem, 4vw, 3.5rem) 0;
+    /* Larger vertical breathing room — the workshop slider especially needs
+       it between the dark statement above and the next dark statement below. */
+    padding: clamp(3rem, 6vw, 5rem) 0;
     overflow: hidden;
     background: #fff;
   }
@@ -51,11 +53,9 @@ const stepPx = (ITEM_W + GAP) * images.length; // distance for one full set
     width: max-content;
     animation: marquee var(--marquee-duration) linear infinite;
     will-change: transform;
-    /* GPU compositing → no sub-pixel jitter when the loop wraps. */
-    transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
   }
-  /* Hover does NOT pause anymore. */
+  /* Hover does NOT pause. The marquee runs continuously. */
   .gallery__item {
     flex: 0 0 253px;
     height: 338px;
@@ -71,12 +71,11 @@ const stepPx = (ITEM_W + GAP) * images.length; // distance for one full set
     pointer-events: none;
   }
   @keyframes marquee {
-    from { transform: translate3d(0, 0, 0); }
+    from { transform: translateX(0); }
     /* Translate by exactly one full set: end position is visually identical
        to start, so the loop wraps without any visible jump. */
-    to   { transform: translate3d(calc(-1 * var(--step)), 0, 0); }
+    to   { transform: translateX(calc(-1 * var(--step))); }
   }
-  @media (prefers-reduced-motion: reduce) {
-    .gallery__track { animation: none; }
-  }
+  /* prefers-reduced-motion intentionally NOT honored here — user requested the
+     marquee always run. */
 </style>

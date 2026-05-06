@@ -7,12 +7,7 @@ interface Props {
 const { line1, line2, bgImage } = Astro.props;
 ---
 
-<section class="statement">
-  {bgImage && (
-    <picture class="statement__pic">
-      <img src={bgImage} alt="" loading="lazy" width="1920" height="900" />
-    </picture>
-  )}
+<section class="statement" style={bgImage ? `--bg: url('${bgImage}')` : undefined}>
   <div class="statement__overlay" aria-hidden="true"></div>
   <div class="container statement__inner">
     <h2 class="statement__h">
@@ -23,6 +18,8 @@ const { line1, line2, bgImage } = Astro.props;
 </section>
 
 <style>
+  /* Parallax via background-attachment: fixed — the photo stays anchored to
+     the viewport while the text scrolls past, exactly like the live site. */
   .statement {
     position: relative;
     height: 500px;
@@ -33,13 +30,16 @@ const { line1, line2, bgImage } = Astro.props;
     isolation: isolate;
     color: #fff;
     text-align: center;
-    background: #000;
+    background-color: #000;
+    background-image: var(--bg);
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
   }
-  .statement__pic { position: absolute; inset: 0; z-index: -2; }
-  .statement__pic img {
-    width: 100%; height: 100%;
-    object-fit: cover; object-position: center;
-    display: block;
+  /* iOS Safari can't composite background-attachment: fixed without jank, so
+     fall back to scroll on touch devices. */
+  @media (hover: none) and (pointer: coarse) {
+    .statement { background-attachment: scroll; }
   }
   .statement__overlay {
     position: absolute; inset: 0; z-index: -1;

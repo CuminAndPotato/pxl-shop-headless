@@ -16,10 +16,12 @@ const stockLabel = !product
       ? s.stock.lowStock(product.stockQuantity)
       : s.stock.inStock;
 
-// Override: the Wix Stores backend stores a white-studio shot as main image,
-// but the live storefront (pxlclock.com) shows the Pac-Man hero on a black frame.
-// We use the same asset as the live site for consistency.
-const productImage = 'https://static.wixstatic.com/media/5d430b_04dab9727fe54a9cb7cd954d923a5a02~mv2.png/v1/fill/w_1020,h_1066,al_c,q_90,enc_avif,quality_auto/PXL_CLOCK_RPdukt.png';
+// Use whatever Wix Stores returns for this product (configurable in the Wix
+// admin → Products → Media). Falls back to the gallery's first picture, then
+// to the live-site Pac-Man asset.
+const productImage = product?.mainImage
+  ?? product?.gallery?.[0]
+  ?? 'https://static.wixstatic.com/media/5d430b_04dab9727fe54a9cb7cd954d923a5a02~mv2.png/v1/fill/w_1020,h_1066,al_c,q_90,enc_avif,quality_auto/PXL_CLOCK_RPdukt.png';
 
 const hasDiscount = !!product?.discountedPrice;
 const priceLabel = product?.price?.formatted ?? '';
@@ -128,10 +130,10 @@ const productHasVariants = !!product?.hasVariants && (product?.variants.length ?
   .product__media img {
     width: 100%;
     height: auto;
-    max-height: 720px;
+    max-height: 520px;
     object-fit: contain;
     background: transparent;
-    filter: drop-shadow(0 35px 70px rgba(0,0,0,0.18));
+    filter: drop-shadow(0 30px 50px rgba(0,0,0,0.18));
   }
   .product__price {
     display: flex; align-items: baseline; gap: 0.75rem;
