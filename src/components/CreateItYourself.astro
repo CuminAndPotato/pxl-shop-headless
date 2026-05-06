@@ -7,16 +7,26 @@ interface Props { locale: Locale }
 const { locale } = Astro.props;
 const s = t(locale);
 
-// Hero + thumbnails are the first 7 frames of the live "Create" gallery.
-const heroImg = 'https://static.wixstatic.com/media/5d430b_c2dda73e68f948f9aa4b5c0bd1c0b4c1~mv2.jpg/v1/fill/w_1020,h_648,fp_0.8_0.75,q_90,enc_avif,quality_auto/dev.avif';
-const thumbs = [
-  'https://static.wixstatic.com/media/5d430b_fb1d22317a4f43f284b772995ce5ddc7~mv2.jpg/v1/fill/w_220,h_140,fp_0.56_0.36,q_85,enc_avif,quality_auto/t2.avif',
-  'https://static.wixstatic.com/media/5d430b_fcf22499e4bb4150b5e4e4aff526a1bf~mv2.jpg/v1/fill/w_220,h_140,q_85,enc_avif,quality_auto/t3.avif',
-  'https://static.wixstatic.com/media/5d430b_3f45f9bd1e594c49bc303ddc5538aa8b~mv2.jpg/v1/fill/w_220,h_140,q_85,enc_avif,quality_auto/t4.avif',
-  'https://static.wixstatic.com/media/5d430b_bacd04b5df084167b055daaab8fa619d~mv2.jpg/v1/fill/w_220,h_140,q_85,enc_avif,quality_auto/t5.avif',
-  'https://static.wixstatic.com/media/5d430b_bbb23226bacc40e4a977aee958861cab~mv2.jpg/v1/fill/w_220,h_140,q_85,enc_avif,quality_auto/t6.avif',
-  'https://static.wixstatic.com/media/5d430b_8171588421ad4eb381e4d586b360c583~mv2.jpg/v1/fill/w_220,h_140,q_85,enc_avif,quality_auto/t7.avif',
+// Asset IDs (and crop hints) from the live "Create" gallery on pxlclock.com.
+// Each entry produces both a hero (1020x648) and a thumbnail (220x140) URL from the same Wix asset.
+type Frame = { id: string; fp?: string };
+const frames: Frame[] = [
+  { id: '5d430b_c2dda73e68f948f9aa4b5c0bd1c0b4c1', fp: '0.8_0.75' },
+  { id: '5d430b_fb1d22317a4f43f284b772995ce5ddc7', fp: '0.56_0.36' },
+  { id: '5d430b_fcf22499e4bb4150b5e4e4aff526a1bf' },
+  { id: '5d430b_3f45f9bd1e594c49bc303ddc5538aa8b' },
+  { id: '5d430b_bacd04b5df084167b055daaab8fa619d' },
+  { id: '5d430b_bbb23226bacc40e4a977aee958861cab' },
+  { id: '5d430b_8171588421ad4eb381e4d586b360c583' },
 ];
+
+const wixUrl = (f: Frame, w: number, h: number) => {
+  const fp = f.fp ? `,fp_${f.fp}` : '';
+  return `https://static.wixstatic.com/media/${f.id}~mv2.jpg/v1/fill/w_${w},h_${h}${fp},q_85,enc_avif,quality_auto/${f.id}.avif`;
+};
+
+const items = frames.map((f) => ({ hero: wixUrl(f, 1020, 648), thumb: wixUrl(f, 240, 152) }));
+const initial = items[0];
 ---
 
 <section class="section create section--bg-create">
@@ -24,9 +34,20 @@ const thumbs = [
 
   <div class="container create__grid">
     <div class="create__media">
-      <img class="create__hero" src={heroImg} alt="Developer designing animations" loading="lazy" />
-      <div class="create__thumbs" aria-hidden="true">
-        {thumbs.map((src) => <img src={src} alt="" loading="lazy" />)}
+      <img class="create__hero" src={initial.hero} alt="" loading="lazy" data-create-hero />
+      <div class="create__thumbs" role="tablist">
+        {items.map((it, i) => (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={i === 0 ? 'true' : 'false'}
+            class={i === 0 ? 'create__thumb is-active' : 'create__thumb'}
+            data-hero={it.hero}
+            aria-label={`Frame ${i + 1}`}
+          >
+            <img src={it.thumb} alt="" loading="lazy" />
+          </button>
+        ))}
       </div>
     </div>
     <div class="create__copy">
@@ -42,6 +63,30 @@ const thumbs = [
   </div>
 </section>
 
+<script>
+  // Click a thumb → swap the hero image. Pure client-side, no framework.
+  const hero = document.querySelector<HTMLImageElement>('[data-create-hero]');
+  const thumbs = document.querySelectorAll<HTMLButtonElement>('.create__thumb');
+  if (hero && thumbs.length) {
+    // Preload all hero variants so the swap is instant
+    thumbs.forEach((b) => {
+      const url = b.dataset.hero;
+      if (url) { const img = new Image(); img.src = url; }
+    });
+    thumbs.forEach((b) => {
+      b.addEventListener('click', () => {
+        const url = b.dataset.hero;
+        if (!url) return;
+        hero.src = url;
+        thumbs.forEach((x) => {
+          x.classList.toggle('is-active', x === b);
+          x.setAttribute('aria-selected', x === b ? 'true' : 'false');
+        });
+      });
+    });
+  }
+</script>
+
 <style>
   .create { position: relative; padding-top: clamp(8rem, 14vw, 13rem); }
   .create__grid {
@@ -56,24 +101,49 @@ const thumbs = [
   .create__h span { display: block; }
   .create__copy .lead { margin-bottom: 1rem; }
   .create__cta { margin-top: 1.75rem; }
+
   .create__hero {
     width: 100%;
     aspect-ratio: 510 / 324;
     object-fit: cover;
     border-radius: 4px;
+    transition: opacity 0.18s ease;
   }
   .create__thumbs {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.55rem;
+    margin-top: 0.6rem;
   }
-  .create__thumbs img {
-    width: 100%;
-    aspect-ratio: 16 / 10;
-    object-fit: cover;
+  .create__thumb {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
     border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    opacity: 0.7;
   }
+  .create__thumb img {
+    width: 100%;
+    aspect-ratio: 510 / 324;
+    object-fit: cover;
+    display: block;
+  }
+  .create__thumb:hover { opacity: 1; }
+  .create__thumb.is-active {
+    opacity: 1;
+    outline: 2px solid var(--fg);
+    outline-offset: 2px;
+  }
+  .create__thumb:focus-visible {
+    outline: 2px solid var(--fg);
+    outline-offset: 2px;
+  }
+
   @media (max-width: 860px) {
     .create__grid { grid-template-columns: 1fr; }
   }
