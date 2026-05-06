@@ -16,8 +16,10 @@ const stockLabel = !product
       ? s.stock.lowStock(product.stockQuantity)
       : s.stock.inStock;
 
-const productImage = product?.mainImage
-  ?? 'https://static.wixstatic.com/media/5d430b_04dab9727fe54a9cb7cd954d923a5a02~mv2.png/v1/fill/w_1020,h_1066,al_c,q_90,enc_avif,quality_auto/PXL_CLOCK_RPdukt.png';
+// Override: the Wix Stores backend stores a white-studio shot as main image,
+// but the live storefront (pxlclock.com) shows the Pac-Man hero on a black frame.
+// We use the same asset as the live site for consistency.
+const productImage = 'https://static.wixstatic.com/media/5d430b_04dab9727fe54a9cb7cd954d923a5a02~mv2.png/v1/fill/w_1020,h_1066,al_c,q_90,enc_avif,quality_auto/PXL_CLOCK_RPdukt.png';
 
 const hasDiscount = !!product?.discountedPrice;
 const priceLabel = product?.price?.formatted ?? '';
