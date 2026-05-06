@@ -8,8 +8,10 @@ interface Props {
   locale: Locale;
   title: string;
   description?: string;
+  /** "dark" (default) for hero pages; "light" for /cart, /thank-you, etc. */
+  headerVariant?: 'dark' | 'light';
 }
-const { locale, title, description } = Astro.props;
+const { locale, title, description, headerVariant = 'dark' } = Astro.props;
 ---
 
 <!doctype html>

@@ -2,8 +2,12 @@
 import type { Locale } from '../i18n/strings';
 import { t, homeHref } from '../i18n/strings';
 
-interface Props { locale: Locale }
-const { locale } = Astro.props;
+interface Props {
+  locale: Locale;
+  /** "dark" = white text + inverted logo (over hero); "light" = black text on white pages */
+  variant?: 'dark' | 'light';
+}
+const { locale, variant = 'dark' } = Astro.props;
 const s = t(locale);
 
 const cartHref = locale === 'de' ? '/de/cart' : '/cart';

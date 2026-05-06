@@ -3,6 +3,6 @@ import Base from '../layouts/Base.astro';
 import CartContents from '../components/CartContents.astro';
 const cart = await Astro.locals.shop.getCart();
 ---
-<Base locale="en" title={`Your cart · PXL Clock${cart.itemCount > 0 ? ` (${cart.itemCount})` : ''}`}>
+<Base locale="en" headerVariant="light" title={`Your cart · PXL Clock${cart.itemCount > 0 ? ` (${cart.itemCount})` : ''}`}>
   <CartContents locale="en" cart={cart} />
 </Base>
