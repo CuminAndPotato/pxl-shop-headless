@@ -9,23 +9,21 @@ const s = t(locale);
 
 // Asset IDs (and crop hints) from the live "Create" gallery on pxlclock.com.
 // Each entry produces both a hero (1020x648) and a thumbnail (220x140) URL from the same Wix asset.
-type Frame = { id: string; fp?: string };
-const frames: Frame[] = [
-  { id: '5d430b_c2dda73e68f948f9aa4b5c0bd1c0b4c1', fp: '0.8_0.75' },
-  { id: '5d430b_fb1d22317a4f43f284b772995ce5ddc7', fp: '0.56_0.36' },
-  { id: '5d430b_fcf22499e4bb4150b5e4e4aff526a1bf' },
-  { id: '5d430b_3f45f9bd1e594c49bc303ddc5538aa8b' },
-  { id: '5d430b_bacd04b5df084167b055daaab8fa619d' },
-  { id: '5d430b_bbb23226bacc40e4a977aee958861cab' },
-  { id: '5d430b_8171588421ad4eb381e4d586b360c583' },
+// Self-hosted under public/img/gallery as <id>-hero.avif and <id>-thumb.avif.
+const frameIds = [
+  '5d430b_c2dda73e68f948f9aa4b5c0bd1c0b4c1',
+  '5d430b_fb1d22317a4f43f284b772995ce5ddc7',
+  '5d430b_fcf22499e4bb4150b5e4e4aff526a1bf',
+  '5d430b_3f45f9bd1e594c49bc303ddc5538aa8b',
+  '5d430b_bacd04b5df084167b055daaab8fa619d',
+  '5d430b_bbb23226bacc40e4a977aee958861cab',
+  '5d430b_8171588421ad4eb381e4d586b360c583',
 ];
 
-const wixUrl = (f: Frame, w: number, h: number) => {
-  const fp = f.fp ? `,fp_${f.fp}` : '';
-  return `https://static.wixstatic.com/media/${f.id}~mv2.jpg/v1/fill/w_${w},h_${h}${fp},q_85,enc_avif,quality_auto/${f.id}.avif`;
-};
-
-const items = frames.map((f) => ({ hero: wixUrl(f, 1020, 648), thumb: wixUrl(f, 240, 152) }));
+const items = frameIds.map((id) => ({
+  hero: `/img/gallery/${id}-hero.avif`,
+  thumb: `/img/gallery/${id}-thumb.avif`,
+}));
 const initial = items[0];
 ---
 

@@ -16,12 +16,9 @@ const stockLabel = !product
       ? s.stock.lowStock(product.stockQuantity)
       : s.stock.inStock;
 
-// Use the Black-Edition product shot (PNG with transparent background) so the
-// section's radial gradient flows through the image — the alternative
-// (lifestyle JPG with a white rectangle) breaks the visual continuity.
-// product.mainImage / gallery[0] are mostly white-bg lifestyle JPGs from Wix
-// and are intentionally NOT used here.
-const productImage = 'https://static.wixstatic.com/media/5d430b_6f1c21f17bda4dd685cd9ced1be4878c~mv2.png/v1/fill/w_1020,h_1020,al_c,q_90,enc_avif,quality_auto/Pxl_clock_Black.png';
+// Use the Black-Edition product shot (transparent background) so the section's
+// radial gradient flows through the image. Self-hosted under public/img.
+const productImage = '/img/products/clock-black-1020.avif';
 
 const hasDiscount = !!product?.discountedPrice;
 const priceLabel = product?.price?.formatted ?? '';
