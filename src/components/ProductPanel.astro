@@ -130,16 +130,18 @@ const productHasVariants = !!product?.hasVariants && (product?.variants.length ?
   .product__copy .lead { margin-bottom: 22px; }
   .lead--bold { font-weight: 700; }
   .product__media {
-    /* The image grows past the grid cell on both sides so the clock photo
-       reaches into the section's auto-margin gutter on the right and a bit
-       toward the text on the left — without making the grid container wider. */
-    margin-left: calc(-1 * clamp(0.5rem, 2vw, 2rem));
-    margin-right: calc(-1 * clamp(2rem, 9vw, 9rem));
+    /* Reserve overflow gutter on the right of the grid cell so the wider
+       image has somewhere to go without being clipped. */
+    margin-right: calc(-1 * clamp(3rem, 12vw, 14rem));
   }
   .product__media img {
-    width: 100%;
+    /* Override the global `img { max-width: 100% }` so the image really
+       extends past its grid cell on the right (matched by the negative
+       margin-right above). */
+    max-width: none;
+    width: calc(100% + clamp(3rem, 12vw, 14rem));
     height: auto;
-    max-height: 900px;
+    max-height: 1000px;
     object-fit: contain;
     background: transparent;
     /* Drop-shadow only renders on the visible (non-transparent) pixels of the
