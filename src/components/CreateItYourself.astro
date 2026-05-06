@@ -1,7 +1,6 @@
 ---
 import type { Locale } from '../i18n/strings';
 import { t } from '../i18n/strings';
-import WaveOverlay from './WaveOverlay.astro';
 
 interface Props { locale: Locale }
 const { locale } = Astro.props;
@@ -28,8 +27,6 @@ const initial = items[0];
 ---
 
 <section class="section create section--bg-create">
-  <WaveOverlay side="top" fill="#ffffff" height="280px" />
-
   <div class="container create__grid">
     <div class="create__media">
       <img class="create__hero" src={initial.hero} alt="" loading="lazy" data-create-hero />

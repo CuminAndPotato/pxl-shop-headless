@@ -16,11 +16,11 @@ const stockLabel = !product
       ? s.stock.lowStock(product.stockQuantity)
       : s.stock.inStock;
 
-// Same asset the live site shows in the "What is the PXL Clock?" section
-// (PXL_CLOCK_RPdukt.png — Pac-Man on a black frame). Loaded as PNG to keep
-// the transparent background → the section's radial gradient flows around
-// the clock outline, no hard white rectangle.
-const productImage = '/img/products/whatis-clock.png';
+// Tightly-cropped clock photo (transparent background) — the original
+// whatis-clock.png had ~60% empty transparent margin around the clock,
+// making the rendered image look tiny inside its grid column. The "-tight"
+// variant trims to the clock's bounding box plus a small shadow gutter.
+const productImage = '/img/products/whatis-clock-tight.png';
 
 const hasDiscount = !!product?.discountedPrice;
 const priceLabel = product?.price?.formatted ?? '';
@@ -116,32 +116,22 @@ const productHasVariants = !!product?.hasVariants && (product?.variants.length ?
 
 <style>
   .product { position: relative; padding-bottom: clamp(7rem, 14vw, 12rem); }
-  /* Same width as every other body section (.container max-width: 1280)
-     so the WhatIs block lines up with Variants, Story, etc. The image's
-     visual size is achieved via overflow, not via stretching the grid. */
+  /* Lives inside .container (1280 max), matching every other body section.
+     Image is the visually dominant column via the 1 / 1.6 ratio rather than
+     by overflowing the container. */
   .product__grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
-    gap: clamp(1rem, 2vw, 2rem);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: clamp(2rem, 4vw, 4rem);
     align-items: center;
   }
   .product__h { margin-bottom: 1.5rem; font-weight: 700; }
-  .product__copy { max-width: 520px; }
+  .product__copy { max-width: 460px; }
   .product__copy .lead { margin-bottom: 22px; }
   .lead--bold { font-weight: 700; }
-  .product__media {
-    /* Reserve overflow gutter on the right of the grid cell so the wider
-       image has somewhere to go without being clipped. */
-    margin-right: calc(-1 * clamp(3rem, 12vw, 14rem));
-  }
   .product__media img {
-    /* Override the global `img { max-width: 100% }` so the image really
-       extends past its grid cell on the right (matched by the negative
-       margin-right above). */
-    max-width: none;
-    width: calc(100% + clamp(3rem, 12vw, 14rem));
+    width: 100%;
     height: auto;
-    max-height: 1000px;
     object-fit: contain;
     background: transparent;
     /* Drop-shadow only renders on the visible (non-transparent) pixels of the

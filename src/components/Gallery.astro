@@ -11,7 +11,7 @@ const { images, ariaLabel = 'Gallery', speed = 60 } = Astro.props;
 // start of the second copy → visually identical → instant jump back to 0.
 const doubled = [...images, ...images];
 const ITEM_W = 253;
-const GAP = 16;
+const GAP = 28;
 const stepPx = (ITEM_W + GAP) * images.length; // distance for one full set
 ---
 
@@ -49,7 +49,7 @@ const stepPx = (ITEM_W + GAP) * images.length; // distance for one full set
   }
   .gallery__track {
     display: flex;
-    gap: 16px;
+    gap: 28px;
     width: max-content;
     animation: marquee var(--marquee-duration) linear infinite;
     will-change: transform;
@@ -58,8 +58,9 @@ const stepPx = (ITEM_W + GAP) * images.length; // distance for one full set
   /* Hover does NOT pause. The marquee runs continuously. */
   .gallery__item {
     flex: 0 0 253px;
-    height: 338px;
+    height: 380px;
     overflow: hidden;
+    border-radius: 16px;
     background: #f0f0f0;
     user-select: none;
   }
