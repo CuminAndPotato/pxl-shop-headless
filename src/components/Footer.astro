@@ -8,10 +8,10 @@ const s = t(locale);
 ---
 
 <footer class="site-footer">
-  <div class="container footer__logo-wrap">
+  <div class="footer__logo-wrap">
     <img class="footer__logo" src="/logos/pxl.svg" alt="PXL" />
   </div>
-  <div class="container footer__grid">
+  <div class="footer__grid">
     <div>
       <h4>{s.footer.getInTouch}</h4>
       <ul>
@@ -57,6 +57,8 @@ const s = t(locale);
   .footer__logo-wrap {
     display: flex;
     margin-bottom: clamp(2rem, 4vw, 3.5rem);
+    padding-left: var(--pad-x);
+    padding-right: var(--pad-x);
   }
   .footer__logo {
     height: clamp(58px, 8vw, 96px);
@@ -67,6 +69,8 @@ const s = t(locale);
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: clamp(1.5rem, 3vw, 3rem);
+    padding-left: var(--pad-x);
+    padding-right: var(--pad-x);
   }
   h4 {
     font-weight: 700;
