@@ -8,9 +8,12 @@ import type { Shop } from './lib/shop';
 import { EMPTY_CART } from './lib/shop';
 
 const COOKIE = 'wix_session';
+// `Secure` must be off in dev (HTTP localhost) — otherwise the browser silently
+// drops the cookie and every request looks like a brand-new visitor (= empty cart).
+const IS_PROD = import.meta.env.PROD;
 const COOKIE_OPTS = {
   httpOnly: true,
-  secure: true,
+  secure: IS_PROD,
   sameSite: 'lax' as const,
   path: '/',
   maxAge: 60 * 60 * 24 * 7, // 7 days; refresh token typically outlives this
