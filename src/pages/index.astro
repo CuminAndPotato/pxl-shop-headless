@@ -11,10 +11,11 @@ import Setup from '../components/Setup.astro';
 import OurStory from '../components/OurStory.astro';
 import { t } from '../i18n/strings';
 import { lifestyleGallery, workshopGallery, shapeSpacesBg, startedBg } from '../lib/assets';
+import { getBuildTimeProduct } from '../lib/build-shop';
 
 const locale = 'en';
 const s = t(locale);
-const product = await Astro.locals.shop.getFirstProduct();
+const product = await getBuildTimeProduct();
 ---
 
 <Base

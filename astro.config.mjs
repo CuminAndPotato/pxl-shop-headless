@@ -1,10 +1,11 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
-import node from '@astrojs/node';
 
+// Static-only build: pre-rendered HTML, all cart/checkout logic runs in the
+// browser via @wix/sdk. Deployable to any static host (GitHub Pages, S3,
+// Cloudflare Pages, …).
 export default defineConfig({
-  output: 'server',
-  adapter: node({ mode: 'standalone' }),
+  output: 'static',
   i18n: {
     defaultLocale: 'en',
     locales: ['en', 'de'],

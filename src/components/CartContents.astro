@@ -1,101 +1,243 @@
 ---
-import type { Cart } from '../lib/shop';
 import type { Locale } from '../i18n/strings';
 import { t, homeHref } from '../i18n/strings';
 
-interface Props { locale: Locale; cart: Cart }
-const { locale, cart } = Astro.props;
+interface Props { locale: Locale }
+const { locale } = Astro.props;
 const s = t(locale);
-const back = locale === 'de' ? '/de/cart' : '/cart';
+const homeUrl = homeHref(locale);
 ---
 
-<section class="section cart">
+<section class="section cart" data-cart-root data-locale={locale} data-home={homeUrl}>
   <div class="container cart__inner">
     <h1 class="h-section cart__title">{s.cart.title}</h1>
 
-    {cart.lineItems.length === 0 ? (
-      <div class="cart__empty">
-        <p class="lead">{s.cart.empty}</p>
-        <a class="btn" href={homeHref(locale)}>{s.cart.backToShop}</a>
-      </div>
-    ) : (
-      <div class="cart__grid">
-        <ul class="cart__items">
-          {cart.lineItems.map((it) => (
-            <li class="cart-item">
-              {it.image && <img class="cart-item__img" src={it.image} alt="" loading="lazy" />}
-              <div class="cart-item__main">
-                <div class="cart-item__name">{it.productName}</div>
-                {it.variantLabel && <div class="cart-item__variant">{it.variantLabel}</div>}
-                <form method="POST" action="/api/cart/update" class="cart-item__qty-form">
-                  <input type="hidden" name="lineItemId" value={it.id} />
-                  <input type="hidden" name="back" value={back} />
-                  <label class="cart-item__qty">
-                    <span class="visually-hidden">{s.cart.qty}</span>
-                    <input type="number" name="quantity" value={it.quantity} min="1" max="10" />
-                  </label>
-                  <button type="submit" class="cart-item__update">↻</button>
-                </form>
-              </div>
-              <div class="cart-item__right">
-                <div class="cart-item__price">{it.lineTotal.formatted}</div>
-                <form method="POST" action="/api/cart/remove">
-                  <input type="hidden" name="lineItemId" value={it.id} />
-                  <input type="hidden" name="back" value={back} />
-                  <button type="submit" class="cart-item__remove">{s.cart.remove}</button>
-                </form>
-              </div>
-            </li>
-          ))}
-        </ul>
+    <div data-cart-loading class="cart__loading">
+      <p class="lead">{s.cart.loading ?? 'Loading…'}</p>
+    </div>
 
-        <aside class="cart__summary">
-          <form method="POST" action="/api/cart/coupon" class="cart__coupon">
-            <input type="hidden" name="back" value={back} />
-            {cart.appliedDiscount ? (
-              <div class="cart__coupon-applied">
-                <span>{cart.appliedDiscount.code}</span>
-                <button type="submit" name="action" value="remove" class="cart__coupon-remove">{s.cart.couponRemove}</button>
-              </div>
-            ) : (
-              <div class="cart__coupon-input">
-                <input type="text" name="code" placeholder={s.cart.couponPlaceholder} autocomplete="off" />
-                <button type="submit">{s.cart.couponApply}</button>
-              </div>
-            )}
-          </form>
+    <template data-cart-i18n
+      data-empty={s.cart.empty}
+      data-back-to-shop={s.cart.backToShop}
+      data-qty={s.cart.qty}
+      data-remove={s.cart.remove}
+      data-subtotal={s.cart.subtotal}
+      data-discount={s.cart.discount}
+      data-total={s.cart.total}
+      data-coupon-placeholder={s.cart.couponPlaceholder}
+      data-coupon-apply={s.cart.couponApply}
+      data-coupon-remove={s.cart.couponRemove}
+      data-checkout={s.cart.checkout}
+    ></template>
 
-          <dl class="cart__totals">
-            <div>
-              <dt>{s.cart.subtotal}</dt>
-              <dd>{cart.subtotal.formatted}</dd>
-            </div>
-            {cart.appliedDiscount && (
-              <div class="cart__totals-discount">
-                <dt>{s.cart.discount}</dt>
-                <dd>−{cart.appliedDiscount.amount.formatted}</dd>
-              </div>
-            )}
-            <div class="cart__totals-grand">
-              <dt>{s.cart.total}</dt>
-              <dd>{cart.total.formatted}</dd>
-            </div>
-          </dl>
-
-          <form method="POST" action="/api/cart/checkout">
-            <input type="hidden" name="locale" value={locale} />
-            <button type="submit" class="btn cart__checkout">{s.cart.checkout}</button>
-          </form>
-        </aside>
-      </div>
-    )}
+    <div data-cart-content hidden></div>
   </div>
 </section>
+
+<script>
+  import { getCart, updateQuantity, removeFromCart, applyCoupon, removeCoupon, createCheckoutRedirect, CART_CHANGED } from '../lib/shop-browser';
+  import type { Cart } from '../lib/shop';
+
+  type Strings = {
+    empty: string;
+    backToShop: string;
+    qty: string;
+    remove: string;
+    subtotal: string;
+    discount: string;
+    total: string;
+    couponPlaceholder: string;
+    couponApply: string;
+    couponRemove: string;
+    checkout: string;
+  };
+
+  const root = document.querySelector<HTMLElement>('[data-cart-root]');
+  if (root) {
+    const tpl = root.querySelector<HTMLTemplateElement>('[data-cart-i18n]')!;
+    const i: Strings = {
+      empty: tpl.dataset.empty ?? '',
+      backToShop: tpl.dataset.backToShop ?? '',
+      qty: tpl.dataset.qty ?? '',
+      remove: tpl.dataset.remove ?? '',
+      subtotal: tpl.dataset.subtotal ?? '',
+      discount: tpl.dataset.discount ?? '',
+      total: tpl.dataset.total ?? '',
+      couponPlaceholder: tpl.dataset.couponPlaceholder ?? '',
+      couponApply: tpl.dataset.couponApply ?? '',
+      couponRemove: tpl.dataset.couponRemove ?? '',
+      checkout: tpl.dataset.checkout ?? '',
+    };
+    const homeUrl = root.dataset.home ?? '/';
+    const loading = root.querySelector<HTMLElement>('[data-cart-loading]')!;
+    const content = root.querySelector<HTMLElement>('[data-cart-content]')!;
+
+    const esc = (s: string) =>
+      s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+
+    function renderEmpty() {
+      return `
+        <div class="cart__empty">
+          <p class="lead">${esc(i.empty)}</p>
+          <a class="btn" href="${homeUrl}">${esc(i.backToShop)}</a>
+        </div>
+      `;
+    }
+
+    function renderItems(cart: Cart) {
+      const items = cart.lineItems
+        .map(
+          (it) => `
+        <li class="cart-item" data-line-id="${esc(it.id)}">
+          ${it.image ? `<img class="cart-item__img" src="${esc(it.image)}" alt="" loading="lazy" />` : '<div class="cart-item__img"></div>'}
+          <div class="cart-item__main">
+            <div class="cart-item__name">${esc(it.productName)}</div>
+            ${it.variantLabel ? `<div class="cart-item__variant">${esc(it.variantLabel)}</div>` : ''}
+            <div class="cart-item__qty-form">
+              <label class="cart-item__qty">
+                <span class="visually-hidden">${esc(i.qty)}</span>
+                <input type="number" data-qty value="${it.quantity}" min="1" max="10" />
+              </label>
+              <button type="button" data-update class="cart-item__update" aria-label="Update">↻</button>
+            </div>
+          </div>
+          <div class="cart-item__right">
+            <div class="cart-item__price">${esc(it.lineTotal.formatted)}</div>
+            <button type="button" data-remove class="cart-item__remove">${esc(i.remove)}</button>
+          </div>
+        </li>`,
+        )
+        .join('');
+
+      const couponBlock = cart.appliedDiscount
+        ? `
+          <div class="cart__coupon-applied">
+            <span>${esc(cart.appliedDiscount.code)}</span>
+            <button type="button" data-coupon-remove class="cart__coupon-remove">${esc(i.couponRemove)}</button>
+          </div>`
+        : `
+          <div class="cart__coupon-input">
+            <input type="text" data-coupon-code placeholder="${esc(i.couponPlaceholder)}" autocomplete="off" />
+            <button type="button" data-coupon-apply>${esc(i.couponApply)}</button>
+          </div>`;
+
+      const discountRow = cart.appliedDiscount
+        ? `
+          <div class="cart__totals-discount">
+            <dt>${esc(i.discount)}</dt>
+            <dd>−${esc(cart.appliedDiscount.amount.formatted)}</dd>
+          </div>`
+        : '';
+
+      return `
+        <div class="cart__grid">
+          <ul class="cart__items">${items}</ul>
+          <aside class="cart__summary">
+            <div class="cart__coupon">${couponBlock}</div>
+            <dl class="cart__totals">
+              <div>
+                <dt>${esc(i.subtotal)}</dt>
+                <dd>${esc(cart.subtotal.formatted)}</dd>
+              </div>
+              ${discountRow}
+              <div class="cart__totals-grand">
+                <dt>${esc(i.total)}</dt>
+                <dd>${esc(cart.total.formatted)}</dd>
+              </div>
+            </dl>
+            <button type="button" data-checkout class="btn cart__checkout">${esc(i.checkout)}</button>
+          </aside>
+        </div>
+      `;
+    }
+
+    function render(cart: Cart) {
+      loading.hidden = true;
+      content.hidden = false;
+      content.innerHTML = cart.lineItems.length === 0 ? renderEmpty() : renderItems(cart);
+    }
+
+    async function withBusy<T>(el: HTMLButtonElement | null, fn: () => Promise<T>): Promise<T | undefined> {
+      if (el) el.disabled = true;
+      try {
+        return await fn();
+      } catch (err) {
+        console.error('[CartContents] action failed:', err);
+        if (el) el.disabled = false;
+      }
+    }
+
+    content.addEventListener('click', async (e) => {
+      const target = e.target as HTMLElement;
+      const item = target.closest<HTMLElement>('.cart-item');
+      const lineId = item?.dataset.lineId;
+
+      if (target.matches('[data-update]')) {
+        const input = item?.querySelector<HTMLInputElement>('[data-qty]');
+        const qty = Number(input?.value ?? 1);
+        if (!lineId) return;
+        const cart = await withBusy(target as HTMLButtonElement, () =>
+          qty <= 0 ? removeFromCart(lineId) : updateQuantity(lineId, qty),
+        );
+        if (cart) render(cart);
+        return;
+      }
+
+      if (target.matches('[data-remove]')) {
+        if (!lineId) return;
+        const cart = await withBusy(target as HTMLButtonElement, () => removeFromCart(lineId));
+        if (cart) render(cart);
+        return;
+      }
+
+      if (target.matches('[data-coupon-apply]')) {
+        const input = content.querySelector<HTMLInputElement>('[data-coupon-code]');
+        const code = (input?.value ?? '').trim();
+        if (!code) return;
+        const cart = await withBusy(target as HTMLButtonElement, () => applyCoupon(code));
+        if (cart) render(cart);
+        return;
+      }
+
+      if (target.matches('[data-coupon-remove]')) {
+        const cart = await withBusy(target as HTMLButtonElement, () => removeCoupon());
+        if (cart) render(cart);
+        return;
+      }
+
+      if (target.matches('[data-checkout]')) {
+        const origin = window.location.origin;
+        const locale = root!.dataset.locale === 'de' ? 'de' : 'en';
+        const successUrl = `${origin}${locale === 'de' ? '/de/thank-you' : '/thank-you'}`;
+        const cancelUrl = `${origin}${locale === 'de' ? '/de/' : '/'}`;
+        await withBusy(target as HTMLButtonElement, async () => {
+          const { url } = await createCheckoutRedirect({ successUrl, cancelUrl });
+          window.location.href = url;
+        });
+        return;
+      }
+    });
+
+    document.addEventListener(CART_CHANGED, ((e: CustomEvent<Cart>) => {
+      render(e.detail);
+    }) as EventListener);
+
+    getCart()
+      .then(render)
+      .catch((err) => {
+        console.error('[CartContents] initial load failed:', err);
+        loading.hidden = true;
+        content.hidden = false;
+        content.innerHTML = renderEmpty();
+      });
+  }
+</script>
 
 <style>
   .cart { padding-top: 7rem; }
   .cart__inner { max-width: 1100px; margin: 0 auto; }
   .cart__title { font-weight: 700; margin-bottom: 2rem; }
+  .cart__loading { padding: 2rem 0; color: var(--muted); }
 
   .cart__empty { text-align: center; padding: 3rem 0; }
   .cart__empty .btn { margin-top: 1rem; }
@@ -165,7 +307,6 @@ const back = locale === 'de' ? '/de/cart' : '/cart';
     font-weight: 700; font-size: 0.9rem;
     cursor: pointer;
     white-space: nowrap;
-    /* Override the global .btn min-height/min-width that some browsers apply */
     min-width: 0;
   }
   .cart__coupon-input button:hover { background: #f5f5f5; }

@@ -1,9 +1,8 @@
 /**
- * Backend-agnostic shop interface.
+ * Backend-agnostic shop types.
  *
- * The whole site (pages, components, API routes) only depends on this interface.
- * Implementations live in `shop-wix.ts`, future `shop-stripe.ts`, `shop-shopify.ts`, etc.
- * Swapping the backend = swapping the implementation in `middleware.ts`.
+ * Build-time product data flows through `build-shop.ts`; cart operations
+ * happen client-side via `shop-browser.ts`. Both consume these types.
  */
 
 export type Money = {
@@ -90,20 +89,6 @@ export type AddItem = {
 export type CheckoutRedirect = {
   url: string;
 };
-
-/** Backend-agnostic shop adapter. Implementations: Wix, Stripe, Shopify, … */
-export interface Shop {
-  /** First/featured product on the storefront. Returns null if backend not configured. */
-  getFirstProduct(): Promise<Product | null>;
-  getCart(): Promise<Cart>;
-  addToCart(item: AddItem): Promise<Cart>;
-  updateQuantity(lineItemId: string, quantity: number): Promise<Cart>;
-  removeFromCart(lineItemId: string): Promise<Cart>;
-  applyCoupon(code: string): Promise<Cart>;
-  removeCoupon(): Promise<Cart>;
-  /** Creates a checkout session and returns a redirect URL to the backend's hosted checkout. */
-  createCheckoutRedirect(opts: { successUrl: string; cancelUrl: string; locale?: 'en' | 'de' }): Promise<CheckoutRedirect>;
-}
 
 /** Empty cart constant for fallback when no backend is configured. */
 export const EMPTY_CART: Cart = {

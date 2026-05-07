@@ -1,0 +1,53 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Tokens granted to GITHUB_TOKEN for the deploy step.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Don't queue parallel deploys; cancel an in-flight one on a new push.
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Build site
+        env:
+          # Public client ID — safe to expose to the browser, but stored as
+          # a secret so it's not committed to the repo.
+          PUBLIC_WIX_CLIENT_ID: ${{ secrets.PUBLIC_WIX_CLIENT_ID }}
+        run: npm run build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

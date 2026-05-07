@@ -14,12 +14,37 @@ const s = t(locale);
         {s.handmade.title.map((line) => <span>{line}</span>)}
       </h3>
       {s.handmade.paragraphs.map((p) => <p class="lead">{p}</p>)}
-      <form method="POST" action="/api/cart/add" class="handmade__cta">
-        <input type="hidden" name="productId" value={productId ?? ''} />
-        <input type="hidden" name="quantity" value="1" />
-        <input type="hidden" name="back" value={locale === 'de' ? '/de/cart' : '/cart'} />
-        <button class="btn" type="submit" disabled={!productId}>{s.handmade.cta}</button>
-      </form>
+      <div class="handmade__cta">
+        <button
+          class="btn"
+          type="button"
+          data-buy
+          data-product-id={productId ?? ''}
+          data-cart-href={locale === 'de' ? '/de/cart' : '/cart'}
+          disabled={!productId}
+        >
+          {s.handmade.cta}
+        </button>
+      </div>
+      <script>
+        import { addToCart } from '../lib/shop-browser';
+        const btn = document.querySelector<HTMLButtonElement>('.handmade__cta [data-buy]');
+        if (btn) {
+          btn.addEventListener('click', async () => {
+            const productId = btn.dataset.productId;
+            if (!productId) return;
+            const cartHref = btn.dataset.cartHref ?? '/cart';
+            btn.disabled = true;
+            try {
+              await addToCart({ productId, quantity: 1 });
+              window.location.href = cartHref;
+            } catch (err) {
+              console.error('[Handmade] addToCart failed:', err);
+              btn.disabled = false;
+            }
+          });
+        }
+      </script>
     </div>
     <div class="handmade__media">
       <video autoplay loop muted playsinline preload="metadata"

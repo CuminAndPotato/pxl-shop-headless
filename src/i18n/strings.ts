@@ -74,6 +74,7 @@ export const strings = {
     shipping: 'Ships in 2 to 4 business days · DHL · 2 kg',
     cart: {
       title: 'Your cart',
+      loading: 'Loading…',
       empty: 'Your cart is empty.',
       backToShop: 'Continue shopping',
       qty: 'Qty',
@@ -161,6 +162,7 @@ export const strings = {
     shipping: 'Versand in 2 bis 4 Werktagen · DHL · 2 kg',
     cart: {
       title: 'Dein Warenkorb',
+      loading: 'Lädt…',
       empty: 'Dein Warenkorb ist leer.',
       backToShop: 'Weiter einkaufen',
       qty: 'Menge',

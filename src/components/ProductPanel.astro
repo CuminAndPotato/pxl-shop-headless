@@ -74,36 +74,41 @@ const productHasVariants = !!product?.hasVariants && (product?.variants.length ?
         </fieldset>
       )}
 
-      <form method="POST" action="/api/cart/add" id="buy-form" class="product__cta">
-        <input type="hidden" name="productId" value={product?.id ?? ''} />
-        <input type="hidden" name="back" value={locale === 'de' ? '/de/cart' : '/cart'} />
-        <input type="hidden" name="quantity" value="1" />
-        {!productHasVariants && product && (
-          <input type="hidden" name="variantId" value={product.variants[0]?.id ?? ''} />
-        )}
-        <button class="btn" type="submit" disabled={product != null && !product.inStock}>
+      <div class="product__cta">
+        <button
+          class="btn"
+          type="button"
+          data-buy
+          data-product-id={product?.id ?? ''}
+          data-default-variant-id={!productHasVariants && product ? (product.variants[0]?.id ?? '') : ''}
+          data-cart-href={locale === 'de' ? '/de/cart' : '/cart'}
+          disabled={product != null && !product.inStock}
+        >
           {s.whatIs.cta}
         </button>
-      </form>
-      <script is:inline>
-        // Wire variant radio buttons → hidden variantId field on submit.
-        (() => {
-          const form = document.getElementById('buy-form');
-          if (!form) return;
-          form.addEventListener('submit', () => {
-            const radio = document.querySelector('input[name="selectedVariantId"]:checked');
-            if (radio && radio.value) {
-              let hidden = form.querySelector('input[name="variantId"]');
-              if (!hidden) {
-                hidden = document.createElement('input');
-                hidden.type = 'hidden';
-                hidden.name = 'variantId';
-                form.appendChild(hidden);
-              }
-              hidden.value = radio.value;
+      </div>
+      <script>
+        import { addToCart } from '../lib/shop-browser';
+        const btn = document.querySelector<HTMLButtonElement>('.product__cta [data-buy]');
+        if (btn) {
+          btn.addEventListener('click', async () => {
+            const productId = btn.dataset.productId;
+            if (!productId) return;
+            const cartHref = btn.dataset.cartHref ?? '/cart';
+            const radio = document.querySelector<HTMLInputElement>('input[name="selectedVariantId"]:checked');
+            const variantId = radio?.value || btn.dataset.defaultVariantId || undefined;
+            const original = btn.textContent;
+            btn.disabled = true;
+            try {
+              await addToCart({ productId, variantId, quantity: 1 });
+              window.location.href = cartHref;
+            } catch (err) {
+              console.error('[ProductPanel] addToCart failed:', err);
+              btn.disabled = false;
+              btn.textContent = original;
             }
           });
-        })();
+        }
       </script>
     </div>
     <div class="product__media">
