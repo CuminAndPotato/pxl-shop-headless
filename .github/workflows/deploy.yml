@@ -29,12 +29,14 @@ jobs:
 
       - run: npm ci
 
-      - name: Build site
+      - name: Build site (with sub-path rewrite for project-page deploy)
         env:
           # Public client ID — safe to expose to the browser, but stored as
           # a secret so it's not committed to the repo.
           PUBLIC_WIX_CLIENT_ID: ${{ secrets.PUBLIC_WIX_CLIENT_ID }}
-        run: npm run build
+          # GitHub Pages project-page sub-path. Empty string = root deploy.
+          BASE: /pxl-shop-headless
+        run: npm run build:pages
 
       - uses: actions/configure-pages@v5
 
