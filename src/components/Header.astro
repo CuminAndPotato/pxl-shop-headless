@@ -6,11 +6,17 @@ interface Props {
   locale: Locale;
   /** "dark" = white text + inverted logo (over hero); "light" = black text on white pages */
   variant?: 'dark' | 'light';
+  languageHrefs?: {
+    de: string;
+    en: string;
+  };
 }
-const { locale, variant = 'dark' } = Astro.props;
+const { locale, variant = 'dark', languageHrefs } = Astro.props;
 const s = t(locale);
 
 const cartHref = locale === 'de' ? '/de/cart' : '/cart';
+const deHref = languageHrefs?.de ?? '/de/';
+const enHref = languageHrefs?.en ?? '/';
 ---
 
 <header class={variant === 'light' ? 'site-header site-header--light' : 'site-header'}>
@@ -25,8 +31,8 @@ const cartHref = locale === 'de' ? '/de/cart' : '/cart';
     </a>
     <div class="header__right">
       <div class="lang" role="group" aria-label="Language">
-        <a class={locale === 'de' ? 'lang__btn lang__btn--on' : 'lang__btn'} href="/de/">DE</a>
-        <a class={locale === 'en' ? 'lang__btn lang__btn--on' : 'lang__btn'} href="/">EN</a>
+        <a class={locale === 'de' ? 'lang__btn lang__btn--on' : 'lang__btn'} href={deHref}>DE</a>
+        <a class={locale === 'en' ? 'lang__btn lang__btn--on' : 'lang__btn'} href={enHref}>EN</a>
       </div>
       <a class="cart" href={cartHref} aria-label={s.nav.cart} data-cart-link>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

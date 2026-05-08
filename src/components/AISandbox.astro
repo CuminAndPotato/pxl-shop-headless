@@ -1,0 +1,476 @@
+---
+import type { Locale } from '../i18n/strings';
+
+interface Props {
+  locale: Locale;
+  /** 'card' = boxed surface, 'inline' = transparent (use page background). */
+  variant?: 'card' | 'inline';
+  /** Visual tone preset that affects the chat bubble look. */
+  tone?: 'light' | 'dark';
+}
+
+const { locale, variant = 'card', tone = 'light' } = Astro.props;
+
+const ui = locale === 'de'
+  ? {
+      eyebrow: 'KI-Spielwiese',
+      title: 'Beschreib es einfach. Sieh es laufen.',
+      lead: 'Eine kleine Vorschau, wie sich PXL Clock anfühlt, wenn du sie mit Worten programmierst. Wähle einen Vorschlag — die Uhr antwortet mit Code und Animation.',
+      placeholder: 'Schreib der Uhr eine Idee … (Demo)',
+      try: 'Probier:',
+      runLabel: 'Auf der Uhr ausführen',
+      ai: 'PXL Clock',
+      you: 'Du',
+      footnote: 'Demo-Ausgabe. Auf der echten Uhr läuft dein Code in C# / .NET.',
+    }
+  : {
+      eyebrow: 'AI sandbox',
+      title: 'Describe it. Watch it run.',
+      lead: 'A tiny preview of what PXL Clock feels like when you program it with words. Pick a prompt — the clock answers with code and animation.',
+      placeholder: 'Tell the clock an idea … (demo)',
+      try: 'Try:',
+      runLabel: 'Run on the clock',
+      ai: 'PXL Clock',
+      you: 'You',
+      footnote: 'Demo output. On the real clock your code runs in C# / .NET.',
+    };
+
+interface Prompt {
+  id: 'pulse' | 'heart' | 'orbit' | 'rain' | 'sunset';
+  user: { en: string; de: string };
+  reply: { en: string; de: string };
+  code: string;
+}
+
+const prompts: Prompt[] = [
+  {
+    id: 'pulse',
+    user: { en: 'A soft pulse — calm, like breathing.', de: 'Ein weicher Puls — ruhig, wie Atmen.' },
+    reply: { en: 'Concentric rings, drifting outward at 0.25 Hz. Single warm pixel at the core.', de: 'Konzentrische Ringe, nach außen wandernd bei 0,25 Hz. Ein warmer Pixel im Zentrum.' },
+    code: `var pulse = new Pixogram();
+pulse.OnTick(t => {
+  var r = 2 + (t % 16) / 16f * 9;
+  pulse.Ring(center: (12, 12), radius: r, color: Amber);
+});`,
+  },
+  {
+    id: 'heart',
+    user: { en: 'A small heart that beats every two seconds.', de: 'Ein kleines Herz, das alle zwei Sekunden schlägt.' },
+    reply: { en: 'Heart silhouette, 11×9. Beat phase 8 ticks; punch color shifts pink → rose.', de: 'Herz-Silhouette, 11×9. Schlag-Phase 8 Ticks; Farbe wechselt Pink → Rose.' },
+    code: `pixogram.Heart(at: (12, 13), size: 9)
+  .OnBeat(every: 8.Ticks(),
+          flash: Pink,
+          base:  Rose);`,
+  },
+  {
+    id: 'orbit',
+    user: { en: 'Three rings orbiting around a single dot.', de: 'Drei Ringe, die um einen Punkt kreisen.' },
+    reply: { en: 'Inner ring: cyan, fast. Middle: orange, half-speed. Outer: pink, slow counter.', de: 'Innen: Cyan, schnell. Mitte: Orange, halbe Geschwindigkeit. Außen: Pink, langsam gegenläufig.' },
+    code: `for (var i = 0; i < 3; i++) {
+  pixogram.Orbit(
+    radius: 4.5 + i * 3.5,
+    speed:  1f / (i + 1),
+    color:  Palette.Warm[i]);
+}`,
+  },
+  {
+    id: 'rain',
+    user: { en: 'Light rain. Sparse and quiet, no pattern.', de: 'Leichter Regen. Sparsam und leise, kein Muster.' },
+    reply: { en: 'Stochastic drops, pseudo-random seeded per column. ~12% density.', de: 'Stochastische Tropfen, pseudo-zufällig pro Spalte. ~12% Dichte.' },
+    code: `pixogram.Rain(
+  density: 0.12,
+  speed:   1.3,
+  trail:   2,
+  color:   Cool);`,
+  },
+  {
+    id: 'sunset',
+    user: { en: 'A warm sunset that rises slowly.', de: 'Ein warmer Sonnenuntergang, der langsam aufsteigt.' },
+    reply: { en: 'Disc rising 6 px over 16 s. Gradient shimmer below the horizon.', de: 'Scheibe steigt 6 px in 16 s. Gradient-Schimmer unter dem Horizont.' },
+    code: `pixogram.Disc(at: (12, sun_y),
+              radius: 3,
+              color: Amber);
+pixogram.Gradient(below: 18,
+                  shimmer: 0.4);`,
+  },
+];
+---
+
+<section class={`ais ais--${variant} ais--${tone}`} data-locale={locale}>
+  <header class="ais__head">
+    <p class="ais__eyebrow">{ui.eyebrow}</p>
+    <h2 class="ais__title">{ui.title}</h2>
+    <p class="ais__lead">{ui.lead}</p>
+  </header>
+
+  <div class="ais__grid">
+    <div class="ais__chat" aria-live="polite">
+      <div class="ais__messages" data-ais-messages>
+        <div class="ais__msg ais__msg--ai is-init">
+          <span class="ais__who">{ui.ai}</span>
+          <p>{locale === 'de' ? 'Was soll die Uhr zeigen?' : 'What should the clock show?'}</p>
+        </div>
+      </div>
+
+      <div class="ais__input">
+        <span class="ais__caret" aria-hidden="true"></span>
+        <span class="ais__placeholder">{ui.placeholder}</span>
+      </div>
+    </div>
+
+    <aside class="ais__device" aria-label="PXL Clock preview">
+      <div class="ais__bezel">
+        <div class="ais__matrix" data-ais-matrix>
+          {Array.from({ length: 576 }).map(() => <span class="p p--0"></span>)}
+        </div>
+      </div>
+      <pre class="ais__code" data-ais-code aria-live="polite"><code>{prompts[0].code}</code></pre>
+    </aside>
+  </div>
+
+  <div class="ais__suggest">
+    <p class="ais__suggest-label">{ui.try}</p>
+    <div class="ais__chips">
+      {prompts.map((p, i) => (
+        <button
+          type="button"
+          class={i === 0 ? 'ais__chip is-on' : 'ais__chip'}
+          data-ais-prompt={p.id}
+          data-ais-user={p.user[locale]}
+          data-ais-reply={p.reply[locale]}
+          data-ais-code={p.code}
+        >{p.user[locale]}</button>
+      ))}
+    </div>
+    <p class="ais__footnote">{ui.footnote}</p>
+  </div>
+</section>
+
+<script>
+  import { drawers, PIXOGRAM_SIZE } from '../lib/pixograms';
+  import type { PixogramId } from '../lib/pixograms';
+  const SIZE = PIXOGRAM_SIZE;
+
+  document.querySelectorAll<HTMLElement>('.ais').forEach((root) => {
+    const matrix = root.querySelector<HTMLElement>('[data-ais-matrix]');
+    const messages = root.querySelector<HTMLElement>('[data-ais-messages]');
+    const codeBox = root.querySelector<HTMLElement>('[data-ais-code]');
+    if (!matrix || !messages || !codeBox) return;
+    const cells = Array.from(matrix.querySelectorAll<HTMLSpanElement>('.p'));
+
+    let active: PixogramId = 'pulse';
+    let t = 0;
+    let interval: number | null = null;
+
+    function paint() {
+      const fn = drawers[active] || drawers.pulse;
+      for (let i = 0; i < cells.length; i += 1) {
+        const x = i % SIZE;
+        const y = Math.floor(i / SIZE);
+        const c = fn(x, y, t);
+        cells[i].className = `p p--${c}`;
+      }
+      t += 1;
+    }
+
+    function start() {
+      paint();
+      if (interval) clearInterval(interval);
+      interval = window.setInterval(paint, 240);
+    }
+
+    function appendMsg(who: 'you' | 'ai', text: string) {
+      const node = document.createElement('div');
+      node.className = `ais__msg ais__msg--${who}`;
+      const label = root.dataset.locale === 'de'
+        ? (who === 'you' ? 'Du' : 'PXL Clock')
+        : (who === 'you' ? 'You' : 'PXL Clock');
+      node.innerHTML = `<span class="ais__who">${label}</span><p></p>`;
+      const p = node.querySelector('p');
+      if (p) p.textContent = text;
+      messages.appendChild(node);
+      messages.scrollTop = messages.scrollHeight;
+      // Cap message history (keep last 6)
+      while (messages.children.length > 6) {
+        messages.removeChild(messages.children[0]);
+      }
+    }
+
+    function setCode(code: string) {
+      const codeNode = codeBox.querySelector('code');
+      if (codeNode) codeNode.textContent = code;
+    }
+
+    root.querySelectorAll<HTMLButtonElement>('[data-ais-prompt]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.aisPrompt as PixogramId;
+        const userText = btn.dataset.aisUser || '';
+        const replyText = btn.dataset.aisReply || '';
+        const code = btn.dataset.aisCode || '';
+        if (!id) return;
+
+        root.querySelectorAll('[data-ais-prompt]').forEach((b) => b.classList.toggle('is-on', b === btn));
+
+        // Clear "init" hint on first interaction
+        const init = messages.querySelector('.is-init');
+        if (init) init.remove();
+
+        appendMsg('you', userText);
+        // brief thinking dots → reply
+        const thinking = document.createElement('div');
+        thinking.className = 'ais__msg ais__msg--ai ais__msg--thinking';
+        thinking.innerHTML = '<span class="ais__who">PXL Clock</span><p><span></span><span></span><span></span></p>';
+        messages.appendChild(thinking);
+        messages.scrollTop = messages.scrollHeight;
+
+        window.setTimeout(() => {
+          thinking.remove();
+          appendMsg('ai', replyText);
+          active = id;
+          t = 0;
+          paint();
+          setCode(code);
+        }, 700);
+      });
+    });
+
+    start();
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting && interval) {
+          clearInterval(interval);
+          interval = null;
+        } else if (entry.isIntersecting && !interval) {
+          start();
+        }
+      });
+    }, { threshold: 0 });
+    io.observe(matrix);
+  });
+</script>
+
+<style>
+  .ais {
+    --ais-fg: var(--draft-fg, #0a0a0a);
+    --ais-muted: var(--draft-muted, rgba(10, 10, 10, 0.62));
+    --ais-surface: var(--draft-surface, #ffffff);
+    --ais-bg: var(--draft-bg, #ffffff);
+    --ais-line: var(--draft-line, rgba(10, 10, 10, 0.12));
+    --ais-bezel: var(--draft-bezel, #0b0c0e);
+    --ais-pixel-off: var(--draft-pixel-off, rgba(255, 255, 255, 0.05));
+    --ais-c1: var(--draft-c1, #ffd56a);
+    --ais-c2: var(--draft-c2, #5bc8ff);
+    --ais-c3: var(--draft-c3, #ff7b45);
+    --ais-c4: var(--draft-c4, #ff4f8b);
+    color: var(--ais-fg);
+    font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+  }
+  .ais--card {
+    padding: clamp(1.75rem, 4vw, 3rem);
+    background: var(--ais-surface);
+    border: 1px solid var(--ais-line);
+    border-radius: 18px;
+  }
+  .ais--inline {
+    padding: 0;
+    background: transparent;
+    border: 0;
+  }
+
+  .ais__head {
+    max-width: 56ch;
+    margin-bottom: clamp(1.5rem, 3vw, 2rem);
+  }
+  .ais__eyebrow {
+    margin: 0 0 0.6rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ais-muted);
+  }
+  .ais__title {
+    margin: 0 0 0.5rem;
+    font-size: clamp(1.6rem, 3vw, 2.6rem);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    font-weight: 700;
+  }
+  .ais__lead {
+    margin: 0;
+    color: var(--ais-muted);
+    line-height: 1.55;
+  }
+
+  .ais__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: clamp(1.25rem, 3vw, 2rem);
+    align-items: stretch;
+  }
+
+  .ais__chat {
+    display: flex;
+    flex-direction: column;
+    background: var(--ais-bg);
+    border: 1px solid var(--ais-line);
+    border-radius: 14px;
+    overflow: hidden;
+    min-height: 360px;
+  }
+  .ais__messages {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .ais__msg {
+    max-width: 90%;
+    padding: 0.7rem 0.95rem;
+    border-radius: 14px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--ais-fg);
+  }
+  .ais--dark .ais__msg { background: rgba(255, 255, 255, 0.06); }
+  .ais__msg--you {
+    align-self: flex-end;
+    background: var(--ais-fg);
+    color: var(--ais-bg);
+  }
+  .ais__msg p { margin: 0; }
+  .ais__who {
+    display: block;
+    margin-bottom: 0.2rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.62;
+  }
+  .ais__msg--thinking p { display: inline-flex; gap: 4px; }
+  .ais__msg--thinking p span {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--ais-muted); opacity: 0.4;
+    animation: ais-bounce 1.2s infinite ease-in-out;
+  }
+  .ais__msg--thinking p span:nth-child(2) { animation-delay: 0.15s; }
+  .ais__msg--thinking p span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes ais-bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+    40% { transform: translateY(-4px); opacity: 0.9; }
+  }
+
+  .ais__input {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.85rem 1rem;
+    border-top: 1px solid var(--ais-line);
+    color: var(--ais-muted);
+  }
+  .ais__caret {
+    width: 2px; height: 16px;
+    background: var(--ais-fg);
+    animation: ais-blink 1s steps(1) infinite;
+  }
+  @keyframes ais-blink {
+    50% { opacity: 0; }
+  }
+  .ais__placeholder { font-size: 0.95rem; }
+
+  .ais__device {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+  .ais__bezel {
+    width: 100%;
+    aspect-ratio: 1;
+    padding: 6%;
+    border-radius: 14px;
+    background: var(--ais-bezel);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+      0 22px 60px rgba(0, 0, 0, 0.24);
+  }
+  .ais__matrix {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
+    grid-template-rows: repeat(24, 1fr);
+    gap: 1px;
+    background: #050607;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .ais .p { background: var(--ais-pixel-off); }
+  .ais .p--1 { background: var(--ais-c1); box-shadow: 0 0 6px var(--ais-c1); }
+  .ais .p--2 { background: var(--ais-c2); box-shadow: 0 0 6px var(--ais-c2); }
+  .ais .p--3 { background: var(--ais-c3); box-shadow: 0 0 6px var(--ais-c3); }
+  .ais .p--4 { background: var(--ais-c4); box-shadow: 0 0 6px var(--ais-c4); }
+
+  .ais__code {
+    margin: 0;
+    padding: 0.95rem 1.1rem;
+    background: var(--ais-bg);
+    color: var(--ais-fg);
+    border: 1px solid var(--ais-line);
+    border-radius: 10px;
+    font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre;
+    max-height: 180px;
+  }
+
+  .ais__suggest {
+    margin-top: clamp(1.25rem, 3vw, 2rem);
+  }
+  .ais__suggest-label {
+    margin: 0 0 0.6rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ais-muted);
+  }
+  .ais__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .ais__chip {
+    padding: 0.55rem 0.95rem;
+    border-radius: 999px;
+    border: 1px solid var(--ais-line);
+    background: transparent;
+    color: var(--ais-fg);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    line-height: 1.3;
+    text-align: left;
+    transition: background 160ms ease, border-color 160ms ease;
+  }
+  .ais__chip:hover { border-color: var(--ais-fg); }
+  .ais__chip.is-on {
+    background: var(--ais-fg);
+    color: var(--ais-bg);
+    border-color: var(--ais-fg);
+  }
+  .ais__footnote {
+    margin: 0.85rem 0 0;
+    font-size: 0.78rem;
+    color: var(--ais-muted);
+  }
+
+  @media (max-width: 860px) {
+    .ais__grid { grid-template-columns: 1fr; }
+    .ais__chat { min-height: 280px; }
+  }
+</style>

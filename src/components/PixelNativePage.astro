@@ -1,0 +1,506 @@
+---
+import type { Locale } from '../i18n/strings';
+import { t } from '../i18n/strings';
+import type { Product } from '../lib/shop';
+import type { PageVariant } from '../lib/page-variants';
+import { workshopGallery, lifestyleGallery } from '../lib/assets';
+import Hero from './Hero.astro';
+import LivePixogramPicker from './LivePixogramPicker.astro';
+import AISandbox from './AISandbox.astro';
+import SectionDivider from './SectionDivider.astro';
+
+interface Props {
+  locale: Locale;
+  variant: PageVariant;
+  product: Product | null;
+}
+
+const { locale, product } = Astro.props;
+const s = t(locale);
+
+const productImage = '/img/products/whatis-clock-tight.png';
+const price = product?.discountedPrice?.formatted ?? product?.price?.formatted ?? '229,00€';
+const oldPrice = product?.discountedPrice ? product?.price?.formatted : '';
+const cartHref = locale === 'de' ? '/de/cart' : '/cart';
+const defaultVariantId = product?.variants[0]?.id ?? '';
+
+// Spec rows for the data sheet — handled as a real table with hairlines, not dt/dd 50/50.
+const specSheet = locale === 'de'
+  ? [
+      ['Matrix',         '24 × 24 RGB-LEDs · 576 Pixel'],
+      ['Maße',           '27 × 27 × 6 cm · 2 kg'],
+      ['Gehäuse',        'Handgefertigter Rahmen, echtes Glas'],
+      ['Verbindung',     'WLAN 2.4 GHz · OTA-Updates'],
+      ['App',            'iOS und Android'],
+      ['Programmierung', 'C# / .NET · Browser-Simulator · GitHub'],
+      ['Versand',        'DHL aus Deutschland · 2 bis 4 Werktage'],
+      ['Auflage',        'Erste Serie 100 Stück, handgefertigt'],
+    ]
+  : [
+      ['Matrix',         '24 × 24 RGB LEDs · 576 pixels'],
+      ['Size',           '27 × 27 × 6 cm · 2 kg'],
+      ['Body',           'Handmade frame, real glass'],
+      ['Connectivity',   'Wi-Fi 2.4 GHz · OTA updates'],
+      ['App',            'iOS and Android'],
+      ['Programmability','C# / .NET · browser simulator · GitHub'],
+      ['Shipping',       'DHL from Germany · 2 to 4 business days'],
+      ['Edition',        'First run of 100, handmade'],
+    ];
+
+const intro = locale === 'de'
+  ? {
+      kicker: 'Eine Pixel-Uhr aus 576 Punkten in echtem Glas.',
+      title: 'Eine Uhr, deren Sprache aus ihren eigenen Pixeln kommt.',
+      lede:
+        'Die PXL Clock ist programmierbar in C#, hat einen Browser-Simulator, und sie ist 27 cm im Quadrat. Die Matrix ist nicht nur das Display — sie ist die Maßeinheit, an der sich Spalten, Spacing und Übergänge auf dieser Seite orientieren.',
+    }
+  : {
+      kicker: 'A pixel clock built from 576 points behind real glass.',
+      title: 'A clock whose language comes from its own pixels.',
+      lede:
+        'The PXL Clock is programmable in C#, comes with a browser simulator, and measures 27 cm square. The matrix is not only the display — it is the unit that columns, spacing, and transitions on this page are aligned to.',
+    };
+
+const principles = locale === 'de'
+  ? [
+      'Das Raster der Uhr ist auch das Raster dieser Seite. 24 Spalten im Hintergrund, jede sechste etwas dunkler markiert — nichts liegt willkürlich.',
+      'Materialien sind echt: ein handgefertigter Rahmen, ein Glas, das das Licht hält, und 576 LEDs, die ein klares Bild ergeben sollen, nicht ein vages Glühen.',
+      'Die Uhr bleibt offen. Jedes Pixogramm ist ein kleines C#-Programm. Keine Cloud-Pflicht, kein Abo, keine versteckten Anmeldungen.',
+    ]
+  : [
+      'The clock\'s grid is also this page\'s grid. Twenty-four columns in the background, every sixth a touch darker — nothing sits arbitrarily.',
+      'Materials are real: a handmade frame, glass that holds the light, and 576 LEDs that aim to produce a clear image, not a vague glow.',
+      'The clock stays open. Every pixogram is a small C# program. No forced cloud, no subscription, no hidden sign-up.',
+    ];
+
+const figureCaption = locale === 'de'
+  ? 'Black Edition. 27 × 27 × 6 cm. 576 RGB-Pixel hinter Glas, im Bild bei einer ruhigen Pulse-Animation.'
+  : 'Black Edition. 27 × 27 × 6 cm. 576 RGB pixels behind glass, shown running a calm pulse animation.';
+---
+
+<section class="pxn">
+  <Hero locale={locale} />
+
+  <!-- Numeric ribbon — large display digits, no pills, no eyebrows -->
+  <section class="pxn-numbers">
+    <div class="pxn-numbers__inner">
+      <div><strong>576</strong><span>{locale === 'de' ? 'einzelne RGB-LED-Pixel' : 'individual RGB LED pixels'}</span></div>
+      <div><strong>24<small>×</small>24</strong><span>{locale === 'de' ? 'das Format der Matrix' : 'the format of the matrix'}</span></div>
+      <div><strong>27<small> cm</small></strong><span>{locale === 'de' ? 'Quadrat, in echtem Glas gefasst' : 'square, set in real glass'}</span></div>
+      <div><strong>100</strong><span>{locale === 'de' ? 'Stück erste Serie, einzeln aufgebaut' : 'pieces in the first run, built one by one'}</span></div>
+    </div>
+  </section>
+
+  <!-- Stage with running text + cutout, no eyebrow -->
+  <section class="pxn-stage">
+    <div class="pxn-stage__bg" aria-hidden="true">
+      {Array.from({ length: 24 }).map(() => <span class="col"></span>)}
+    </div>
+    <div class="pxn-stage__copy">
+      <p class="pxn-kicker">{intro.kicker}</p>
+      <h2 class="pxn-h">{intro.title}</h2>
+      <p class="pxn-lede">{intro.lede}</p>
+      <div class="pxn-running">
+        {principles.map((p) => <p>{p}</p>)}
+      </div>
+    </div>
+    <figure class="pxn-stage__media">
+      <img src={productImage} alt={product?.name ?? 'PXL Clock'} loading="lazy" />
+      <figcaption>{figureCaption}</figcaption>
+    </figure>
+  </section>
+
+  <!-- AI sandbox: this is the right place for code, no other mono on the page -->
+  <section class="pxn-sandbox">
+    <SectionDivider side="top" pattern="scallop" fill="rgba(255, 255, 255, 0.45)" height="110px" />
+    <AISandbox locale={locale} variant="card" tone="dark" />
+  </section>
+
+  <!-- Live picker -->
+  <section class="pxn-picker">
+    <SectionDivider side="top" pattern="wave-asym" fill="rgba(255, 255, 255, 0.5)" height="140px" />
+    <LivePixogramPicker locale={locale} variant="panel" initial="orbit" />
+  </section>
+
+  <!-- Workshop diptych: 2 large images (not the three-card slop) with running caption -->
+  <section class="pxn-craft">
+    <SectionDivider side="top" pattern="arc" fill="rgba(255, 255, 255, 0.4)" height="120px" flip={true} />
+    <div class="pxn-craft__inner">
+      <figure>
+        <img src={workshopGallery[2]} alt="" loading="lazy" />
+      </figure>
+      <figure>
+        <img src={lifestyleGallery[3]} alt="" loading="lazy" />
+      </figure>
+      <p class="pxn-craft__text">
+        {locale === 'de'
+          ? 'Aus einer Werkstatt in Köln. Cumin & Potato GmbH. Kleinserie. Software, Rahmen und Versand kommen aus Deutschland — der Pfad zwischen Werkstatt und Wohnzimmer ist kurz.'
+          : 'From a workshop in Cologne. Cumin & Potato GmbH. Small run. Software, frame, and shipping all come from Germany — the path between workbench and living room is short.'}
+      </p>
+    </div>
+  </section>
+
+  <!-- Buy panel: real table + a single price/CTA column -->
+  <section class="pxn-buy">
+    <SectionDivider side="top" pattern="split-wave" fill="rgba(255, 255, 255, 0.55)" height="140px" />
+    <div class="pxn-buy__card">
+      <div class="pxn-buy__copy">
+        <h2 class="pxn-h">{product?.name ?? 'PXL Clock'}</h2>
+        <p class="pxn-buy__lede">
+          {locale === 'de'
+            ? 'Direkt aus der Werkstatt. Versand in zwei bis vier Werktagen. Mit Promo-Code RONALD sparst du fünfundzwanzig Euro.'
+            : 'Direct from the workshop. Ships in two to four business days. Promo code RONALD takes twenty-five euros off.'}
+        </p>
+        <table class="pxn-spec">
+          <tbody>
+            {specSheet.map(([k, v]) => (
+              <tr>
+                <th scope="row">{k}</th>
+                <td>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div class="pxn-buy__price">
+        <p class="pxn-buy__amount">
+          <strong>{price}</strong>
+          {oldPrice && <span>{s.price.salePrefix} {oldPrice}</span>}
+        </p>
+        <p class="pxn-buy__shipping">{s.shipping}</p>
+        <button class="pxn-btn" type="button" data-pxn-buy data-product-id={product?.id ?? ''} data-variant-id={defaultVariantId} data-cart-href={cartHref}>
+          {s.whatIs.cta}
+        </button>
+      </div>
+    </div>
+  </section>
+</section>
+
+<style is:global>
+  @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Mona+Sans:wght@500;600;700&display=swap');
+</style>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-pxn-buy]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const productId = btn.dataset.productId;
+      if (!productId) return;
+      btn.disabled = true;
+      try {
+        const { addToCart } = await import('../lib/shop-browser');
+        await addToCart({ productId, variantId: btn.dataset.variantId || undefined, quantity: 1 });
+        window.location.href = btn.dataset.cartHref || '/cart';
+      } catch (err) {
+        console.error('[PixelNative] addToCart failed:', err);
+        btn.disabled = false;
+      }
+    });
+  });
+</script>
+
+<style>
+  .pxn {
+    /* Light page on the brand gradient. The technical "matrix" character
+       comes from the 24-column grid lines and the mono captions, not from
+       a dark background. */
+    --pxn-bg: #ffffff;
+    --pxn-surface: #ffffff;
+    --pxn-ink: #0a0a0a;
+    --pxn-muted: rgba(10, 10, 10, 0.62);
+    --pxn-line: rgba(10, 10, 10, 0.10);
+    --pxn-line-strong: rgba(10, 10, 10, 0.22);
+    --pxn-amber: #fbb238;
+    --pxn-indigo: #485dbd;
+    --pxn-pewter: #c0d1da;
+    --pxn-lime: #e7fa98;
+
+    --draft-fg: var(--pxn-ink);
+    --draft-bg: var(--pxn-bg);
+    --draft-muted: var(--pxn-muted);
+    --draft-surface: var(--pxn-surface);
+    --draft-line: var(--pxn-line);
+    --draft-bezel: #0a0a0a;
+    --draft-c1: var(--pxn-amber);
+    --draft-c2: var(--pxn-indigo);
+    --draft-c3: var(--pxn-pewter);
+    --draft-c4: var(--pxn-lime);
+
+    background:
+      radial-gradient(ellipse 60% 50% at 88% 8%, rgba(192, 209, 218, 1) 0%, rgba(192, 209, 218, 0) 60%),
+      radial-gradient(ellipse 70% 40% at 64% 35%, rgba(251, 182, 56, 0.32) 0%, rgba(251, 182, 56, 0) 60%),
+      radial-gradient(ellipse 80% 50% at 2% 70%, rgba(192, 209, 218, 0.7) 0%, rgba(192, 209, 218, 0) 60%),
+      radial-gradient(ellipse 70% 40% at 94% 60%, rgba(72, 93, 189, 0.42) 0%, rgba(72, 93, 189, 0) 65%),
+      radial-gradient(ellipse 80% 60% at 50% 90%, rgba(231, 250, 152, 0.28) 0%, rgba(231, 250, 152, 0) 65%),
+      #ffffff;
+    background-attachment: fixed;
+    color: var(--pxn-ink);
+    font-family: 'Inter Tight', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    font-feature-settings: 'tnum' 1, 'cv11' 1;
+  }
+
+  .pxn-h {
+    margin: 0 0 1.2rem;
+    font-family: 'Mona Sans', 'Inter Tight', sans-serif;
+    font-size: clamp(2rem, 4.4vw, 3.6rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+  }
+  .pxn-kicker {
+    margin: 0 0 1.4rem;
+    color: var(--pxn-muted);
+    font-size: clamp(0.95rem, 1.2vw, 1.05rem);
+    line-height: 1.55;
+    max-width: 50ch;
+  }
+  .pxn-lede {
+    margin: 0 0 1.8rem;
+    color: var(--pxn-muted);
+    font-size: clamp(1rem, 1.4vw, 1.12rem);
+    line-height: 1.65;
+    max-width: 56ch;
+  }
+  .pxn-running { display: grid; gap: 1.1rem; max-width: 56ch; }
+  .pxn-running p {
+    margin: 0;
+    color: var(--pxn-ink);
+    line-height: 1.65;
+    font-size: clamp(0.96rem, 1.3vw, 1.05rem);
+  }
+  .pxn-running p::before {
+    content: '— ';
+    color: var(--pxn-amber);
+    font-weight: 700;
+  }
+
+  /* Numbers band — large display digits, no eyebrows, no pills, no hard borders */
+  .pxn-numbers {
+    position: relative;
+  }
+  .pxn-numbers__inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    padding: clamp(2.5rem, 5vw, 4rem) clamp(1rem, 4vw, 3rem);
+  }
+  .pxn-numbers__inner > div {
+    padding: 0 clamp(1rem, 2vw, 2rem);
+    border-right: 1px solid var(--pxn-line);
+  }
+  .pxn-numbers__inner > div:first-child { padding-left: 0; }
+  .pxn-numbers__inner > div:last-child { padding-right: 0; border-right: 0; }
+  .pxn-numbers strong {
+    display: block;
+    font-family: 'Mona Sans', 'Inter Tight', sans-serif;
+    font-size: clamp(2.6rem, 5vw, 4rem);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    margin-bottom: 0.7rem;
+    font-feature-settings: 'tnum' 1;
+  }
+  .pxn-numbers strong small {
+    font-size: 0.45em;
+    color: var(--pxn-muted);
+    font-weight: 500;
+    letter-spacing: 0;
+    margin-left: 0.05em;
+  }
+  .pxn-numbers span {
+    display: block;
+    color: var(--pxn-muted);
+    font-size: 0.92rem;
+    line-height: 1.45;
+    max-width: 24ch;
+  }
+  @media (max-width: 720px) {
+    .pxn-numbers__inner { grid-template-columns: repeat(2, 1fr); gap: 1.5rem 0; }
+    .pxn-numbers__inner > div:nth-child(2n) { border-right: 0; padding-right: 0; }
+  }
+
+  /* Stage */
+  .pxn-stage {
+    position: relative;
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem);
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+    max-width: 1380px;
+    margin: 0 auto;
+  }
+  .pxn-stage__bg {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
+    pointer-events: none;
+    opacity: 0.4;
+  }
+  .pxn-stage__bg .col {
+    border-right: 1px solid rgba(10, 10, 10, 0.05);
+  }
+  .pxn-stage__bg .col:nth-child(6n) { border-right-color: rgba(10, 10, 10, 0.10); }
+  .pxn-stage > *:not(.pxn-stage__bg) { position: relative; z-index: 1; }
+  .pxn-stage__copy { max-width: 60ch; }
+  .pxn-stage__media { margin: 0; }
+  .pxn-stage__media img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 30px 60px rgba(10, 10, 10, 0.22));
+  }
+  .pxn-stage__media figcaption {
+    margin-top: 1.2rem;
+    color: var(--pxn-muted);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    max-width: 42ch;
+  }
+  @media (max-width: 980px) {
+    .pxn-stage { grid-template-columns: 1fr; }
+  }
+
+  /* AI sandbox — transparent on page gradient */
+  .pxn-sandbox {
+    position: relative;
+    background: transparent;
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem);
+  }
+  .pxn-sandbox > :global(.ais) { max-width: 1180px; margin: 0 auto; position: relative; z-index: 2; }
+
+  /* Picker */
+  .pxn-picker {
+    position: relative;
+    background: transparent;
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem);
+  }
+  .pxn-picker > :global(.lpp) { max-width: 1180px; margin: 0 auto; position: relative; z-index: 2; }
+
+  /* Workshop diptych — 2 photos + caption, transparent on gradient */
+  .pxn-craft {
+    position: relative;
+    background: transparent;
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem);
+  }
+  .pxn-craft__inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    gap: clamp(1rem, 3vw, 2rem);
+    align-items: end;
+  }
+  .pxn-craft figure {
+    margin: 0;
+  }
+  .pxn-craft figure img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+  .pxn-craft figure:nth-child(2) img { aspect-ratio: 4 / 5; }
+  .pxn-craft__text {
+    grid-column: 1 / -1;
+    margin: clamp(1.5rem, 3vw, 2.4rem) 0 0;
+    color: var(--pxn-muted);
+    font-size: clamp(1rem, 1.3vw, 1.1rem);
+    line-height: 1.65;
+    max-width: 64ch;
+  }
+  @media (max-width: 720px) {
+    .pxn-craft__inner { grid-template-columns: 1fr; }
+  }
+
+  /* Buy block — transparent section, white card on top */
+  .pxn-buy {
+    position: relative;
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem) clamp(7rem, 13vw, 11rem);
+    background: transparent;
+  }
+  .pxn-buy__card { position: relative; z-index: 2; }
+  .pxn-buy__card {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    padding: clamp(2rem, 5vw, 3.5rem);
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--pxn-line-strong);
+    border-radius: 8px;
+  }
+  .pxn-buy__lede { margin: 0 0 2rem; color: var(--pxn-muted); line-height: 1.6; max-width: 56ch; }
+
+  .pxn-spec {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+  }
+  .pxn-spec tr { border-bottom: 1px solid var(--pxn-line); }
+  .pxn-spec tr:first-child { border-top: 1px solid var(--pxn-line); }
+  .pxn-spec th, .pxn-spec td {
+    text-align: left;
+    padding: 0.95rem 0;
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  .pxn-spec th {
+    width: 32%;
+    font-weight: 600;
+    color: var(--pxn-muted);
+    padding-right: 1.5rem;
+  }
+  .pxn-spec td {
+    color: var(--pxn-ink);
+    font-feature-settings: 'tnum' 1;
+  }
+
+  .pxn-buy__price {
+    align-self: end;
+    border-left: 1px solid var(--pxn-line);
+    padding-left: clamp(1rem, 3vw, 2rem);
+  }
+  .pxn-buy__amount strong {
+    display: block;
+    font-family: 'Mona Sans', 'Inter Tight', sans-serif;
+    font-size: clamp(2.2rem, 4vw, 3rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    font-feature-settings: 'tnum' 1;
+  }
+  .pxn-buy__amount span {
+    display: block;
+    margin-top: 0.4rem;
+    color: var(--pxn-muted);
+    text-decoration: line-through;
+    font-size: 0.95rem;
+  }
+  .pxn-buy__shipping { margin: 0.85rem 0 1.4rem; color: var(--pxn-muted); font-size: 0.85rem; }
+  .pxn-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 1rem 1.5rem;
+    border: 0;
+    border-radius: 4px;
+    background: var(--pxn-amber);
+    color: var(--pxn-bg);
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.98rem;
+    cursor: pointer;
+    transition: background 160ms ease, transform 160ms ease;
+  }
+  .pxn-btn:hover { background: #d59546; transform: translateY(-1px); }
+  @media (max-width: 980px) {
+    .pxn-buy__card { grid-template-columns: 1fr; }
+    .pxn-buy__price { border-left: 0; padding-left: 0; border-top: 1px solid var(--pxn-line); padding-top: 1.5rem; }
+  }
+</style>

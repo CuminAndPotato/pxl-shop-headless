@@ -9,6 +9,7 @@ import Handmade from '../components/Handmade.astro';
 import CreateItYourself from '../components/CreateItYourself.astro';
 import Setup from '../components/Setup.astro';
 import OurStory from '../components/OurStory.astro';
+import VariantDock from '../components/VariantDock.astro';
 import { t } from '../i18n/strings';
 import { lifestyleGallery, workshopGallery, shapeSpacesBg, startedBg } from '../lib/assets';
 import { getBuildTimeProduct } from '../lib/build-shop';
@@ -23,6 +24,7 @@ const product = await getBuildTimeProduct();
   title={`${product?.name ?? 'PXL Clock'} · programmable pixel clock`}
   description="Programmable 24x24 RGB-LED pixel clock. C# / .NET. Real glass, handmade in Germany."
 >
+  <VariantDock locale={locale} currentSlug="default" />
   <Hero locale={locale} />
   <ProductPanel locale={locale} product={product} />
   <Gallery images={lifestyleGallery} ariaLabel="Lifestyle gallery" />

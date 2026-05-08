@@ -1,0 +1,1034 @@
+---
+import type { Locale } from '../i18n/strings';
+import { t } from '../i18n/strings';
+import type { Product } from '../lib/shop';
+import type { PageVariant } from '../lib/page-variants';
+import { getOriginalDraft } from '../lib/original-drafts';
+import Hero from './Hero.astro';
+import PixogramShowcase from './PixogramShowcase.astro';
+
+interface Props {
+  locale: Locale;
+  variant: PageVariant;
+  product: Product | null;
+}
+
+const { locale, variant, product } = Astro.props;
+const s = t(locale);
+const copy = variant.copy[locale];
+const draft = getOriginalDraft(variant.slug);
+
+if (!draft) {
+  throw new Error(`Missing original draft configuration for variant ${variant.slug}`);
+}
+
+const stockLabel = !product
+  ? null
+  : !product.inStock
+    ? s.stock.outOfStock
+    : product.trackInventory && typeof product.stockQuantity === 'number' && product.stockQuantity <= 10
+      ? s.stock.lowStock(product.stockQuantity)
+      : s.stock.inStock;
+
+const hasDiscount = !!product?.discountedPrice;
+const priceLabel = product?.price?.formatted ?? '';
+const discountedLabel = product?.discountedPrice?.formatted ?? '';
+const defaultVariantId = product?.variants[0]?.id ?? '';
+const cartHref = locale === 'de' ? '/de/cart' : '/cart';
+
+const isLightDraft = draft.slug === 'prism';
+const buyLabel = s.whatIs.cta;
+const originalNote = locale === 'de'
+  ? 'Original-Hero bleibt. Danach testet diese Variante eine eigene Produktthese.'
+  : 'Original hero stays. After that, this variant tests its own product thesis.';
+
+const ctaMeta = [
+  locale === 'de' ? '24x24 RGB-LED-Matrix' : '24x24 RGB LED matrix',
+  locale === 'de' ? 'Echtes Glas' : 'Real glass',
+  locale === 'de' ? 'Programmable in C# / .NET' : 'Programmable in C# / .NET',
+  locale === 'de' ? 'Handgebaut in Deutschland' : 'Handmade in Germany',
+];
+
+const wallFrames = draft.gallery.map((image, index) => ({
+  image,
+  className: `od2-frame od2-frame--${index + 1}`,
+}));
+
+const journeyItems = [
+  { title: locale === 'de' ? 'Matrix' : 'Matrix', body: '576 RGB LEDs', image: draft.detailImage },
+  { title: locale === 'de' ? 'Rahmen' : 'Frame', body: locale === 'de' ? 'Handgebaut, echtes Glas' : 'Handmade, real glass', image: draft.supportImage },
+  { title: locale === 'de' ? 'Pixogramme' : 'Pixograms', body: locale === 'de' ? 'Animationen als persönlicher Ausdruck' : 'Animations as personal expression', image: draft.gallery[1] },
+  { title: locale === 'de' ? 'Community' : 'Community', body: locale === 'de' ? 'GitHub, Discord, PXL-JAM' : 'GitHub, Discord, PXL-JAM', image: draft.gallery[3] },
+];
+
+const codeSample = `await clock.Draw(async px => {
+  px.Fill("#050607");
+  px.Text(DateTime.Now, color: "#FFD56A");
+  px.Play("orbit");
+});`;
+---
+
+<section class={`original-draft original-draft--${draft.slug}`}>
+  <Hero locale={locale} />
+
+  <section class="od2-intro">
+    <div class="container od2-intro__grid">
+      <div>
+        <p class="eyebrow">{copy.introEyebrow}</p>
+        <h2>{copy.name}</h2>
+        <p class="lead">{copy.introLead}</p>
+        <p class="od2-note">{originalNote}</p>
+      </div>
+
+      <aside class="od2-buycard">
+        <p class="eyebrow">{locale === 'de' ? 'Direkt kaufbar' : 'Ready to buy'}</p>
+        {hasDiscount ? (
+          <p class="od2-price"><span>{discountedLabel}</span><small>{s.price.salePrefix} {priceLabel}</small></p>
+        ) : (
+          <p class="od2-price"><span>{priceLabel}</span></p>
+        )}
+        <p>{stockLabel ?? '—'}</p>
+        <button
+          class="btn"
+          type="button"
+          data-original-buy
+          data-product-id={product?.id ?? ''}
+          data-variant-id={defaultVariantId}
+          data-cart-href={cartHref}
+          disabled={product != null && !product.inStock}
+        >
+          {buyLabel}
+        </button>
+      </aside>
+    </div>
+  </section>
+
+  {draft.slug === 'noir' && (
+    <section class="od2-section od2-wall">
+      <div class="container od2-wall__grid">
+        <div class="od2-wall__copy">
+          <p class="eyebrow">{locale === 'de' ? 'Wie ein digitales Gemälde' : 'Like a digital painting'}</p>
+          <h2>{locale === 'de' ? 'Die Uhr als Wandobjekt, nicht als Gadget.' : 'A wall object, not another gadget.'}</h2>
+          <p class="lead">{locale === 'de' ? 'Diese Richtung verkauft die PXL Clock als leuchtendes Objekt im Raum: reduziert, dunkel, bewusst gerahmt und eher Galerie als Tech-Shop.' : 'This direction sells the PXL Clock as a luminous object in the room: restrained, dark, deliberately framed, and closer to a gallery than a tech shop.'}</p>
+          <ul class="od2-list">
+            {ctaMeta.map((item) => <li>{item}</li>)}
+          </ul>
+        </div>
+        <div class="od2-wall__frames">
+          {wallFrames.map((frame) => (
+            <figure class={frame.className}>
+              <img src={frame.image} alt="" loading="lazy" />
+            </figure>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {draft.slug === 'prism' && (
+    <section class="od2-section">
+      <div class="container">
+        <PixogramShowcase locale={locale} tone={isLightDraft ? 'light' : 'dark'} />
+      </div>
+    </section>
+  )}
+
+  {draft.slug === 'stack' && (
+    <section class="od2-section od2-journey">
+      <div class="container od2-journey__grid">
+        <div class="od2-journey__sticky">
+          <p class="eyebrow">{locale === 'de' ? 'Vom Teil zum Objekt' : 'From parts to object'}</p>
+          <h2>{locale === 'de' ? 'Ein Produkt, bei dem man den Weg sehen darf.' : 'A product where the path is part of the value.'}</h2>
+          <p class="lead">{locale === 'de' ? 'Diese Variante erzählt nicht nur das fertige Ergebnis, sondern den Weg: Elektronik, Rahmen, Glas, Software, Community.' : 'This variant does not only show the finished result. It shows the path: electronics, frame, glass, software, community.'}</p>
+        </div>
+        <div class="od2-journey__cards">
+          {journeyItems.map((item) => (
+            <article class="od2-step">
+              <img src={item.image} alt="" loading="lazy" />
+              <div><h3>{item.title}</h3><p>{item.body}</p></div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {draft.slug === 'grid' && (
+    <section class="od2-section od2-code">
+      <div class="container od2-code__grid">
+        <div>
+          <p class="eyebrow">{locale === 'de' ? 'Programmable Hardware' : 'Programmable hardware'}</p>
+          <h2>{locale === 'de' ? 'Ein Möbelstück, das Code versteht.' : 'A piece of furniture that understands code.'}</h2>
+          <p class="lead">{locale === 'de' ? 'Diese Richtung ist für Menschen, die ein Objekt im Raum wollen, aber trotzdem wissen möchten: Ich kann es selbst verändern.' : 'This direction is for people who want an object in the room, but still want to know: I can change it myself.'}</p>
+            <pre><code>{codeSample}</code></pre>
+        </div>
+        <PixogramShowcase locale={locale} />
+      </div>
+    </section>
+  )}
+
+  {draft.slug === 'atelier' && (
+    <section class="od2-section od2-atelier2">
+      <div class="container od2-atelier2__grid">
+        <figure><img src={draft.supportImage} alt="" loading="lazy" /></figure>
+        <div>
+          <p class="eyebrow">{locale === 'de' ? 'Material und Handwerk' : 'Material and craft'}</p>
+          <h2>{locale === 'de' ? 'Liebevoll gebaut, aber nicht verspielt billig.' : 'Lovingly built, without feeling cheap or cute.'}</h2>
+          {s.handmade.paragraphs.map((paragraph) => <p class="lead">{paragraph}</p>)}
+          <div class="od2-materials">
+            <span>{locale === 'de' ? 'Echtes Glas' : 'Real glass'}</span>
+            <span>{locale === 'de' ? 'Limitierte Serie' : 'Limited run'}</span>
+            <span>{locale === 'de' ? '576 Lichtpunkte' : '576 points of light'}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="od2-section od2-common">
+    <div class="container od2-common__grid">
+      <article>
+        <p class="eyebrow">{s.whatIs.eyebrow}</p>
+        <h2>{s.whatIs.what}</h2>
+        {s.whatIs.paragraphs.map((paragraph) => <p class="lead">{paragraph}</p>)}
+        <p class="lead"><strong>{s.whatIs.closing}</strong></p>
+      </article>
+
+      <article>
+        <p class="eyebrow">{s.setup.title}</p>
+        <h2>{locale === 'de' ? 'Schnell startklar, danach offen für alles.' : 'Quick to set up, open-ended after that.'}</h2>
+        <p class="lead">{s.setup.body}</p>
+        <div class="od2-actions">
+          <button
+            class="btn"
+            type="button"
+            data-original-buy
+            data-product-id={product?.id ?? ''}
+            data-variant-id={defaultVariantId}
+            data-cart-href={cartHref}
+            disabled={product != null && !product.inStock}
+          >
+            {buyLabel}
+          </button>
+          <a class="btn btn--ghost" href="https://github.com/CuminAndPotato/PXL-Clock" target="_blank" rel="noopener">{s.create.github}</a>
+        </div>
+      </article>
+    </div>
+  </section>
+</section>
+
+<script define:vars={{ defaultVariantId, cartHref }}>
+  import { addToCart } from '../lib/shop-browser';
+
+  const buttons = document.querySelectorAll('[data-original-buy]');
+
+  buttons.forEach((node) => {
+    node.addEventListener('click', async () => {
+      const button = node;
+      const productId = button.dataset.productId;
+      if (!productId) {
+        return;
+      }
+
+      const variantId = button.dataset.variantId || defaultVariantId || undefined;
+      const originalLabel = button.textContent;
+      button.disabled = true;
+
+      try {
+        await addToCart({ productId, variantId, quantity: 1 });
+        window.location.href = button.dataset.cartHref || cartHref;
+      } catch (error) {
+        console.error('[OriginalDraftPage] addToCart failed:', error);
+        button.disabled = false;
+        if (originalLabel) {
+          button.textContent = originalLabel;
+        }
+      }
+    });
+  });
+
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const layers = Array.from(document.querySelectorAll('[data-parallax]'));
+
+  if (!prefersReducedMotion && layers.length > 0) {
+    let ticking = false;
+
+    const paint = () => {
+      const offset = window.scrollY;
+      layers.forEach((layer) => {
+        const speed = Number(layer.getAttribute('data-speed') || '0');
+        layer.style.transform = `translate3d(0, ${offset * speed}px, 0)`;
+      });
+      ticking = false;
+    };
+
+    const onScroll = () => {
+      if (ticking) {
+        return;
+      }
+      ticking = true;
+      window.requestAnimationFrame(paint);
+    };
+
+    paint();
+    window.addEventListener('scroll', onScroll, { passive: true });
+  }
+</script>
+
+<style>
+  .original-draft {
+    --draft-bg: #0d1014;
+    --draft-bg-soft: #151b21;
+    --draft-panel: rgba(255, 255, 255, 0.06);
+    --draft-panel-border: rgba(255, 255, 255, 0.1);
+    --draft-accent: #ffba57;
+    --draft-accent-soft: rgba(255, 186, 87, 0.2);
+    --draft-fg: #f5f7fb;
+    --draft-muted: rgba(245, 247, 251, 0.72);
+    --fg: var(--draft-fg);
+    --muted: var(--draft-muted);
+    --hairline: var(--draft-panel-border);
+    --draft-shadow: 0 30px 90px rgba(0, 0, 0, 0.28);
+    background:
+      radial-gradient(circle at 10% 10%, rgba(255,255,255,0.08), transparent 25%),
+      radial-gradient(circle at 90% 8%, rgba(255,186,87,0.16), transparent 28%),
+      var(--draft-bg);
+    color: var(--draft-fg);
+    overflow: clip;
+  }
+  .original-draft--prism {
+    --draft-bg: #e8edf3;
+    --draft-bg-soft: #f4f6fa;
+    --draft-panel: rgba(255, 255, 255, 0.7);
+    --draft-panel-border: rgba(10, 10, 10, 0.08);
+    --draft-accent: #355cc6;
+    --draft-accent-soft: rgba(53, 92, 198, 0.12);
+    --draft-fg: #101317;
+    --draft-muted: rgba(16, 19, 23, 0.68);
+    --draft-shadow: 0 24px 70px rgba(48, 61, 92, 0.12);
+    background:
+      radial-gradient(circle at 10% 12%, rgba(183, 198, 213, 0.55), transparent 26%),
+      radial-gradient(circle at 88% 14%, rgba(53, 92, 198, 0.14), transparent 28%),
+      linear-gradient(180deg, #eef2f7 0%, #ffffff 100%);
+  }
+  .original-draft--stack {
+    --draft-bg: #101218;
+    --draft-bg-soft: #181c24;
+    --draft-panel: rgba(255, 255, 255, 0.05);
+    --draft-panel-border: rgba(255, 255, 255, 0.1);
+    --draft-accent: #f67f4b;
+    --draft-accent-soft: rgba(246, 127, 75, 0.16);
+  }
+  .original-draft--grid {
+    --draft-bg: #0a0d10;
+    --draft-bg-soft: #12161a;
+    --draft-panel: rgba(255, 255, 255, 0.05);
+    --draft-panel-border: rgba(255, 255, 255, 0.08);
+    --draft-accent: #cdd8e7;
+    --draft-accent-soft: rgba(205, 216, 231, 0.12);
+    background:
+      linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
+      radial-gradient(circle at 85% 18%, rgba(255,255,255,0.12), transparent 22%),
+      #0a0d10;
+    background-size: 56px 56px, 56px 56px, auto, auto;
+  }
+  .original-draft--atelier {
+    --draft-bg: #1b1816;
+    --draft-bg-soft: #24201c;
+    --draft-panel: rgba(255, 247, 236, 0.08);
+    --draft-panel-border: rgba(255, 230, 205, 0.12);
+    --draft-accent: #f0c087;
+    --draft-accent-soft: rgba(240, 192, 135, 0.18);
+    background:
+      radial-gradient(circle at 12% 12%, rgba(240, 192, 135, 0.12), transparent 25%),
+      radial-gradient(circle at 90% 10%, rgba(255,255,255,0.08), transparent 20%),
+      linear-gradient(180deg, #1b1816 0%, #111214 100%);
+  }
+
+  .od2-intro,
+  .od2-section {
+    position: relative;
+    padding: clamp(4rem, 9vw, 7rem) 0;
+  }
+  .od2-intro {
+    margin-top: -1px;
+    background:
+      radial-gradient(circle at 85% 10%, var(--draft-accent-soft), transparent 30%),
+      linear-gradient(180deg, var(--draft-bg) 0%, var(--draft-bg-soft) 100%);
+  }
+  .od2-intro__grid,
+  .od2-common__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.75fr);
+    gap: clamp(2rem, 5vw, 5rem);
+    align-items: center;
+  }
+  .od2-intro h2,
+  .od2-section h2 {
+    font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    font-size: clamp(2.6rem, 7vw, 5.8rem);
+    line-height: 0.95;
+    letter-spacing: -0.055em;
+    margin: 0 0 1.1rem;
+  }
+  .od2-note {
+    display: inline-flex;
+    max-width: 42ch;
+    margin: 1.4rem 0 0;
+    padding: 0.85rem 1rem;
+    border-radius: 999px;
+    background: var(--draft-panel);
+    border: 1px solid var(--draft-panel-border);
+    color: var(--draft-muted);
+    font-weight: 700;
+  }
+  .od2-buycard,
+  .od2-common article,
+  .od2-step,
+  .od2-atelier2 figure {
+    background: var(--draft-panel);
+    border: 1px solid var(--draft-panel-border);
+    box-shadow: var(--draft-shadow);
+    backdrop-filter: blur(16px);
+  }
+  .od2-buycard {
+    border-radius: 28px;
+    padding: clamp(1.4rem, 3vw, 2rem);
+  }
+  .od2-price {
+    margin: 0 0 1rem;
+  }
+  .od2-price span {
+    display: block;
+    font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    line-height: 1;
+    font-weight: 700;
+  }
+  .od2-price small {
+    display: block;
+    margin-top: 0.45rem;
+    color: var(--draft-muted);
+  }
+  .od2-buycard .btn {
+    margin-top: 1.25rem;
+  }
+
+  .od2-wall {
+    background:
+      linear-gradient(115deg, rgba(255,255,255,0.03) 0 35%, transparent 35% 100%),
+      #08090b;
+  }
+  .od2-wall__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: clamp(2rem, 5vw, 5rem);
+    align-items: center;
+  }
+  .od2-list {
+    display: grid;
+    gap: 0.7rem;
+    list-style: none;
+    padding: 0;
+    margin: 2rem 0 0;
+  }
+  .od2-list li {
+    padding: 0.85rem 1rem;
+    border-left: 4px solid var(--draft-accent);
+    background: rgba(255,255,255,0.05);
+    font-weight: 700;
+  }
+  .od2-wall__frames {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(6, 72px);
+    gap: 1rem;
+    perspective: 1200px;
+  }
+  .od2-frame {
+    margin: 0;
+    border: 12px solid #101214;
+    background: #050607;
+    overflow: hidden;
+    box-shadow: 0 28px 90px rgba(0,0,0,0.42);
+  }
+  .od2-frame img,
+  .od2-step img,
+  .od2-atelier2 img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .od2-frame--1 { grid-area: 1 / 1 / 4 / 4; transform: rotate(-2deg); }
+  .od2-frame--2 { grid-area: 2 / 4 / 6 / 7; transform: rotate(1.5deg) translateY(-1rem); }
+  .od2-frame--3 { grid-area: 4 / 1 / 7 / 3; transform: rotate(2deg); }
+  .od2-frame--4 { grid-area: 5 / 3 / 7 / 6; transform: rotate(-1deg); }
+
+  .od2-journey {
+    background:
+      linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
+      linear-gradient(180deg, var(--draft-bg-soft) 0%, var(--draft-bg) 100%);
+    background-size: 80px 80px, auto;
+  }
+  .od2-journey__grid {
+    display: grid;
+    grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.2fr);
+    gap: clamp(2rem, 5vw, 5rem);
+    align-items: start;
+  }
+  .od2-journey__sticky {
+    position: sticky;
+    top: 8rem;
+  }
+  .od2-journey__cards {
+    display: grid;
+    gap: 1rem;
+  }
+  .od2-step {
+    display: grid;
+    grid-template-columns: 180px minmax(0, 1fr);
+    gap: 1rem;
+    align-items: center;
+    min-height: 180px;
+    padding: 1rem;
+    border-radius: 26px;
+  }
+  .od2-step img {
+    aspect-ratio: 1;
+    border-radius: 18px;
+  }
+  .od2-step h3 {
+    font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    font-size: clamp(1.7rem, 4vw, 3rem);
+    margin: 0 0 0.4rem;
+    line-height: 1;
+  }
+  .od2-step p {
+    color: var(--draft-muted);
+  }
+
+  .od2-code {
+    background:
+      linear-gradient(rgba(255,255,255,0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.055) 1px, transparent 1px),
+      #06080a;
+    background-size: 24px 24px;
+  }
+  .od2-code__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+  }
+  .od2-code pre {
+    margin: 2rem 0 0;
+    padding: clamp(1.2rem, 3vw, 2rem);
+    border-radius: 24px;
+    background: #050607;
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #ffd56a;
+    overflow: auto;
+    box-shadow: var(--draft-shadow);
+  }
+  .od2-code code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: clamp(0.9rem, 1.6vw, 1.05rem);
+    line-height: 1.6;
+  }
+
+  .od2-atelier2 {
+    background:
+      radial-gradient(circle at 88% 20%, rgba(240,192,135,0.18), transparent 28%),
+      linear-gradient(180deg, #24201c 0%, #151311 100%);
+  }
+  .od2-atelier2__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+    gap: clamp(2rem, 5vw, 5rem);
+    align-items: center;
+  }
+  .od2-atelier2 figure {
+    margin: 0;
+    min-height: 620px;
+    border-radius: 42px 12px 42px 12px;
+    overflow: hidden;
+    padding: 0.8rem;
+  }
+  .od2-atelier2 figure img {
+    border-radius: 32px 8px 32px 8px;
+  }
+  .od2-materials {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    margin-top: 2rem;
+  }
+  .od2-materials span {
+    padding: 0.85rem 1rem;
+    border-radius: 999px;
+    background: rgba(255,247,236,0.09);
+    border: 1px solid rgba(255,230,205,0.16);
+    font-weight: 700;
+  }
+
+  .od2-common {
+    background: linear-gradient(180deg, var(--draft-bg) 0%, #060708 100%);
+  }
+  .original-draft--prism .od2-common,
+  .original-draft--prism .od2-intro {
+    background: linear-gradient(180deg, #f2f5f9 0%, #e8edf3 100%);
+  }
+  .od2-common article {
+    min-height: 100%;
+    padding: clamp(1.4rem, 3vw, 2rem);
+    border-radius: 30px;
+  }
+  .od2-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin-top: 1.5rem;
+  }
+  .od2-actions .btn {
+    min-width: 0;
+  }
+
+  .od__hero {
+    padding-top: clamp(9rem, 16vw, 13rem);
+    padding-bottom: clamp(4rem, 9vw, 7rem);
+    position: relative;
+  }
+  .od__hero-grid,
+  .od__split-grid,
+  .od__closing-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: clamp(2rem, 5vw, 5rem);
+    align-items: center;
+  }
+  .od__hero-copy,
+  .od__closing-copy {
+    position: relative;
+    z-index: 1;
+  }
+  .od__title {
+    font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    font-weight: 700;
+    font-size: clamp(4rem, 10vw, 8rem);
+    line-height: 0.9;
+    letter-spacing: -0.055em;
+    margin: 0;
+  }
+  .od__title span {
+    display: block;
+  }
+  .od__lead {
+    margin-top: 1.5rem;
+    color: var(--draft-muted);
+    max-width: 54ch;
+  }
+  .od__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 1.75rem;
+  }
+  .od__chips span {
+    padding: 0.68rem 0.95rem;
+    border-radius: 999px;
+    background: var(--draft-panel);
+    border: 1px solid var(--draft-panel-border);
+    backdrop-filter: blur(14px);
+    font-weight: 700;
+    font-size: 0.92rem;
+  }
+  .od__hero-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 2rem;
+  }
+  .od__stage-note {
+    margin: 0;
+    max-width: 26ch;
+    color: var(--draft-muted);
+  }
+  .od__stage {
+    min-height: clamp(440px, 60vw, 760px);
+    position: relative;
+    isolation: isolate;
+  }
+  .od__shape,
+  .od__stage-main,
+  .od__stage-card {
+    position: absolute;
+    will-change: transform;
+  }
+  .od__shape {
+    background: linear-gradient(180deg, var(--draft-accent-soft), rgba(255,255,255,0.02));
+    border: 1px solid var(--draft-panel-border);
+    backdrop-filter: blur(14px);
+  }
+  .od__shape--one {
+    inset: 6% 14% 18% 10%;
+    clip-path: polygon(0 0, 82% 0, 100% 16%, 94% 100%, 0 88%);
+  }
+  .od__shape--two {
+    inset: 20% 4% 28% 46%;
+    clip-path: polygon(20% 0, 100% 0, 84% 100%, 0 88%, 0 18%);
+  }
+  .od__shape--three {
+    inset: 54% 28% 4% 0%;
+    clip-path: polygon(0 14%, 74% 0, 100% 100%, 18% 100%);
+  }
+  .od__stage-main {
+    inset: 14% 18% 12% 16%;
+    border-radius: 28px;
+    padding: clamp(1rem, 2vw, 1.4rem);
+    background: var(--draft-panel);
+    border: 1px solid var(--draft-panel-border);
+    box-shadow: var(--draft-shadow);
+  }
+  .od__stage-main img,
+  .od__stage-card img,
+  .od__panel-image img,
+  .od__chapter-media img,
+  .od__mosaic-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .od__stage-main img {
+    object-fit: contain;
+    filter: drop-shadow(0 35px 40px rgba(0,0,0,0.32));
+  }
+  .od__stage-card {
+    overflow: hidden;
+    border-radius: 22px;
+    border: 1px solid var(--draft-panel-border);
+    box-shadow: var(--draft-shadow);
+  }
+  .od__stage-card--support {
+    width: min(34%, 240px);
+    aspect-ratio: 3 / 4;
+    left: 0;
+    top: 14%;
+  }
+  .od__stage-card--detail {
+    width: min(38%, 260px);
+    aspect-ratio: 4 / 5;
+    right: 2%;
+    bottom: 2%;
+  }
+  .od__stage-tag {
+    position: absolute;
+    left: 8%;
+    bottom: 3%;
+    max-width: 28ch;
+    padding: 1rem 1.1rem;
+    border-radius: 18px;
+    background: var(--draft-panel);
+    border: 1px solid var(--draft-panel-border);
+    color: var(--draft-muted);
+    backdrop-filter: blur(14px);
+  }
+  .od__band,
+  .od__split,
+  .od__chapters,
+  .od__mosaic,
+  .od__closing {
+    position: relative;
+    padding: clamp(2.5rem, 6vw, 5rem) 0;
+  }
+  .od__band-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .od__metric,
+  .od__panel,
+  .od__chapter,
+  .od__closing-card {
+    background: var(--draft-panel);
+    border: 1px solid var(--draft-panel-border);
+    backdrop-filter: blur(14px);
+    box-shadow: var(--draft-shadow);
+  }
+  .od__metric {
+    min-height: 100%;
+    padding: 1.25rem;
+    border-radius: 20px;
+  }
+  .od__metric-label {
+    display: inline-block;
+    margin-bottom: 0.7rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--draft-muted);
+  }
+  .od__metric p,
+  .od__metric small {
+    display: block;
+  }
+  .od__metric-price {
+    margin: 0;
+  }
+  .od__metric-price span {
+    display: block;
+    font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-weight: 700;
+    line-height: 1;
+  }
+  .od__metric-price small,
+  .od__metric small {
+    margin-top: 0.55rem;
+    color: var(--draft-muted);
+  }
+  .od__split {
+    padding-top: clamp(3rem, 7vw, 6rem);
+  }
+  .od__panel {
+    border-radius: 28px;
+    padding: clamp(1.4rem, 3vw, 2rem);
+  }
+  .od__panel--copy p + p {
+    margin-top: 1rem;
+  }
+  .od__copy-strong {
+    font-weight: 700;
+  }
+  .od__panel--media {
+    position: relative;
+    min-height: 520px;
+    overflow: hidden;
+  }
+  .od__panel-image {
+    margin: 0;
+    height: 100%;
+    border-radius: 20px;
+    overflow: hidden;
+  }
+  .od__floating-quote {
+    position: absolute;
+    right: 1.2rem;
+    bottom: 1.2rem;
+    max-width: 20ch;
+    padding: 1rem 1.1rem;
+    border-radius: 18px;
+    background: rgba(10,10,10,0.75);
+    color: #fff;
+  }
+  .od__floating-quote span {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.72;
+    margin-bottom: 0.45rem;
+  }
+  .od__floating-quote strong {
+    font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    font-size: 1.35rem;
+    line-height: 1.05;
+  }
+  .od__quote {
+    min-height: 430px;
+    display: flex;
+    align-items: center;
+    position: relative;
+    color: #fff;
+    background-image:
+      linear-gradient(180deg, rgba(0,0,0,0.48) 0%, rgba(0,0,0,0.68) 100%),
+      var(--statement-image);
+    background-size: cover, cover;
+    background-position: center, center;
+    background-attachment: scroll, fixed;
+  }
+  .od__quote .eyebrow {
+    color: rgba(255, 255, 255, 0.76);
+  }
+  .od__quote-inner {
+    text-align: center;
+  }
+  .od__quote-title {
+    margin: 0;
+    color: #fff;
+    font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    font-weight: 700;
+    font-size: clamp(2.3rem, 6vw, 4.8rem);
+    line-height: 0.96;
+    letter-spacing: -0.04em;
+  }
+  .od__quote-title span {
+    display: block;
+  }
+  .od__chapters-grid {
+    display: grid;
+    gap: 1.25rem;
+  }
+  .od__chapter {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+    gap: 1.25rem;
+    padding: 1.25rem;
+    border-radius: 24px;
+    position: sticky;
+    top: calc(6rem + (var(--index) * 1rem));
+  }
+  .od__chapter-title {
+    margin-bottom: 0.8rem;
+    max-width: 13ch;
+  }
+  .od__chapter-media {
+    margin: 0;
+    border-radius: 18px;
+    overflow: hidden;
+    min-height: 280px;
+  }
+  .od__mosaic-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr 1fr;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  .od__mosaic-item {
+    margin: 0;
+    min-height: 240px;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid var(--draft-panel-border);
+    box-shadow: var(--draft-shadow);
+  }
+  .od__mosaic-item--large {
+    grid-row: span 2;
+    min-height: 520px;
+  }
+  .od__closing-card {
+    border-radius: 28px;
+    padding: clamp(1.4rem, 3vw, 2rem);
+  }
+  .od__closing-title {
+    margin-bottom: 1rem;
+  }
+  .od__closing-copy p + p {
+    margin-top: 1rem;
+  }
+  .od__closing-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+  .od__closing-actions .btn {
+    min-width: 0;
+  }
+
+  .original-draft--prism .od__floating-quote {
+    background: rgba(16,19,23,0.88);
+  }
+  .original-draft--prism .od__quote {
+    background-image:
+      linear-gradient(180deg, rgba(16,19,23,0.48) 0%, rgba(16,19,23,0.68) 100%),
+      var(--statement-image);
+  }
+  .original-draft--stack .od__hero {
+    padding-bottom: 2rem;
+  }
+  .original-draft--stack .od__split {
+    margin-top: -2rem;
+  }
+  .original-draft--stack .od__stage-main {
+    inset: 10% 14% 8% 18%;
+  }
+  .original-draft--grid .od__shape {
+    border-radius: 18px;
+    clip-path: none;
+    background:
+      linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px),
+      var(--draft-panel);
+    background-size: 22px 22px, 22px 22px, auto;
+  }
+  .original-draft--grid .od__stage-card,
+  .original-draft--grid .od__panel,
+  .original-draft--grid .od__chapter,
+  .original-draft--grid .od__metric,
+  .original-draft--grid .od__closing-card {
+    border-radius: 8px;
+  }
+  .original-draft--atelier .od__shape--one {
+    clip-path: polygon(0 0, 88% 0, 100% 20%, 100% 100%, 0 86%);
+  }
+  .original-draft--atelier .od__metric,
+  .original-draft--atelier .od__panel,
+  .original-draft--atelier .od__chapter,
+  .original-draft--atelier .od__closing-card {
+    border-radius: 28px 12px 28px 12px;
+  }
+
+  @media (hover: none) and (pointer: coarse) {
+    .od__quote {
+      background-attachment: scroll, scroll;
+    }
+  }
+  @media (max-width: 1100px) {
+    .od__band-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .od__mosaic-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .od__mosaic-item--large {
+      grid-row: auto;
+      min-height: 300px;
+    }
+  }
+  @media (max-width: 900px) {
+    .od__hero-grid,
+    .od__split-grid,
+    .od__closing-grid,
+    .od__chapter {
+      grid-template-columns: 1fr;
+    }
+    .od__stage {
+      min-height: 520px;
+    }
+    .od__chapter {
+      position: relative;
+      top: 0;
+    }
+  }
+  @media (max-width: 720px) {
+    .od__band-grid,
+    .od__mosaic-grid {
+      grid-template-columns: 1fr;
+    }
+    .od__stage-main {
+      inset: 16% 8% 16% 8%;
+    }
+    .od__stage-card--support {
+      width: 40%;
+      left: 0;
+      top: 8%;
+    }
+    .od__stage-card--detail {
+      width: 44%;
+      right: 0;
+      bottom: 6%;
+    }
+    .od__stage-tag {
+      left: 4%;
+      right: 4%;
+      bottom: 0;
+      max-width: none;
+    }
+  }
+</style>

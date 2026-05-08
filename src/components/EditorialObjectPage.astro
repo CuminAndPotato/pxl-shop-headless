@@ -1,0 +1,503 @@
+---
+import type { Locale } from '../i18n/strings';
+import { t } from '../i18n/strings';
+import type { Product } from '../lib/shop';
+import type { PageVariant } from '../lib/page-variants';
+import { lifestyleGallery, workshopGallery } from '../lib/assets';
+import Hero from './Hero.astro';
+import LivePixogramPicker from './LivePixogramPicker.astro';
+import AISandbox from './AISandbox.astro';
+import SectionDivider from './SectionDivider.astro';
+
+interface Props {
+  locale: Locale;
+  variant: PageVariant;
+  product: Product | null;
+}
+
+const { locale, product } = Astro.props;
+const s = t(locale);
+
+const productImage = '/img/products/whatis-clock-tight.png';
+const price = product?.discountedPrice?.formatted ?? product?.price?.formatted ?? '229,00€';
+const oldPrice = product?.discountedPrice ? product?.price?.formatted : '';
+const cartHref = locale === 'de' ? '/de/cart' : '/cart';
+const defaultVariantId = product?.variants[0]?.id ?? '';
+
+const places = locale === 'de'
+  ? [
+      { caption: 'Auf einem Konsolentisch im Flur, neben einer Vase. Im Halbdunkel des Flurs nimmt sie morgens als ruhige Lichtquelle Form an. Tagsüber bleibt sie zurück. Abends spielt sie eine langsame Animation, die nicht mehr Aufmerksamkeit fordert als ein Kerzenglas.', img: lifestyleGallery[1] },
+      { caption: 'Über einem Schreibtisch, in einer Werkstatt aus Holz. Sie zeigt Zeit, einen Build-Status, eine Stimmung. Mehr nicht. Eine kleine Bühne für 576 Pixel, die nicht versuchen, ein Telefon zu ersetzen.', img: workshopGallery[2] },
+      { caption: 'In einem Regal aus Eiche, zwischen Büchern. Auch ausgeschaltet ist sie ein gefasstes Quadrat. Der Rahmen aus Holz und Glas trägt sie als Objekt, nicht als Gerät.', img: lifestyleGallery[8] },
+    ]
+  : [
+      { caption: 'On a console table in the hallway, next to a vase. In the half-light it takes shape as a calm morning light source. Through the day it recedes. In the evening it plays a slow animation that asks no more attention than a candle.', img: lifestyleGallery[1] },
+      { caption: 'Above a desk, in a wooden workshop. It shows time, a build status, a mood. Nothing more. A small stage for 576 pixels that don\'t try to replace a phone.', img: workshopGallery[2] },
+      { caption: 'In an oak shelf, between books. Switched off it is still a framed square. The wooden, glass-fronted body carries it as an object — not a device.', img: lifestyleGallery[8] },
+    ];
+
+const intro = locale === 'de'
+  ? {
+      headline: ['Ein Pixel.', 'Zweiundzwanzigtausend', 'Sterne pro Sekunde.'],
+      lead:
+        'Eine Uhr aus 576 Pixeln, gefasst in echtes Glas, gemacht für Räume, in denen Objekte stehen — nicht Bildschirme. Hergestellt in Köln, in einer Kleinserie aus 100 Stück.',
+    }
+  : {
+      headline: ['One pixel.', 'Twenty-two thousand', 'sparks per second.'],
+      lead:
+        'A clock built from 576 pixels, set behind real glass, made for rooms where objects live — not screens. Made in Cologne, in a small run of one hundred.',
+    };
+
+const material = locale === 'de'
+  ? {
+      headline: ['Glas.', 'Rahmen.', 'Pixel.'],
+      paragraphs: [
+        'Wir bauen die PXL Clock aus echten Materialien: einem handgefertigten Rahmen, gefasstem Glas und einer RGB-Matrix mit 576 LEDs. 27 × 27 × 6 cm. 2 kg in der Hand.',
+        'Jedes Stück wird einzeln aufgebaut, gemessen, geflasht, verpackt — keine Massenware, keine Cloud-Bindung, keine Pflichtabos.',
+      ],
+    }
+  : {
+      headline: ['Glass.', 'Frame.', 'Pixels.'],
+      paragraphs: [
+        'We build the PXL Clock from real materials: a handmade frame, set glass, and a 576-LED RGB matrix. 27 × 27 × 6 cm. 2 kg in the hand.',
+        'Each piece is assembled, measured, flashed, and packed by hand — no mass production, no cloud lock-in, no forced subscriptions.',
+      ],
+    };
+
+const issueLine = locale === 'de'
+  ? 'Ausgabe Eins · Frühling 2026 · Aus einer Werkstatt in Köln'
+  : 'Issue One · Spring 2026 · From a workshop in Cologne';
+---
+
+<section class="ed">
+  <Hero locale={locale} />
+
+  <!-- Editorial cover spread: oversized headline, asymmetric image, magazine footer -->
+  <section class="ed-cover">
+    <div class="ed-cover__type">
+      <h2 class="ed-display">
+        {intro.headline.map((line, i) => <span data-line={i}>{line}</span>)}
+      </h2>
+      <p class="ed-lede">{intro.lead}</p>
+    </div>
+    <figure class="ed-cover__media" data-ed-parallax data-speed="0.08">
+      <img src={productImage} alt={product?.name ?? 'PXL Clock'} loading="lazy" />
+    </figure>
+    <p class="ed-issue">{issueLine}</p>
+  </section>
+
+  <!-- Place studies: two-image spread with running captions, plus a third smaller study -->
+  <section class="ed-spread">
+    <SectionDivider side="top" pattern="scallop" fill="rgba(255, 255, 255, 0.4)" height="100px" />
+    <article class="ed-spread__major">
+      <figure data-ed-parallax data-speed="0.05">
+        <img src={places[0].img} alt="" loading="lazy" />
+      </figure>
+      <p class="ed-cap">{places[0].caption}</p>
+    </article>
+    <article class="ed-spread__minor">
+      <figure data-ed-parallax data-speed="0.07">
+        <img src={places[2].img} alt="" loading="lazy" />
+      </figure>
+      <p class="ed-cap">{places[2].caption}</p>
+    </article>
+  </section>
+
+  <!-- Single full-width plate with the workshop study as long-form -->
+  <section class="ed-plate">
+    <figure>
+      <img src={places[1].img} alt="" loading="lazy" />
+      <figcaption class="ed-cap ed-cap--wide">{places[1].caption}</figcaption>
+    </figure>
+  </section>
+
+  <!-- Live preview as soft card insert -->
+  <section class="ed-insert">
+    <LivePixogramPicker locale={locale} variant="card" initial="wave" />
+  </section>
+
+  <!-- Material spread: full-bleed image bg with floating text panel -->
+  <section class="ed-material">
+    <figure class="ed-material__bg" data-ed-parallax data-speed="0.04">
+      <img src={workshopGallery[6]} alt="" loading="lazy" />
+    </figure>
+    <article class="ed-material__copy">
+      <h2 class="ed-display ed-display--small">
+        {material.headline.map((line) => <span>{line}</span>)}
+      </h2>
+      {material.paragraphs.map((p) => <p class="ed-lead">{p}</p>)}
+    </article>
+    <SectionDivider side="bottom" pattern="arc" fill="#ffffff" height="140px" />
+  </section>
+
+  <!-- AI sandbox -->
+  <section class="ed-sandbox">
+    <SectionDivider side="top" pattern="wave" fill="rgba(255, 255, 255, 0.5)" height="120px" flip={true} />
+    <AISandbox locale={locale} variant="card" tone="light" />
+  </section>
+
+  <!-- Closing — proper magazine colophon, no eyebrow -->
+  <section class="ed-buy">
+    <SectionDivider side="top" pattern="split-wave" fill="#ffffff" height="140px" />
+    <div class="ed-buy__inner">
+      <h2 class="ed-h">{locale === 'de' ? 'Eine Uhr, eine Adresse, eine ehrliche Beta.' : 'One clock, one address, an honest beta.'}</h2>
+      <p class="ed-lead">{locale === 'de'
+        ? 'Versand in zwei bis vier Werktagen mit DHL. Mit Promo-Code RONALD sparst du fünfundzwanzig Euro. Bestellung läuft direkt über Cumin & Potato GmbH, Köln — kein Wiederverkäufer dazwischen.'
+        : 'Ships in two to four business days with DHL. Promo code RONALD takes twenty-five euros off. Orders go directly through Cumin & Potato GmbH, Cologne — no reseller in between.'}</p>
+      <div class="ed-buy__row">
+        <p class="ed-buy__amount">
+          <strong>{price}</strong>
+          {oldPrice && <span>{s.price.salePrefix} {oldPrice}</span>}
+        </p>
+        <button class="ed-btn" type="button" data-ed-buy data-product-id={product?.id ?? ''} data-variant-id={defaultVariantId} data-cart-href={cartHref}>
+          {s.whatIs.cta}
+        </button>
+      </div>
+      <p class="ed-colophon">
+        {locale === 'de'
+          ? 'PXL Clock · Cumin & Potato GmbH · Köln · Schriftarten: Cabinet Grotesk und General Sans · Diese Seite ist Teil einer offenen Designstudie.'
+          : 'PXL Clock · Cumin & Potato GmbH · Cologne · Set in Cabinet Grotesk and General Sans · This page is part of an open design study.'}
+      </p>
+    </div>
+  </section>
+</section>
+
+<style is:global>
+  @import url('https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&f[]=cabinet-grotesk@500,700,800&display=swap');
+</style>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-ed-buy]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const productId = btn.dataset.productId;
+      if (!productId) return;
+      btn.disabled = true;
+      try {
+        const { addToCart } = await import('../lib/shop-browser');
+        await addToCart({ productId, variantId: btn.dataset.variantId || undefined, quantity: 1 });
+        window.location.href = btn.dataset.cartHref || '/cart';
+      } catch (err) {
+        console.error('[EditorialObject] addToCart failed:', err);
+        btn.disabled = false;
+      }
+    });
+  });
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduced) {
+    const targets = Array.from(document.querySelectorAll<HTMLElement>('[data-ed-parallax]'));
+    let raf = 0;
+    function update() {
+      const vh = window.innerHeight;
+      for (const el of targets) {
+        const rect = el.getBoundingClientRect();
+        const center = rect.top + rect.height / 2;
+        const off = (center - vh / 2) / vh;
+        const speed = parseFloat(el.dataset.speed || '0.05');
+        const y = Math.max(-22, Math.min(22, -off * speed * 200));
+        el.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`;
+      }
+      raf = 0;
+    }
+    window.addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(update); }, { passive: true });
+    update();
+  }
+</script>
+
+<style>
+  .ed {
+    /* Page background uses the same multi-stop radial gradient as the live
+       landing — pewter blue, honey amber, indigo violet — so the page reads
+       as part of the brand world, not an Anthropic cream slab. */
+    --ed-bg: #ffffff;
+    --ed-surface: #ffffff;
+    --ed-paper: #e6e6e6;
+    --ed-ink: #1a1d22;
+    --ed-muted: #5a606a;
+    --ed-line: rgba(26, 29, 34, 0.14);
+    --ed-rust: #6b3a52;          /* dusty plum — supporting accent */
+    --ed-cool: #2d5469;          /* deep petrol — supporting accent */
+
+    --draft-fg: var(--ed-ink);
+    --draft-bg: var(--ed-bg);
+    --draft-muted: var(--ed-muted);
+    --draft-surface: var(--ed-surface);
+    --draft-line: var(--ed-line);
+    --draft-bezel: #14171c;
+    --draft-c1: #9bb4d4;
+    --draft-c2: var(--ed-cool);
+    --draft-c3: var(--ed-rust);
+    --draft-c4: #fbb238;
+
+    background:
+      radial-gradient(ellipse 60% 50% at 88% 8%, rgba(192, 209, 218, 1) 0%, rgba(192, 209, 218, 0) 60%),
+      radial-gradient(ellipse 70% 40% at 64% 35%, rgba(251, 182, 56, 0.32) 0%, rgba(251, 182, 56, 0) 60%),
+      radial-gradient(ellipse 80% 50% at 2% 70%, rgba(192, 209, 218, 0.7) 0%, rgba(192, 209, 218, 0) 60%),
+      radial-gradient(ellipse 70% 40% at 94% 60%, rgba(72, 93, 189, 0.42) 0%, rgba(72, 93, 189, 0) 65%),
+      radial-gradient(ellipse 80% 60% at 50% 90%, rgba(231, 250, 152, 0.28) 0%, rgba(231, 250, 152, 0) 65%),
+      #ffffff;
+    background-attachment: fixed;
+    color: var(--ed-ink);
+    font-family: 'General Sans', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    font-feature-settings: 'tnum' 1, 'ss01' 1;
+  }
+
+  .ed-display {
+    margin: 0 0 1.5rem;
+    font-family: 'Cabinet Grotesk', 'General Sans', sans-serif;
+    font-size: clamp(2.6rem, 7.4vw, 6.6rem);
+    line-height: 0.94;
+    letter-spacing: -0.04em;
+    font-weight: 800;
+  }
+  .ed-display span { display: block; }
+  .ed-display span[data-line="1"] { padding-left: clamp(1rem, 4vw, 3rem); }
+  .ed-display span[data-line="2"] { padding-left: clamp(2rem, 8vw, 6rem); color: var(--ed-rust); }
+  .ed-display--small {
+    font-size: clamp(2rem, 5vw, 4.4rem);
+    font-weight: 700;
+  }
+  .ed-display--small span:nth-child(2) { padding-left: clamp(1rem, 4vw, 3rem); }
+  .ed-display--small span:nth-child(3) { padding-left: clamp(2rem, 7vw, 5rem); color: var(--ed-rust); }
+  .ed-h {
+    margin: 0 0 1rem;
+    font-family: 'Cabinet Grotesk', 'General Sans', sans-serif;
+    font-size: clamp(1.8rem, 3.6vw, 2.8rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+  }
+  .ed-lede {
+    margin: 0;
+    color: var(--ed-muted);
+    line-height: 1.7;
+    font-size: clamp(1.05rem, 1.4vw, 1.18rem);
+    max-width: 56ch;
+  }
+  .ed-lead {
+    margin: 0 0 1rem;
+    color: var(--ed-muted);
+    line-height: 1.7;
+    font-size: clamp(1rem, 1.3vw, 1.1rem);
+    max-width: 56ch;
+  }
+
+  /* Cover spread */
+  .ed-cover {
+    position: relative;
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem) clamp(8rem, 14vw, 12rem);
+    max-width: 1480px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+  }
+  .ed-cover__type { z-index: 2; }
+  .ed-cover__media {
+    margin: 0;
+    will-change: transform;
+  }
+  .ed-cover__media img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 30px 50px rgba(26, 29, 34, 0.22));
+  }
+  .ed-issue {
+    position: absolute;
+    bottom: clamp(2rem, 4vw, 3.5rem);
+    left: clamp(1rem, 4vw, 3rem);
+    right: clamp(1rem, 4vw, 3rem);
+    margin: 0;
+    border-top: 1px solid var(--ed-line);
+    padding-top: 1rem;
+    font-size: 0.86rem;
+    color: var(--ed-muted);
+    line-height: 1.5;
+  }
+  @media (max-width: 860px) {
+    .ed-cover { grid-template-columns: 1fr; }
+    .ed-display span[data-line="1"], .ed-display span[data-line="2"] { padding-left: 0; }
+  }
+
+  /* Two-image spread with running captions */
+  .ed-spread {
+    position: relative;
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem);
+    max-width: 1480px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    gap: clamp(2rem, 6vw, 5rem);
+    align-items: end;
+  }
+  .ed-spread__major figure {
+    margin: 0;
+    aspect-ratio: 5 / 4;
+    overflow: hidden;
+    will-change: transform;
+  }
+  .ed-spread__minor {
+    margin-top: clamp(2rem, 6vw, 5rem);
+  }
+  .ed-spread__minor figure {
+    margin: 0;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+    will-change: transform;
+  }
+  .ed-spread img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+  .ed-cap {
+    margin: 1rem 0 0;
+    color: var(--ed-ink);
+    font-size: 0.96rem;
+    line-height: 1.65;
+    max-width: 48ch;
+  }
+  .ed-cap--wide { max-width: 70ch; margin: 1.4rem auto 0; padding: 0 clamp(1rem, 4vw, 3rem); }
+  @media (max-width: 860px) {
+    .ed-spread { grid-template-columns: 1fr; }
+    .ed-spread__minor { margin-top: 0; }
+  }
+
+  /* Single full-width plate */
+  .ed-plate {
+    padding: clamp(2rem, 4vw, 3rem) 0 clamp(5rem, 10vw, 8rem);
+  }
+  .ed-plate figure {
+    margin: 0;
+    max-width: 1480px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 clamp(1rem, 4vw, 3rem);
+  }
+  .ed-plate img {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+  }
+
+  /* Insert */
+  .ed-insert {
+    padding: clamp(2rem, 4vw, 3rem) clamp(1rem, 4vw, 3rem) clamp(5rem, 10vw, 8rem);
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  /* Material spread */
+  .ed-material {
+    position: relative;
+    background: var(--ed-paper);
+    padding: clamp(6rem, 12vw, 10rem) clamp(1rem, 4vw, 3rem);
+    overflow: hidden;
+  }
+  .ed-material__bg {
+    position: absolute;
+    inset: -10% 0;
+    margin: 0;
+    z-index: 0;
+    will-change: transform;
+  }
+  .ed-material__bg img {
+    width: 100%; height: 100%; object-fit: cover;
+    opacity: 0.32;
+    filter: saturate(0.85);
+  }
+  .ed-material::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(222, 225, 230, 0.6), rgba(222, 225, 230, 0.95));
+    z-index: 1;
+  }
+  .ed-material__copy {
+    position: relative;
+    z-index: 2;
+    max-width: 720px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid var(--ed-line);
+    border-radius: 4px;
+    padding: clamp(2rem, 5vw, 3.5rem);
+    backdrop-filter: blur(4px);
+  }
+
+  /* Sandbox — transparent on page gradient */
+  .ed-sandbox {
+    position: relative;
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem);
+    background: transparent;
+  }
+  .ed-sandbox > :global(.ais) { position: relative; z-index: 2; }
+  .ed-sandbox > :global(.ais) { max-width: 1180px; margin: 0 auto; }
+
+  /* Closing colophon-style buy — solid white card on the gradient */
+  .ed-buy {
+    position: relative;
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem) clamp(7rem, 13vw, 10rem);
+    background: #ffffff;
+  }
+  .ed-buy__inner { position: relative; z-index: 2; }
+  .ed-buy__inner {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .ed-buy__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 1.8rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--ed-line);
+  }
+  .ed-buy__amount {
+    margin: 0;
+    flex: 1;
+    min-width: 200px;
+  }
+  .ed-buy__amount strong {
+    display: block;
+    font-family: 'Cabinet Grotesk', 'General Sans', sans-serif;
+    font-size: clamp(2.4rem, 4.5vw, 3.4rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    font-feature-settings: 'tnum' 1;
+  }
+  .ed-buy__amount span {
+    display: block;
+    margin-top: 0.4rem;
+    color: var(--ed-muted);
+    text-decoration: line-through;
+    font-size: 0.95rem;
+  }
+  .ed-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 1.7rem;
+    border: 0;
+    border-radius: 999px;
+    background: var(--ed-ink);
+    color: var(--ed-bg);
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 160ms ease, transform 160ms ease;
+  }
+  .ed-btn:hover { background: #000; transform: translateY(-1px); }
+  .ed-colophon {
+    margin: 2rem 0 0;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--ed-line);
+    color: var(--ed-muted);
+    font-size: 0.84rem;
+    line-height: 1.6;
+  }
+</style>

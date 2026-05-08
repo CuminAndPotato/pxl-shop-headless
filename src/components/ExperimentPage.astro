@@ -1,0 +1,665 @@
+---
+import type { Locale } from '../i18n/strings';
+import { t } from '../i18n/strings';
+import type { Product } from '../lib/shop';
+import type { ExperimentVariantSlug, PageVariant } from '../lib/page-variants';
+import { lifestyleGallery, workshopGallery } from '../lib/assets';
+import PixogramShowcase from './PixogramShowcase.astro';
+
+interface Props {
+  locale: Locale;
+  variant: PageVariant;
+  product: Product | null;
+}
+
+const { locale, variant, product } = Astro.props;
+const s = t(locale);
+const copy = variant.copy[locale];
+const experimentSlug = variant.slug as ExperimentVariantSlug;
+
+const productImage = '/img/products/whatis-clock-tight.png';
+const price = product?.discountedPrice?.formatted ?? product?.price?.formatted ?? '229,00€';
+const oldPrice = product?.discountedPrice ? product?.price?.formatted : '';
+const cartHref = locale === 'de' ? '/de/cart' : '/cart';
+const defaultVariantId = product?.variants[0]?.id ?? '';
+const stock = product?.inStock
+  ? locale === 'de' ? 'Auf Lager, Versand aus Deutschland' : 'In stock, ships from Germany'
+  : locale === 'de' ? 'Aktuell nicht verfügbar' : 'Currently out of stock';
+
+const specRows = locale === 'de'
+  ? [
+      ['Format', '24 x 24 RGB-LEDs, 576 Pixel'],
+      ['Gehäuse', 'Handgefertigter Rahmen mit echtem Glas'],
+      ['Größe', '27 x 27 x 6 cm'],
+      ['Gewicht', '2 kg, Versand mit DHL'],
+      ['Software', 'WiFi, OTA-Updates, Mobile App'],
+      ['Programmierung', 'C# / .NET, Simulator, GitHub'],
+    ]
+  : [
+      ['Format', '24 x 24 RGB LEDs, 576 pixels'],
+      ['Body', 'Handmade frame with real glass'],
+      ['Size', '27 x 27 x 6 cm'],
+      ['Weight', '2 kg, ships with DHL'],
+      ['Software', 'WiFi, OTA updates, mobile app'],
+      ['Programmability', 'C# / .NET, simulator, GitHub'],
+    ];
+
+const proofCards = locale === 'de'
+  ? [
+      ['Warum teuer?', 'Kleine Serie, Handarbeit, echtes Glas, Elektronik, Software und Versand aus Deutschland.'],
+      ['Warum nicht nur App?', 'Weil es ein Objekt im Raum ist. Es bleibt sichtbar, auch wenn dein Handy weg ist.'],
+      ['Warum programmierbar?', 'Weil die Uhr nicht fertig sein muss. Sie kann deine eigenen Farben, Ideen und Animationen bekommen.'],
+    ]
+  : [
+      ['Why this price?', 'Small run, handwork, real glass, electronics, software, and shipping from Germany.'],
+      ['Why not just an app?', 'Because it is an object in the room. It stays visible when your phone disappears.'],
+      ['Why programmable?', 'Because the clock does not have to be finished. It can carry your own colors, ideas, and animations.'],
+    ];
+
+const buildSteps = locale === 'de'
+  ? [
+      ['01', 'Matrix testen', 'Jede Clock beginnt als Lichtfläche: 576 LEDs, Helligkeit, Farbe, Timing.'],
+      ['02', 'Rahmen bauen', 'Der Rahmen macht aus Technik ein Objekt. Glas, Tiefe, Schatten, Kante.'],
+      ['03', 'Software flashen', 'WiFi, App, OTA und der Weg zu eigenen Pixogrammen.'],
+      ['04', 'Verpacken', 'Kein Massenprodukt. Jede Uhr geht als fertiges Stück aus der Werkstatt.'],
+    ]
+  : [
+      ['01', 'Test the matrix', 'Every clock starts as a field of light: 576 LEDs, brightness, color, timing.'],
+      ['02', 'Build the frame', 'The frame turns technology into an object. Glass, depth, shadow, edge.'],
+      ['03', 'Flash software', 'WiFi, app, OTA, and the path to your own pixograms.'],
+      ['04', 'Pack it', 'Not mass-produced. Each clock leaves the workshop as a finished piece.'],
+    ];
+
+const codeSample = `public sealed class Orbit : Pixogram
+{
+    public override async Task Run(Matrix m)
+    {
+        await m.Clear("#050607");
+        await m.DrawCircle(12, 12, 8, "#FFD56A");
+        await m.Play();
+    }
+}`;
+
+const deepContent: Record<ExperimentVariantSlug, {
+  label: string;
+  title: string;
+  body: string;
+  facts: [string, string][];
+  chapters: [string, string][];
+  includedTitle: string;
+  included: string[];
+  objectionsTitle: string;
+  objections: [string, string][];
+}> = locale === 'de'
+  ? {
+      poster: {
+        label: 'Plakat-Argument',
+        title: 'Ein Produkt, das aus drei Metern Entfernung verstanden wird.',
+        body: 'Diese Richtung ist für Kampagnen, Launch-Posts und Menschen gedacht, die zuerst eine starke Form sehen wollen. Die Seite erklärt danach schnell, warum hinter dem auffälligen Quadrat mehr steckt als eine dekorative LED-Fläche.',
+        facts: [
+          ['576 Pixel', 'genug Raster für lesbare Zeit, kleine Figuren und klare Animationen'],
+          ['Echtes Glas', 'kein Gadget-Look, sondern ein fertiges Objekt mit Tiefe'],
+          ['C# / .NET', 'eigene Animationen statt nur vorgefertigter Effekte'],
+          ['2-4 Werktage', 'Versand aus Deutschland mit DHL'],
+        ],
+        chapters: [
+          ['Warum sie auffällt', 'Die Matrix ist bewusst niedrig aufgelöst. Dadurch wird jeder Inhalt grafisch: Zeit, Icon, Heartbeat, Game-Referenz oder abstraktes Lichtmuster.'],
+          ['Warum sie nicht beliebig wirkt', 'Rahmen, Glas und quadratisches Format geben dem Licht eine klare Grenze. Sie hängt oder steht wie ein kleines digitales Bild, nicht wie ein offenes Elektronikprojekt.'],
+          ['Warum sie wiederkehrend interessant bleibt', 'Die Anzeige muss nicht bei einer Clockface enden. Pixogramme, Community-Ideen und eigene Routinen können die Uhr über Zeit verändern.'],
+        ],
+        includedTitle: 'Schnell erfassbare Kaufinfos',
+        included: ['PXL Clock mit 24x24 RGB-Matrix', 'WLAN-Setup und OTA-Updates', 'Mobile App für iOS und Android', 'Zugang zu Code, Beispielen und Community', 'Promo-Code RONALD spart 25 Euro'],
+        objectionsTitle: 'Einwände, direkt beantwortet',
+        objections: [
+          ['Ist das nur Deko?', 'Nein. Die Uhr zeigt Zeit, kann Ambient-Animationen laufen lassen und lässt sich programmieren. Der Deko-Anteil ist die Form, nicht die Grenze.'],
+          ['Ist das zu nerdig für den Raum?', 'Die Pixel sind nerdig, der Rahmen nicht. Genau diese Spannung ist der Reiz: sichtbare Technik, aber als fertiges Wohnobjekt.'],
+          ['Warum nicht billiger?', 'Kleine Serie, Handarbeit, echtes Glas, Elektronik, Software und Versand aus Deutschland kosten mehr als ein Massen-Gadget.'],
+        ],
+      },
+      console: {
+        label: 'Developer-Argument',
+        title: 'Nicht nur anschauen. Bespielen, verändern, teilen.',
+        body: 'Diese Richtung verkauft die PXL Clock als programmierbare Oberfläche. Sie ist für Entwickler, Maker und neugierige Menschen gedacht, die beim Wort Pixel sofort an eigene Ideen denken.',
+        facts: [
+          ['24x24 Grid', 'klein genug für schnelle Experimente, groß genug für erkennbare Motive'],
+          ['Simulator', 'Animationen lokal testen, ohne jedes Mal Hardware zu flashen'],
+          ['C# / .NET', 'Produkt-DNA für Menschen, die ohnehin Code schreiben'],
+          ['PXL-JAM', 'Community-Hackathon als klares Signal: das Ding will bespielt werden'],
+        ],
+        chapters: [
+          ['Der erste Abend', 'WLAN verbinden, App öffnen, vorhandene Modi ausprobieren. Danach entsteht schnell der Wunsch, ein eigenes kleines Verhalten zu bauen.'],
+          ['Der zweite Abend', 'Im Browser-Simulator entstehen Pixogramme: Orbit, Regen, Countdown, Statusanzeige oder ein winziges Spielgefühl auf 576 LEDs.'],
+          ['Der dritte Abend', 'Die Clock wird zum persönlichen Display: GitHub-Build-Status, Wetter, Pomodoro, Pixel-Art oder einfach eine Animation, die niemand sonst hat.'],
+        ],
+        includedTitle: 'Was Devs wissen wollen',
+        included: ['Programmierbarer Pixel-Canvas', 'Beispielcode und GitHub-Workflow', 'Browser-Simulator mit Live-Iteration', 'OTA-Updates für neue Firmware', 'Discord für Fragen, Ideen und PXL-JAM'],
+        objectionsTitle: 'Technische Reibung',
+        objections: [
+          ['Brauche ich die Hardware sofort?', 'Nein. Der Simulator senkt die Einstiegshürde: erst bauen und testen, dann auf der Clock laufen lassen.'],
+          ['Ist das eine geschlossene Spielerei?', 'Die Richtung ist bewusst offen: Beispiele, Community und eigene Animationen sind Teil des Produkts.'],
+          ['Warum C#?', 'Weil es in dieser Nische ungewöhnlich klar positioniert ist und gut zu Ronalds/.NET-Zielgruppe passt.'],
+        ],
+      },
+      catalog: {
+        label: 'Produkt-Argument',
+        title: 'Alles, was man vor dem Kauf wirklich wissen will.',
+        body: 'Diese Richtung ist absichtlich weniger poetisch. Sie bringt Spezifikationen, Lieferumfang, Versand, Preislogik und Nutzungsmöglichkeiten nach vorne, damit aus Interesse schneller Vertrauen wird.',
+        facts: [
+          ['27 x 27 x 6 cm', 'groß genug für Wand und Regal, kompakt genug für den Schreibtisch'],
+          ['2 kg', 'fühlt sich nach Objekt an, nicht nach Plastikspielzeug'],
+          ['100 Stück erste Serie', 'bewusst kleine Beta-Serie statt anonymer Massenware'],
+          ['229 Euro Sale', 'aktueller Shoppreis, regulär 275 Euro'],
+        ],
+        chapters: [
+          ['Was du bekommst', 'Eine fertige PXL Clock mit RGB-Matrix, Rahmen, Glas, Software, App-Anbindung und Versand aus Deutschland.'],
+          ['Wofür sie gedacht ist', 'Als Uhr, Lichtobjekt, Pixel-Art-Display, Dev-Spielwiese oder Geschenk für Menschen, die Technik und Gestaltung mögen.'],
+          ['Was noch Beta bedeutet', 'Die Uhr ist bewusst offen. Software, Community-Ideen und Pixogramme entwickeln sich weiter, statt als endgültig abgeschlossenes Produkt zu tun.'],
+        ],
+        includedTitle: 'Lieferumfang und Betrieb',
+        included: ['PXL Clock in Black oder White Edition', 'Echtes Glas und handgefertigter Rahmen', 'WLAN-Setup über Mobile App', 'OTA-Updates', 'Checkout und Zahlung über Wix'],
+        objectionsTitle: 'Vor dem Checkout',
+        objections: [
+          ['Wie schnell kommt sie?', 'Aktuell: Versand in 2 bis 4 Werktagen mit DHL aus Deutschland.'],
+          ['Was passiert bei Gutscheinen?', 'Promo-Codes wie RONALD werden im Warenkorb beziehungsweise Checkout angewendet.'],
+          ['Wo liegen Bestellung und Zahlung?', 'Checkout, Zahlung und Bestelldaten bleiben im bestehenden Wix-Shop. Diese Seite ist nur das schnelle Frontend.'],
+        ],
+      },
+      interior: {
+        label: 'Raum-Argument',
+        title: 'Eine Uhr, die nicht nach Bürogerät aussehen will.',
+        body: 'Diese Richtung spricht Menschen an, die erst entscheiden, ob ein Objekt in ihren Raum passt. Die technischen Details bleiben wichtig, aber sie folgen der Frage: Wo lebt dieses Ding?',
+        facts: [
+          ['Wand', 'als kleines digitales Bild mit Zeitfunktion'],
+          ['Regal', 'als Lichtakzent zwischen Büchern, Pflanzen und Objekten'],
+          ['Schreibtisch', 'als ruhiger Gegenpol zu Laptop und Monitor'],
+          ['Glas und Rahmen', 'Materialität statt nackter Elektronik'],
+        ],
+        chapters: [
+          ['Morgens', 'Die Uhr darf klar sein: Zeit, ruhige Farbe, wenig Bewegung. Keine Benachrichtigungsmaschine, sondern ein bewusst reduzierter Lichtpunkt.'],
+          ['Abends', 'Sie kann atmosphärischer werden: warmes Muster, langsame Animation, kaum Informationsdruck.'],
+          ['Wenn Besuch fragt', 'Dann ist der Einstieg einfach: 576 Pixel, handgemacht, programmierbar. Erst Objekt, dann Gespräch.'],
+        ],
+        includedTitle: 'Warum sie im Raum funktioniert',
+        included: ['Quadratisches Format mit klarer Silhouette', 'Licht hinter echtem Glas', 'Schwarz oder Weiß als ruhige Varianten', 'Animationen können dezent statt laut sein', 'Kleinserie mit sichtbarer Handarbeit'],
+        objectionsTitle: 'Design-Fragen',
+        objections: [
+          ['Ist das zu verspielt?', 'Nur wenn du sie so einstellst. Die Clock kann minimalistisch, ruhig und grafisch bleiben.'],
+          ['Passt sie in helle Räume?', 'Ja, besonders die White Edition. Die Seite sollte dafür mehr helle, aber nicht sterile Einsatzbilder zeigen.'],
+          ['Ist sie ein Bildschirm?', 'Sie verhält sich eher wie Licht und Pixelbild. Keine Apps, keine Timeline, keine dauernde Aufmerksamkeitspflicht.'],
+        ],
+      },
+      buildbook: {
+        label: 'Werkstatt-Argument',
+        title: 'Der Wert entsteht nicht im Claim, sondern in den Details.',
+        body: 'Diese Richtung macht den Herstellungsprozess zum Verkaufsargument. Sie zeigt, warum die PXL Clock kein anonymes LED-Panel ist: testen, bauen, flashen, verpacken, verbessern.',
+        facts: [
+          ['Handarbeit', 'jede Uhr wird als einzelnes Stück aufgebaut und geprüft'],
+          ['Echtes Glas', 'mehr Aufwand, aber deutlich hochwertigeres Objektgefühl'],
+          ['Beta bewusst', 'Feedback und Community fließen in die Weiterentwicklung'],
+          ['Cumin & Potato', 'kleines Team, kurze Wege, echtes Side-Business'],
+        ],
+        chapters: [
+          ['Die Matrix ist der Anfang', '576 LEDs müssen gleichmäßig wirken. Farbe, Helligkeit und Timing entscheiden, ob das Licht ruhig oder billig aussieht.'],
+          ['Der Rahmen macht den Unterschied', 'Er nimmt der Elektronik das Laborhafte und gibt der Clock einen Platz im Raum. Tiefe, Glas und Kante sind Teil des Produkts.'],
+          ['Die Software bleibt offen', 'OTA, App, Simulator und Pixogramme machen aus dem physischen Objekt eine Plattform, die weiterwachsen kann.'],
+        ],
+        includedTitle: 'Was diese Seite beweisen sollte',
+        included: ['Werkstattbilder statt Renderings', 'Konkrete Fertigungsschritte', 'Materialentscheidungen erklären', 'Beta ehrlich einordnen', 'Team und Community sichtbar machen'],
+        objectionsTitle: 'Warum diese Richtung verkaufen kann',
+        objections: [
+          ['Ist Prozess nicht zu langsam?', 'Für kalte Ads vielleicht. Für Maker, Devs und Menschen mit Qualitätsgefühl kann Prozess Vertrauen und Preisverständnis erzeugen.'],
+          ['Braucht es mehr Bilder?', 'Ja. Diese Variante lebt von echten Nahaufnahmen: Glas, Rahmen, LED-Test, Verpackung, Werkbank.'],
+          ['Ist das zu wenig polished?', 'Der Reiz ist gerade kontrollierte Unpoliertheit: echte Arbeit, nicht nur Hochglanz.'],
+        ],
+      },
+    }
+  : {
+      poster: {
+        label: 'Poster argument',
+        title: 'A product you understand from across the room.',
+        body: 'This direction is built for campaigns, launch posts, and people who first respond to a strong shape. The page then explains why the striking square is more than a decorative LED surface.',
+        facts: [
+          ['576 pixels', 'enough grid for readable time, small figures, and clear animation'],
+          ['Real glass', 'not a gadget look, but a finished object with depth'],
+          ['C# / .NET', 'your own animations instead of preset effects only'],
+          ['2-4 business days', 'shipping from Germany with DHL'],
+        ],
+        chapters: [
+          ['Why it stands out', 'The matrix is deliberately low-res. That turns every piece of content into graphic form: time, icon, heartbeat, game reference, or abstract light pattern.'],
+          ['Why it does not feel random', 'Frame, glass, and square format give the light a clear boundary. It stands like a small digital picture, not an unfinished electronics project.'],
+          ['Why it stays interesting', 'The display does not have to end at a clockface. Pixograms, community ideas, and custom routines can change the clock over time.'],
+        ],
+        includedTitle: 'Fast purchase facts',
+        included: ['PXL Clock with 24x24 RGB matrix', 'WiFi setup and OTA updates', 'Mobile app for iOS and Android', 'Access to code, examples, and community', 'Promo code RONALD saves 25 Euro'],
+        objectionsTitle: 'Objections answered',
+        objections: [
+          ['Is this just decor?', 'No. It shows time, can run ambient animations, and can be programmed. The decor part is the form, not the limit.'],
+          ['Is it too nerdy for a room?', 'The pixels are nerdy, the frame is not. That tension is the point: visible technology as a finished object.'],
+          ['Why not cheaper?', 'Small run, handwork, real glass, electronics, software, and German shipping cost more than a mass gadget.'],
+        ],
+      },
+      console: {
+        label: 'Developer argument',
+        title: 'Do not just watch it. Play it, change it, share it.',
+        body: 'This direction sells the PXL Clock as a programmable surface. It is for developers, makers, and curious people who see pixels and immediately think of their own ideas.',
+        facts: [
+          ['24x24 grid', 'small enough for fast experiments, large enough for recognizable motifs'],
+          ['Simulator', 'test animations locally without flashing hardware every time'],
+          ['C# / .NET', 'product DNA for people who already write code'],
+          ['PXL-JAM', 'community hackathon as a clear signal: this thing wants to be played'],
+        ],
+        chapters: [
+          ['The first evening', 'Connect WiFi, open the app, try existing modes. Soon the urge appears to build one tiny behavior yourself.'],
+          ['The second evening', 'Pixograms emerge in the browser simulator: orbit, rain, countdown, status display, or a tiny game feel on 576 LEDs.'],
+          ['The third evening', 'The clock becomes a personal display: GitHub build status, weather, Pomodoro, pixel art, or simply an animation nobody else has.'],
+        ],
+        includedTitle: 'What devs want to know',
+        included: ['Programmable pixel canvas', 'Sample code and GitHub workflow', 'Browser simulator with live iteration', 'OTA updates for new firmware', 'Discord for questions, ideas, and PXL-JAM'],
+        objectionsTitle: 'Technical friction',
+        objections: [
+          ['Do I need hardware immediately?', 'No. The simulator lowers the threshold: build and test first, then run it on the clock.'],
+          ['Is it a closed toy?', 'The direction is intentionally open: examples, community, and custom animation are part of the product.'],
+          ['Why C#?', 'Because it is unusually clear positioning in this niche and fits the .NET audience well.'],
+        ],
+      },
+      catalog: {
+        label: 'Product argument',
+        title: 'Everything you actually want to know before buying.',
+        body: 'This direction is deliberately less poetic. It surfaces specs, what is included, shipping, price logic, and use cases so interest can turn into trust faster.',
+        facts: [
+          ['27 x 27 x 6 cm', 'large enough for wall and shelf, compact enough for the desk'],
+          ['2 kg', 'feels like an object, not a plastic toy'],
+          ['100-piece first run', 'small beta series instead of anonymous mass production'],
+          ['229 Euro sale', 'current shop price, regular price 275 Euro'],
+        ],
+        chapters: [
+          ['What you get', 'A finished PXL Clock with RGB matrix, frame, glass, software, app connection, and shipping from Germany.'],
+          ['What it is for', 'Clock, light object, pixel-art display, dev playground, or gift for people who like technology and design.'],
+          ['What beta still means', 'The clock is intentionally open. Software, community ideas, and pixograms keep evolving instead of pretending the product is done forever.'],
+        ],
+        includedTitle: 'Included and operation',
+        included: ['PXL Clock in Black or White Edition', 'Real glass and handmade frame', 'WiFi setup via mobile app', 'OTA updates', 'Checkout and payment through Wix'],
+        objectionsTitle: 'Before checkout',
+        objections: [
+          ['How fast does it ship?', 'Currently: 2 to 4 business days with DHL from Germany.'],
+          ['What about coupons?', 'Promo codes like RONALD are applied in the cart or checkout.'],
+          ['Where are orders handled?', 'Checkout, payment, and order data stay in the existing Wix shop. This page is only the fast frontend.'],
+        ],
+      },
+      interior: {
+        label: 'Room argument',
+        title: 'A clock that refuses to look like office equipment.',
+        body: 'This direction speaks to people who first ask whether an object belongs in their space. Technical details still matter, but they follow the question: where does this thing live?',
+        facts: [
+          ['Wall', 'as a small digital picture with a time function'],
+          ['Shelf', 'as a light accent among books, plants, and objects'],
+          ['Desk', 'as a calm counterpoint to laptop and monitor'],
+          ['Glass and frame', 'material presence instead of naked electronics'],
+        ],
+        chapters: [
+          ['Morning', 'The clock can be clear: time, calm color, little motion. Not a notification machine, but a deliberately reduced point of light.'],
+          ['Evening', 'It can become more atmospheric: warm pattern, slow animation, almost no informational pressure.'],
+          ['When someone asks', 'The entry is simple: 576 pixels, handmade, programmable. Object first, conversation second.'],
+        ],
+        includedTitle: 'Why it works in a room',
+        included: ['Square format with a clear silhouette', 'Light behind real glass', 'Black or White Edition as calm variants', 'Animations can be subtle instead of loud', 'Small run with visible handwork'],
+        objectionsTitle: 'Design questions',
+        objections: [
+          ['Is it too playful?', 'Only if you set it that way. The clock can stay minimalist, calm, and graphic.'],
+          ['Does it fit bright rooms?', 'Yes, especially the White Edition. This page should show more bright but non-sterile room imagery.'],
+          ['Is it a screen?', 'It behaves more like light and a pixel picture. No apps, no timeline, no constant demand for attention.'],
+        ],
+      },
+      buildbook: {
+        label: 'Workshop argument',
+        title: 'The value is not in the claim. It is in the details.',
+        body: 'This direction turns the production process into the sales argument. It shows why the PXL Clock is not an anonymous LED panel: testing, building, flashing, packing, improving.',
+        facts: [
+          ['Handwork', 'each clock is assembled and checked as an individual piece'],
+          ['Real glass', 'more effort, but a much better object feel'],
+          ['Beta by design', 'feedback and community shape the evolution'],
+          ['Cumin & Potato', 'small team, short paths, real side business'],
+        ],
+        chapters: [
+          ['The matrix is the start', '576 LEDs need to feel even. Color, brightness, and timing decide whether light feels calm or cheap.'],
+          ['The frame changes everything', 'It removes the lab feel from the electronics and gives the clock a place in the room. Depth, glass, and edge are part of the product.'],
+          ['The software stays open', 'OTA, app, simulator, and pixograms turn the physical object into a platform that can keep growing.'],
+        ],
+        includedTitle: 'What this page should prove',
+        included: ['Workshop photos instead of renderings', 'Concrete production steps', 'Material decisions explained', 'Beta positioned honestly', 'Team and community visible'],
+        objectionsTitle: 'Why this direction can sell',
+        objections: [
+          ['Is process too slow?', 'For cold ads, maybe. For makers, devs, and quality-minded buyers, process can build trust and price understanding.'],
+          ['Does it need more images?', 'Yes. This variant lives from real close-ups: glass, frame, LED test, packaging, workbench.'],
+          ['Is it too unpolished?', 'The charm is controlled roughness: real work, not just gloss.'],
+        ],
+      },
+    };
+
+const deep = deepContent[experimentSlug];
+---
+
+<section class={`experiment experiment--${variant.slug}`}>
+  {variant.slug === 'poster' && (
+    <>
+      <section class="xp-poster-hero">
+        <div class="xp-poster-hero__type">
+          <p>{copy.introEyebrow}</p>
+          <h1><span>Pixel</span><span>Furniture</span><span>for time.</span></h1>
+        </div>
+        <figure class="xp-poster-hero__object"><img src={productImage} alt={product?.name ?? 'PXL Clock'} /></figure>
+        <aside class="xp-poster-hero__buy">
+          <strong>{price}</strong>
+          {oldPrice && <span>{s.price.salePrefix} {oldPrice}</span>}
+          <button type="button" data-xp-buy data-product-id={product?.id ?? ''} data-variant-id={defaultVariantId} data-cart-href={cartHref}>{s.whatIs.cta}</button>
+        </aside>
+      </section>
+      <section class="xp-poster-strip">
+        {copy.bullets.map((item) => <span>{item}</span>)}
+      </section>
+      <section class="xp-poster-info">
+        <article><h2>{locale === 'de' ? 'Nicht bloß Uhr.' : 'Not just a clock.'}</h2><p>{copy.introLead}</p></article>
+        <article><h2>576</h2><p>{locale === 'de' ? 'einzelne Lichtpunkte hinter echtem Glas.' : 'points of light behind real glass.'}</p></article>
+        <article><h2>24x24</h2><p>{locale === 'de' ? 'klein genug für Klarheit, groß genug für Pixelart.' : 'small enough for clarity, large enough for pixel art.'}</p></article>
+      </section>
+    </>
+  )}
+
+  {variant.slug === 'console' && (
+    <>
+      <section class="xp-console-hero">
+        <div class="xp-console-copy">
+          <p class="eyebrow">{copy.introEyebrow}</p>
+          <h1>{locale === 'de' ? 'Eine Uhr, die du bespielen kannst.' : 'A clock you can play.'}</h1>
+          <p>{copy.introLead}</p>
+          <pre><code>{codeSample}</code></pre>
+        </div>
+        <div class="xp-console-device">
+          <PixogramShowcase locale={locale} />
+        </div>
+      </section>
+      <section class="xp-console-modes">
+        {['Clock', 'Weather', 'Pixel Art', 'Hackathon', 'Ambient'].map((mode) => <span>{mode}</span>)}
+      </section>
+    </>
+  )}
+
+  {variant.slug === 'catalog' && (
+    <section class="xp-catalog">
+      <div class="xp-catalog-gallery">
+        <img class="xp-catalog-main" src={productImage} alt={product?.name ?? 'PXL Clock'} />
+        {lifestyleGallery.slice(0, 4).map((image) => <img src={image} alt="" />)}
+      </div>
+      <div class="xp-catalog-buy">
+        <p class="eyebrow">{locale === 'de' ? 'Produktdetailseite' : 'Product detail page'}</p>
+        <h1>{product?.name ?? 'PXL Clock'}</h1>
+        <p>{copy.introLead}</p>
+        <div class="xp-catalog-price"><strong>{price}</strong>{oldPrice && <span>{s.price.salePrefix} {oldPrice}</span>}</div>
+        <p class="xp-stock">{stock}</p>
+        <button type="button" data-xp-buy data-product-id={product?.id ?? ''} data-variant-id={defaultVariantId} data-cart-href={cartHref}>{s.whatIs.cta}</button>
+        <dl>{specRows.map(([key, value]) => <><dt>{key}</dt><dd>{value}</dd></>)}</dl>
+      </div>
+    </section>
+  )}
+
+  {variant.slug === 'interior' && (
+    <>
+      <section class="xp-interior-hero">
+        <div>
+          <p class="eyebrow">{copy.introEyebrow}</p>
+          <h1>{locale === 'de' ? 'Licht, das sich wie ein Objekt benimmt.' : 'Light that behaves like an object.'}</h1>
+          <p>{copy.introLead}</p>
+        </div>
+        <img src={lifestyleGallery[4]} alt="" />
+      </section>
+      <section class="xp-interior-board">
+        <article><span>01</span><h2>{locale === 'de' ? 'Wand' : 'Wall'}</h2><p>{locale === 'de' ? 'Wie ein kleines digitales Bild, aber lebendig.' : 'Like a small digital picture, but alive.'}</p></article>
+        <article><span>02</span><h2>{locale === 'de' ? 'Schreibtisch' : 'Desk'}</h2><p>{locale === 'de' ? 'Nicht noch ein Bildschirm, sondern ein Akzent.' : 'Not another screen, but an accent.'}</p></article>
+        <article><span>03</span><h2>{locale === 'de' ? 'Regal' : 'Shelf'}</h2><p>{locale === 'de' ? 'Handwerklich genug, um stehen gelassen zu werden.' : 'Crafted enough to be left on display.'}</p></article>
+      </section>
+    </>
+  )}
+
+  {variant.slug === 'buildbook' && (
+    <section class="xp-buildbook">
+      <header>
+        <p class="eyebrow">{copy.introEyebrow}</p>
+        <h1>{locale === 'de' ? 'Das Ding sieht simpel aus. Ist es nicht.' : 'It looks simple. It is not.'}</h1>
+        <p>{copy.introLead}</p>
+      </header>
+      <div class="xp-buildbook-steps">
+        {buildSteps.map(([number, title, body], index) => (
+          <article>
+            <img src={(index % 2 === 0 ? workshopGallery : lifestyleGallery)[index + 1]} alt="" />
+            <div><span>{number}</span><h2>{title}</h2><p>{body}</p></div>
+          </article>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <section class={`xp-deep xp-deep--${variant.slug}`}>
+    <div class="xp-deep__intro">
+      <p class="eyebrow">{deep.label}</p>
+      <h2>{deep.title}</h2>
+      <p>{deep.body}</p>
+    </div>
+    <div class="xp-deep__facts">
+      {deep.facts.map(([label, body]) => (
+        <article>
+          <strong>{label}</strong>
+          <span>{body}</span>
+        </article>
+      ))}
+    </div>
+    <div class="xp-deep__chapters">
+      {deep.chapters.map(([title, body], index) => (
+        <article>
+          <span>{String(index + 1).padStart(2, '0')}</span>
+          <h3>{title}</h3>
+          <p>{body}</p>
+        </article>
+      ))}
+    </div>
+    <div class="xp-deep__evidence">
+      <img src={workshopGallery[2]} alt="" loading="lazy" />
+      <img src={lifestyleGallery[5]} alt="" loading="lazy" />
+      <img src={workshopGallery[8]} alt="" loading="lazy" />
+    </div>
+    <div class="xp-deep__split">
+      <section>
+        <h2>{deep.includedTitle}</h2>
+        <ul>
+          {deep.included.map((item) => <li>{item}</li>)}
+        </ul>
+      </section>
+      <section>
+        <h2>{deep.objectionsTitle}</h2>
+        <div class="xp-deep__qa">
+          {deep.objections.map(([question, answer]) => (
+            <article>
+              <h3>{question}</h3>
+              <p>{answer}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    </div>
+  </section>
+
+  {variant.slug !== 'catalog' && (
+    <section class="xp-proof">
+      {proofCards.map(([title, body]) => <article><h2>{title}</h2><p>{body}</p></article>)}
+      <article class="xp-proof-buy">
+        <h2>{price}</h2>
+        <p>{stock}</p>
+        <button type="button" data-xp-buy data-product-id={product?.id ?? ''} data-variant-id={defaultVariantId} data-cart-href={cartHref}>{s.whatIs.cta}</button>
+      </article>
+    </section>
+  )}
+</section>
+
+<script define:vars={{ defaultVariantId, cartHref }}>
+  import { addToCart } from '../lib/shop-browser';
+
+  document.querySelectorAll('[data-xp-buy]').forEach((node) => {
+    node.addEventListener('click', async () => {
+      const button = node;
+      const productId = button.dataset.productId;
+      if (!productId) return;
+      button.disabled = true;
+      try {
+        await addToCart({ productId, variantId: button.dataset.variantId || defaultVariantId || undefined, quantity: 1 });
+        window.location.href = button.dataset.cartHref || cartHref;
+      } catch (error) {
+        console.error('[ExperimentPage] addToCart failed:', error);
+        button.disabled = false;
+      }
+    });
+  });
+</script>
+
+<style>
+  .experiment {
+    --xp-ink: #0b0c0e;
+    --xp-paper: #f7f4ec;
+    --xp-panel: rgba(255,255,255,0.08);
+    --xp-line: rgba(255,255,255,0.14);
+    --xp-muted: rgba(255,255,255,0.72);
+    --draft-fg: #ffffff;
+    --draft-bg: #0b0c0e;
+    color: #fff;
+    background: #0b0c0e;
+  }
+  .experiment :global(.eyebrow) { color: currentColor; opacity: 0.64; }
+  .experiment h1,
+  .experiment h2,
+  .experiment h3 { font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif; letter-spacing: -0.04em; }
+  .experiment button,
+  .experiment .xp-poster-hero__buy button {
+    min-height: 58px;
+    border: 0;
+    border-radius: 0;
+    padding: 0 1.4rem;
+    background: currentColor;
+    color: var(--xp-ink);
+    font-weight: 800;
+  }
+
+  .xp-poster-hero { min-height: 100vh; display: grid; grid-template-columns: 1fr minmax(300px, 42vw); align-items: stretch; background: #e7ff4f; color: #0b0c0e; }
+  .xp-poster-hero__type { padding: clamp(7rem, 10vw, 10rem) clamp(1.5rem, 5vw, 5rem); display: flex; flex-direction: column; justify-content: center; }
+  .xp-poster-hero__type p { margin: 0 0 1rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.16em; }
+  .xp-poster-hero__type h1 { margin: 0; font-size: clamp(4rem, 13vw, 13rem); line-height: 0.82; text-transform: uppercase; }
+  .xp-poster-hero__type span { display: block; }
+  .xp-poster-hero__object { margin: 0; display: grid; place-items: center; background: #0b0c0e; clip-path: polygon(12% 0, 100% 0, 100% 100%, 0 100%); }
+  .xp-poster-hero__object img { width: min(72%, 620px); filter: drop-shadow(0 40px 70px rgba(0,0,0,0.5)); }
+  .xp-poster-hero__buy { position: fixed; right: 1rem; bottom: 1rem; z-index: 85; display: grid; gap: 0.4rem; padding: 1rem; background: #fff; border: 3px solid #0b0c0e; box-shadow: 8px 8px 0 #0b0c0e; }
+  .xp-poster-hero__buy strong { font-size: 2rem; line-height: 1; }
+  .xp-poster-strip { display: flex; overflow: hidden; background: #0b0c0e; color: #e7ff4f; font-size: clamp(2rem, 7vw, 6rem); font-weight: 900; text-transform: uppercase; white-space: nowrap; }
+  .xp-poster-strip span { padding: 1rem 2rem; border-right: 2px solid currentColor; }
+  .xp-poster-info { display: grid; grid-template-columns: 1.2fr 0.8fr 0.8fr; gap: 0; background: #fff; color: #0b0c0e; }
+  .xp-poster-info article { min-height: 360px; padding: clamp(1.5rem, 4vw, 3rem); border-right: 2px solid #0b0c0e; display: flex; flex-direction: column; justify-content: flex-end; }
+  .xp-poster-info h2 { font-size: clamp(3rem, 9vw, 8rem); line-height: 0.86; margin: 0 0 1rem; }
+
+  .xp-console-hero { min-height: 100vh; display: grid; grid-template-columns: 0.88fr 1.12fr; gap: clamp(1rem, 4vw, 3rem); padding: clamp(7rem, 10vw, 9rem) clamp(1rem, 4vw, 3rem) clamp(2rem, 5vw, 4rem); background: radial-gradient(circle at 70% 20%, rgba(67,232,160,0.18), transparent 28%), #060b0c; }
+  .xp-console-copy { display: flex; flex-direction: column; justify-content: center; }
+  .xp-console-copy h1 { font-size: clamp(3.5rem, 9vw, 8rem); line-height: 0.9; margin: 0 0 1rem; color: #43e8a0; }
+  .xp-console-copy p { color: #b8d8ce; max-width: 54ch; }
+  .xp-console-copy pre { margin-top: 2rem; padding: 1.4rem; border: 1px solid #245444; background: #020404; color: #e7ff4f; overflow: auto; }
+  .xp-console-device { align-self: center; --fg: #fff; --muted: #a8c8c1; }
+  .xp-console-modes { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid #245444; border-bottom: 1px solid #245444; }
+  .xp-console-modes span { padding: 1.2rem; text-align: center; color: #43e8a0; font-weight: 800; border-right: 1px solid #245444; }
+
+  .experiment--catalog { color: #161616; background: #f6f6f3; --xp-ink: #161616; --draft-fg: #161616; --draft-bg: #fff; }
+  .xp-catalog { min-height: 100vh; display: grid; grid-template-columns: 58vw minmax(360px, 1fr); background: #f6f6f3; }
+  .xp-catalog-gallery { display: grid; grid-template-columns: repeat(2, 1fr); grid-auto-rows: 34vh; gap: 1px; background: #111; }
+  .xp-catalog-gallery img { width: 100%; height: 100%; object-fit: cover; background: #fff; }
+  .xp-catalog-main { grid-row: span 2; object-fit: contain !important; padding: 8%; }
+  .xp-catalog-buy { position: sticky; top: 0; height: 100vh; overflow: auto; padding: clamp(7rem, 9vw, 9rem) clamp(1.5rem, 4vw, 3rem) 2rem; background: #fff; border-left: 1px solid #deded8; }
+  .xp-catalog-buy h1 { font-size: clamp(3rem, 7vw, 5.6rem); line-height: 0.9; margin: 0 0 1rem; }
+  .xp-catalog-price strong { display: block; font-size: 2.8rem; }
+  .xp-catalog-price span, .xp-stock { color: #686868; }
+  .xp-catalog-buy button { width: 100%; margin: 1.4rem 0 2rem; background: #111; color: #fff; }
+  .xp-catalog-buy dl { display: grid; grid-template-columns: 0.7fr 1fr; gap: 0; border-top: 1px solid #d7d7d0; }
+  .xp-catalog-buy dt, .xp-catalog-buy dd { margin: 0; padding: 1rem 0; border-bottom: 1px solid #d7d7d0; }
+  .xp-catalog-buy dt { font-weight: 800; }
+
+  .experiment--interior { color: #201914; background: #efe6d8; --draft-fg: #201914; --draft-bg: #efe6d8; }
+  .xp-interior-hero { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: clamp(1rem, 4vw, 4rem); padding: clamp(7rem, 10vw, 9rem) clamp(1rem, 5vw, 5rem) clamp(2rem, 5vw, 4rem); align-items: center; background: #efe6d8; }
+  .xp-interior-hero h1 { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; font-size: clamp(3.5rem, 9vw, 8rem); line-height: 0.95; letter-spacing: -0.05em; margin: 0 0 1rem; }
+  .xp-interior-hero p { max-width: 46ch; color: #6a584c; }
+  .xp-interior-hero img { width: 100%; height: min(76vh, 820px); object-fit: cover; border-radius: 999px 999px 8px 8px; }
+  .xp-interior-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: #c8b7a5; }
+  .xp-interior-board article { min-height: 420px; padding: clamp(1.5rem, 4vw, 3rem); background: #fffaf2; display: flex; flex-direction: column; justify-content: space-between; }
+  .xp-interior-board span { font-size: 6rem; color: #c8b7a5; font-family: Georgia, serif; }
+  .xp-interior-board h2 { font-family: Georgia, serif; font-size: clamp(2.4rem, 6vw, 5rem); font-weight: 400; margin: 0; }
+
+  .xp-buildbook { min-height: 100vh; padding: clamp(7rem, 10vw, 9rem) clamp(1rem, 4vw, 3rem) 4rem; background: #171311; color: #f5eee5; }
+  .xp-buildbook header { max-width: 1050px; margin: 0 auto clamp(3rem, 7vw, 6rem); text-align: center; }
+  .xp-buildbook h1 { font-size: clamp(3.4rem, 9vw, 8rem); line-height: 0.9; margin: 0 0 1rem; }
+  .xp-buildbook header p:last-child { max-width: 62ch; margin: 0 auto; color: #cbbfaf; }
+  .xp-buildbook-steps { display: grid; gap: clamp(2rem, 6vw, 5rem); }
+  .xp-buildbook-steps article { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: clamp(1.5rem, 5vw, 5rem); align-items: center; max-width: 1180px; margin: 0 auto; }
+  .xp-buildbook-steps article:nth-child(even) img { order: 2; }
+  .xp-buildbook-steps img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border: 12px solid #f5eee5; transform: rotate(-1.5deg); box-shadow: 0 26px 70px rgba(0,0,0,0.28); }
+  .xp-buildbook-steps article:nth-child(even) img { transform: rotate(1.5deg); }
+  .xp-buildbook-steps span { font-family: Georgia, serif; font-size: 7rem; color: #d6aa69; line-height: 1; }
+  .xp-buildbook-steps h2 { font-size: clamp(2.4rem, 6vw, 5rem); margin: 0 0 0.8rem; }
+  .xp-buildbook-steps p { color: #cbbfaf; max-width: 48ch; }
+
+  .xp-deep {
+    --deep-bg: #111;
+    --deep-fg: #fff;
+    --deep-muted: rgba(255,255,255,0.68);
+    --deep-panel: rgba(255,255,255,0.08);
+    --deep-line: rgba(255,255,255,0.16);
+    padding: clamp(4rem, 8vw, 7rem) clamp(1rem, 4vw, 3rem);
+    background: var(--deep-bg);
+    color: var(--deep-fg);
+  }
+  .xp-deep--poster { --deep-bg: #ffffff; --deep-fg: #0b0c0e; --deep-muted: #515151; --deep-panel: #e7ff4f; --deep-line: #0b0c0e; }
+  .xp-deep--console { --deep-bg: #061311; --deep-fg: #eafff6; --deep-muted: #9fcbbd; --deep-panel: rgba(67,232,160,0.09); --deep-line: #245444; }
+  .xp-deep--catalog { --deep-bg: #f6f6f3; --deep-fg: #161616; --deep-muted: #60605b; --deep-panel: #ffffff; --deep-line: #d7d7d0; }
+  .xp-deep--interior { --deep-bg: #fffaf2; --deep-fg: #201914; --deep-muted: #6a584c; --deep-panel: #efe6d8; --deep-line: #c8b7a5; }
+  .xp-deep--buildbook { --deep-bg: #171311; --deep-fg: #f5eee5; --deep-muted: #cbbfaf; --deep-panel: rgba(214,170,105,0.12); --deep-line: rgba(245,238,229,0.18); }
+  .xp-deep__intro { max-width: 1060px; margin: 0 auto clamp(2rem, 5vw, 4rem); display: grid; grid-template-columns: 0.9fr 1.1fr; gap: clamp(1.5rem, 5vw, 5rem); align-items: end; }
+  .xp-deep__intro h2 { font-size: clamp(2.8rem, 7vw, 7rem); line-height: 0.92; margin: 0; }
+  .xp-deep__intro p:last-child { margin: 0; color: var(--deep-muted); font-size: clamp(1.05rem, 1.6vw, 1.28rem); line-height: 1.55; max-width: 58ch; }
+  .xp-deep__facts { max-width: 1180px; margin: 0 auto clamp(2rem, 5vw, 4rem); display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--deep-line); border-left: 1px solid var(--deep-line); }
+  .xp-deep__facts article { min-height: 180px; padding: clamp(1rem, 2vw, 1.5rem); border-right: 1px solid var(--deep-line); border-bottom: 1px solid var(--deep-line); background: var(--deep-panel); }
+  .xp-deep__facts strong { display: block; margin-bottom: 0.8rem; font-size: clamp(1.6rem, 3vw, 2.7rem); line-height: 0.95; }
+  .xp-deep__facts span { color: var(--deep-muted); line-height: 1.45; }
+  .xp-deep__chapters { max-width: 1180px; margin: 0 auto clamp(2rem, 5vw, 4rem); display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--deep-line); }
+  .xp-deep__chapters article { min-height: 340px; padding: clamp(1.2rem, 3vw, 2rem); background: var(--deep-bg); display: flex; flex-direction: column; justify-content: space-between; }
+  .xp-deep__chapters span { color: var(--deep-muted); font-weight: 900; letter-spacing: 0.12em; }
+  .xp-deep__chapters h3 { font-size: clamp(1.8rem, 4vw, 3.8rem); line-height: 0.96; margin: auto 0 1rem; }
+  .xp-deep__chapters p { color: var(--deep-muted); line-height: 1.5; }
+  .xp-deep__evidence { max-width: 1180px; margin: 0 auto clamp(2rem, 5vw, 4rem); display: grid; grid-template-columns: 1.2fr 0.8fr 1fr; gap: clamp(0.6rem, 2vw, 1rem); align-items: stretch; }
+  .xp-deep__evidence img { width: 100%; height: 100%; min-height: 280px; max-height: 520px; object-fit: cover; border: 1px solid var(--deep-line); }
+  .xp-deep--poster .xp-deep__evidence img { border: 3px solid #0b0c0e; box-shadow: 8px 8px 0 #0b0c0e; }
+  .xp-deep--interior .xp-deep__evidence img { border-radius: 999px 999px 8px 8px; }
+  .xp-deep--buildbook .xp-deep__evidence img { border: 8px solid #f5eee5; transform: rotate(-1deg); }
+  .xp-deep__split { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 0.82fr 1.18fr; gap: 1px; background: var(--deep-line); border: 1px solid var(--deep-line); }
+  .xp-deep__split > section { padding: clamp(1.5rem, 4vw, 3rem); background: var(--deep-bg); }
+  .xp-deep__split h2 { font-size: clamp(2rem, 5vw, 4.6rem); line-height: 0.95; margin: 0 0 1.4rem; }
+  .xp-deep__split ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.8rem; }
+  .xp-deep__split li { padding: 0.9rem 0; border-bottom: 1px solid var(--deep-line); color: var(--deep-muted); }
+  .xp-deep__qa { display: grid; gap: 1px; background: var(--deep-line); }
+  .xp-deep__qa article { padding: 1.2rem; background: var(--deep-bg); }
+  .xp-deep__qa h3 { margin: 0 0 0.5rem; font-size: clamp(1.2rem, 2vw, 1.7rem); letter-spacing: 0; }
+  .xp-deep__qa p { margin: 0; color: var(--deep-muted); line-height: 1.5; }
+
+  .xp-proof { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: rgba(255,255,255,0.22); }
+  .xp-proof article { min-height: 300px; padding: clamp(1.4rem, 3vw, 2.2rem); background: rgba(0,0,0,0.76); color: #fff; display: flex; flex-direction: column; justify-content: flex-end; }
+  .xp-proof h2 { font-size: clamp(1.8rem, 4vw, 3.2rem); line-height: 0.96; margin: 0 0 0.8rem; }
+  .xp-proof p { color: rgba(255,255,255,0.72); }
+  .experiment--interior .xp-proof article { background: #201914; }
+
+  @media (max-width: 980px) {
+    .xp-poster-hero, .xp-console-hero, .xp-catalog, .xp-interior-hero, .xp-buildbook-steps article { grid-template-columns: 1fr; }
+    .xp-catalog-buy { position: relative; height: auto; }
+    .xp-poster-hero__buy { position: static; margin: 1rem; }
+    .xp-poster-info, .xp-interior-board, .xp-proof, .xp-deep__intro, .xp-deep__facts, .xp-deep__chapters, .xp-deep__evidence, .xp-deep__split { grid-template-columns: 1fr; }
+    .xp-buildbook-steps article:nth-child(even) img { order: 0; }
+  }
+</style>

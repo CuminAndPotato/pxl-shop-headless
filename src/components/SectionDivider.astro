@@ -1,0 +1,83 @@
+---
+// Variant section divider — replaces hard horizontal section lines with one
+// of several geometric transitions. Renders as a positioned data-URL SVG so it
+// flows with the section it belongs to. Use multiple variants across a page so
+// transitions don't all look the same.
+type Pattern = 'wave' | 'wave-asym' | 'arc' | 'slope' | 'scallop' | 'split-wave';
+
+interface Props {
+  /** Pin to top or bottom edge of the parent section. */
+  side?: 'top' | 'bottom';
+  /** Fill color of the divider area — usually the color of the *next* section. */
+  fill?: string;
+  /** Height of the divider in any CSS length. */
+  height?: string;
+  /** Geometric pattern. */
+  pattern?: Pattern;
+  /** Mirror horizontally (so consecutive dividers don't echo each other). */
+  flip?: boolean;
+}
+
+const { side = 'bottom', fill = '#ffffff', height = '140px', pattern = 'wave', flip = false } = Astro.props;
+
+const paths: Record<Pattern, { down: string; up: string }> = {
+  // Asymmetric soft wave — close to the live Wix path, retuned for our viewBox
+  wave: {
+    down: 'M0 90 C 280 50, 520 130, 820 80 C 1080 40, 1280 110, 1440 60 L 1440 140 L 0 140 Z',
+    up: 'M0 50 C 280 90, 520 10, 820 60 C 1080 100, 1280 30, 1440 80 L 1440 0 L 0 0 Z',
+  },
+  // Even more asymmetric — closer to Wix's signature
+  'wave-asym': {
+    down: 'M0 60 C 480 130, 960 30, 1440 100 L 1440 140 L 0 140 Z',
+    up: 'M0 80 C 480 10, 960 110, 1440 40 L 1440 0 L 0 0 Z',
+  },
+  // Concave arc — single curve
+  arc: {
+    down: 'M0 60 Q 720 160 1440 60 L 1440 140 L 0 140 Z',
+    up: 'M0 80 Q 720 -20 1440 80 L 1440 0 L 0 0 Z',
+  },
+  // Diagonal slope (very gentle)
+  slope: {
+    down: 'M0 110 L 1440 30 L 1440 140 L 0 140 Z',
+    up: 'M0 30 L 1440 110 L 1440 0 L 0 0 Z',
+  },
+  // Repeating half-circles — subtle scallop edge
+  scallop: {
+    down: 'M0 100 Q 90 60 180 100 Q 270 140 360 100 Q 450 60 540 100 Q 630 140 720 100 Q 810 60 900 100 Q 990 140 1080 100 Q 1170 60 1260 100 Q 1350 140 1440 100 L 1440 140 L 0 140 Z',
+    up: 'M0 40 Q 90 80 180 40 Q 270 0 360 40 Q 450 80 540 40 Q 630 0 720 40 Q 810 80 900 40 Q 990 0 1080 40 Q 1170 80 1260 40 Q 1350 0 1440 40 L 1440 0 L 0 0 Z',
+  },
+  // Two-bump wave — more rhythm than the single asym wave
+  'split-wave': {
+    down: 'M0 70 C 220 20, 480 130, 720 70 C 960 10, 1220 130, 1440 70 L 1440 140 L 0 140 Z',
+    up: 'M0 70 C 220 120, 480 10, 720 70 C 960 130, 1220 10, 1440 70 L 1440 0 L 0 0 Z',
+  },
+};
+
+const orientation = side === 'top' ? 'up' : 'down';
+const path = paths[pattern][orientation];
+const transform = flip ? "transform='translate(1440,0) scale(-1,1)'" : '';
+const svg = `<svg preserveAspectRatio='none' viewBox='0 0 1440 140' xmlns='http://www.w3.org/2000/svg'><g ${transform}><path d='${path}' fill='${fill}'/></g></svg>`;
+const dataUrl = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+---
+
+<div
+  class={`section-divider section-divider--${side}`}
+  style={`--h: ${height}; background-image: ${dataUrl};`}
+  aria-hidden="true"
+></div>
+
+<style>
+  .section-divider {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: var(--h);
+    pointer-events: none;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    background-position: center;
+    z-index: 1;
+  }
+  .section-divider--top { top: 0; }
+  .section-divider--bottom { bottom: 0; }
+</style>

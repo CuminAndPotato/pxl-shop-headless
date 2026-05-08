@@ -1,0 +1,126 @@
+---
+import type { Locale } from '../i18n/strings';
+import { t } from '../i18n/strings';
+import type { Product } from '../lib/shop';
+import type { PageVariant } from '../lib/page-variants';
+import Hero from './Hero.astro';
+import ProductPanel from './ProductPanel.astro';
+import Gallery from './Gallery.astro';
+import Variants from './Variants.astro';
+import Statement from './Statement.astro';
+import Handmade from './Handmade.astro';
+import CreateItYourself from './CreateItYourself.astro';
+import Setup from './Setup.astro';
+import OurStory from './OurStory.astro';
+import VariantIntro from './VariantIntro.astro';
+import OriginalDraftPage from './OriginalDraftPage.astro';
+import OriginalTweakPage from './OriginalTweakPage.astro';
+import ExperimentPage from './ExperimentPage.astro';
+import StoryRibbonPage from './StoryRibbonPage.astro';
+import LivingSidebarPage from './LivingSidebarPage.astro';
+import PixelNativePage from './PixelNativePage.astro';
+import EditorialObjectPage from './EditorialObjectPage.astro';
+import QuietDropPage from './QuietDropPage.astro';
+import { lifestyleGallery, workshopGallery, shapeSpacesBg, startedBg } from '../lib/assets';
+
+interface Props {
+  locale: Locale;
+  variant: PageVariant;
+  product: Product | null;
+}
+
+const { locale, variant, product } = Astro.props;
+const s = t(locale);
+const copy = variant.copy[locale];
+---
+
+{variant.layout === 'default' && (
+  <>
+    <Hero locale={locale} />
+    <ProductPanel locale={locale} product={product} />
+    <Gallery images={lifestyleGallery} ariaLabel={locale === 'de' ? 'Lifestyle-Galerie' : 'Lifestyle gallery'} />
+    <Variants locale={locale} />
+    <Statement line1={s.shapeSpaces.line1} line2={s.shapeSpaces.line2} bgImage={shapeSpacesBg} />
+    <Handmade locale={locale} productId={product?.id} />
+    <Gallery images={workshopGallery} ariaLabel={locale === 'de' ? 'Werkstatt-Galerie' : 'Workshop gallery'} />
+    <Statement line1={s.started.line1} line2={s.started.line2} bgImage={startedBg} />
+    <CreateItYourself locale={locale} />
+    <Setup locale={locale} />
+    <OurStory locale={locale} />
+  </>
+)}
+
+{variant.layout === 'dev' && (
+  <>
+    <VariantIntro
+      eyebrow={copy.introEyebrow}
+      title={copy.introTitle}
+      lead={copy.introLead}
+      bullets={copy.bullets}
+      note={copy.note}
+      thesis={copy.thesis}
+      theme={variant.theme}
+    />
+    <ProductPanel locale={locale} product={product} />
+    <Statement line1={copy.quote.line1} line2={copy.quote.line2} bgImage={startedBg} />
+    <Setup locale={locale} />
+    <Gallery images={workshopGallery} ariaLabel={locale === 'de' ? 'Werkstatt-Galerie' : 'Workshop gallery'} />
+    <Handmade locale={locale} productId={product?.id} />
+    <Variants locale={locale} />
+    <OurStory locale={locale} />
+  </>
+)}
+
+{variant.layout === 'maker' && (
+  <>
+    <Hero locale={locale} />
+    <VariantIntro
+      eyebrow={copy.introEyebrow}
+      title={copy.introTitle}
+      lead={copy.introLead}
+      bullets={copy.bullets}
+      note={copy.note}
+      thesis={copy.thesis}
+      theme={variant.theme}
+    />
+    <Gallery images={lifestyleGallery} ariaLabel={locale === 'de' ? 'Lifestyle-Galerie' : 'Lifestyle gallery'} />
+    <Handmade locale={locale} productId={product?.id} />
+    <Statement line1={copy.quote.line1} line2={copy.quote.line2} bgImage={shapeSpacesBg} />
+    <ProductPanel locale={locale} product={product} />
+    <Gallery images={workshopGallery} ariaLabel={locale === 'de' ? 'Werkstatt-Galerie' : 'Workshop gallery'} />
+    <Variants locale={locale} />
+    <OurStory locale={locale} />
+  </>
+)}
+
+{variant.layout === 'original' && (
+  <OriginalDraftPage locale={locale} variant={variant} product={product} />
+)}
+
+{variant.layout === 'tweak' && (
+  <OriginalTweakPage locale={locale} variant={variant} product={product} />
+)}
+
+{variant.layout === 'experiment' && (
+  <ExperimentPage locale={locale} variant={variant} product={product} />
+)}
+
+{variant.layout === 'ribbon' && (
+  <StoryRibbonPage locale={locale} variant={variant} product={product} />
+)}
+
+{variant.layout === 'sidebar' && (
+  <LivingSidebarPage locale={locale} variant={variant} product={product} />
+)}
+
+{variant.layout === 'native' && (
+  <PixelNativePage locale={locale} variant={variant} product={product} />
+)}
+
+{variant.layout === 'editorial' && (
+  <EditorialObjectPage locale={locale} variant={variant} product={product} />
+)}
+
+{variant.layout === 'drop' && (
+  <QuietDropPage locale={locale} variant={variant} product={product} />
+)}

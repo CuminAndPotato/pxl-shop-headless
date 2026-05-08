@@ -1,0 +1,31 @@
+---
+import Base from '../../layouts/Base.astro';
+import VariantDock from '../../components/VariantDock.astro';
+import VariantPage from '../../components/VariantPage.astro';
+import { getBuildTimeProduct } from '../../lib/build-shop';
+import { getVariantHref, pageVariants } from '../../lib/page-variants';
+
+export function getStaticPaths() {
+  return pageVariants.map((variant) => ({
+    params: { slug: variant.slug },
+    props: { variant },
+  }));
+}
+
+const locale = 'en';
+const { variant } = Astro.props;
+const product = await getBuildTimeProduct();
+const copy = variant.copy[locale];
+const headerVariant = variant.headerVariant ?? (variant.layout === 'dev' ? 'light' : 'dark');
+---
+
+<Base
+  locale={locale}
+  title={`PXL Clock · ${copy.name}`}
+  description={copy.thesis}
+  headerVariant={headerVariant}
+  languageHrefs={{ de: getVariantHref('de', variant.slug), en: getVariantHref('en', variant.slug) }}
+>
+  <VariantDock locale={locale} currentSlug={variant.slug} />
+  <VariantPage locale={locale} variant={variant} product={product} />
+</Base>

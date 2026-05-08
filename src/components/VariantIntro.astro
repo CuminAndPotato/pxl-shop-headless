@@ -1,0 +1,136 @@
+---
+interface Props {
+  eyebrow: string;
+  title: string[];
+  lead: string;
+  bullets: string[];
+  note: string;
+  thesis: string;
+  theme: 'graphite' | 'amber' | 'mist';
+}
+
+const { eyebrow, title, lead, bullets, note, thesis, theme } = Astro.props;
+---
+
+<section class={`variant-intro variant-intro--${theme}`}>
+  <div class="container variant-intro__grid">
+    <div class="variant-intro__copy">
+      <p class="eyebrow">{eyebrow}</p>
+      <h1 class="variant-intro__title">
+        {title.map((line) => <span>{line}</span>)}
+      </h1>
+      <p class="lead variant-intro__lead">{lead}</p>
+      <p class="variant-intro__thesis">{thesis}</p>
+
+      <ul class="variant-intro__bullets">
+        {bullets.map((bullet) => <li>{bullet}</li>)}
+      </ul>
+    </div>
+
+    <aside class="variant-intro__panel">
+      <p class="variant-intro__panel-label">Why this version</p>
+      <p>{note}</p>
+    </aside>
+  </div>
+</section>
+
+<style>
+  .variant-intro {
+    position: relative;
+    padding-top: clamp(10rem, 18vw, 14rem);
+    padding-bottom: clamp(4rem, 10vw, 7rem);
+    overflow: hidden;
+  }
+  .variant-intro--graphite {
+    background:
+      radial-gradient(circle at 15% 20%, rgba(255,255,255,0.08), transparent 35%),
+      radial-gradient(circle at 85% 15%, rgba(255,184,77,0.14), transparent 30%),
+      #111214;
+    color: #fff;
+  }
+  .variant-intro--amber {
+    background:
+      radial-gradient(circle at 82% 18%, rgba(255,184,77,0.35), transparent 28%),
+      radial-gradient(circle at 10% 90%, rgba(52,84,170,0.16), transparent 30%),
+      linear-gradient(180deg, #fff9ef 0%, #fff 100%);
+  }
+  .variant-intro--mist {
+    background:
+      radial-gradient(circle at 12% 18%, rgba(183,198,213,0.42), transparent 30%),
+      radial-gradient(circle at 88% 82%, rgba(255,198,124,0.32), transparent 28%),
+      linear-gradient(180deg, #f4f6f8 0%, #fff 100%);
+  }
+  .variant-intro__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
+    gap: clamp(2rem, 4vw, 4rem);
+    align-items: end;
+  }
+  .variant-intro__title {
+    font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    font-weight: 700;
+    font-size: clamp(3.6rem, 9vw, 7rem);
+    line-height: 0.95;
+    letter-spacing: -0.05em;
+    margin: 0;
+  }
+  .variant-intro__title span {
+    display: block;
+  }
+  .variant-intro__lead {
+    margin-top: 1.5rem;
+    max-width: 52ch;
+  }
+  .variant-intro__thesis {
+    margin: 1.25rem 0 0;
+    font-weight: 700;
+    max-width: 48ch;
+  }
+  .variant-intro__bullets {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0;
+    margin: 2rem 0 0;
+  }
+  .variant-intro__bullets li {
+    padding: 0.75rem 1rem;
+    border-radius: 999px;
+    border: 1px solid rgba(10,10,10,0.12);
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(10px);
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+  .variant-intro--graphite .variant-intro__bullets li {
+    border-color: rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.08);
+  }
+  .variant-intro__panel {
+    padding: 1.5rem;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.68);
+    border: 1px solid rgba(10,10,10,0.08);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.08);
+  }
+  .variant-intro--graphite .variant-intro__panel {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.1);
+    box-shadow: none;
+  }
+  .variant-intro__panel-label {
+    margin: 0 0 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.7;
+  }
+  @media (max-width: 900px) {
+    .variant-intro__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

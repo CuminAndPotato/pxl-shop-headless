@@ -1,0 +1,268 @@
+---
+import type { Locale } from '../i18n/strings';
+
+interface Props {
+  locale: Locale;
+  tone?: 'dark' | 'light';
+}
+
+const { locale, tone = 'dark' } = Astro.props;
+
+type PixelColor = 0 | 1 | 2 | 3 | 4;
+
+interface Pixogram {
+  id: string;
+  label: Record<Locale, string>;
+  description: Record<Locale, string>;
+  pixels: PixelColor[];
+}
+
+const size = 24;
+const center = (size - 1) / 2;
+
+function buildPixels(draw: (x: number, y: number) => PixelColor): PixelColor[] {
+  const pixels: PixelColor[] = [];
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      pixels.push(draw(x, y));
+    }
+  }
+  return pixels;
+}
+
+const pixograms: Pixogram[] = [
+  {
+    id: 'pulse',
+    label: { en: 'Pulse', de: 'Pulse' },
+    description: {
+      en: 'A soft breathing animation for the desk or wall.',
+      de: 'Eine weich atmende Animation für Schreibtisch oder Wand.',
+    },
+    pixels: buildPixels((x, y) => {
+      const d = Math.hypot(x - center, y - center);
+      if (d < 3.2) return 1;
+      if (d < 6.2 && (x + y) % 2 === 0) return 2;
+      if (d < 9 && (x - y) % 3 === 0) return 3;
+      return 0;
+    }),
+  },
+  {
+    id: 'heart',
+    label: { en: 'Tiny Heart', de: 'Tiny Heart' },
+    description: {
+      en: 'Small, obvious, and instantly readable in 24x24 pixels.',
+      de: 'Klein, offensichtlich und in 24x24 Pixeln sofort lesbar.',
+    },
+    pixels: buildPixels((x, y) => {
+      const nx = (x - center) / 9;
+      const ny = (y - 12) / 9;
+      const v = Math.pow(nx * nx + ny * ny - 0.45, 3) - nx * nx * ny * ny * ny;
+      if (v < -0.045) return 4;
+      if (v < 0.01) return 2;
+      return 0;
+    }),
+  },
+  {
+    id: 'orbit',
+    label: { en: 'Orbit', de: 'Orbit' },
+    description: {
+      en: 'A simple motion idea that feels more like art than a widget.',
+      de: 'Eine einfache Bewegungs-Idee, die eher wie Kunst als wie ein Widget wirkt.',
+    },
+    pixels: buildPixels((x, y) => {
+      const d = Math.hypot(x - center, y - center);
+      const angle = Math.atan2(y - center, x - center);
+      if (Math.abs(d - 8) < 0.7 && Math.cos(angle * 3) > -0.45) return 2;
+      if (Math.abs(d - 4) < 0.55 && Math.sin(angle * 2) > -0.2) return 1;
+      if (d < 1.7) return 3;
+      return 0;
+    }),
+  },
+  {
+    id: 'rain',
+    label: { en: 'Pixel Rain', de: 'Pixel Rain' },
+    description: {
+      en: 'A moody ambient pattern that shows how little a pixel needs to do.',
+      de: 'Ein atmosphärisches Muster, das zeigt, wie wenig ein Pixel tun muss.',
+    },
+    pixels: buildPixels((x, y) => {
+      if ((x * 7 + y * 3) % 17 === 0) return 1;
+      if ((x * 5 + y * 11) % 29 === 0) return 2;
+      if (y > 17 && (x + y) % 6 === 0) return 3;
+      return 0;
+    }),
+  },
+];
+
+const ui = locale === 'de'
+  ? {
+      eyebrow: 'Pixogramme',
+      title: '24x24 Pixel, aber genug Raum für Ideen.',
+      body: 'Die Uhr ist nicht nur ein Display. Sie ist eine kleine Leinwand für Animationen, Stimmungen, Gags, Daten und Pixelart, die du selbst bauen kannst.',
+      github: 'Auf GitHub selber bauen',
+    }
+  : {
+      eyebrow: 'Pixograms',
+      title: '24x24 pixels, but plenty of room for ideas.',
+      body: 'The clock is not just a display. It is a tiny canvas for animations, moods, jokes, data, and pixel art you can build yourself.',
+      github: 'Build your own on GitHub',
+    };
+---
+
+<section class={`pixograms pixograms--${tone}`}>
+  <div class="pixograms__copy">
+    <p class="eyebrow">{ui.eyebrow}</p>
+    <h2>{ui.title}</h2>
+    <p>{ui.body}</p>
+    <a href="https://github.com/CuminAndPotato/PXL-Clock" target="_blank" rel="noopener">{ui.github}</a>
+  </div>
+
+  <div class="pixograms__stage" data-pixogram-stage>
+    {pixograms.map((pixogram, index) => (
+      <article class={index === 0 ? 'pixogram is-active' : 'pixogram'} data-pixogram={pixogram.id}>
+        <div class="pixogram__matrix" aria-label={pixogram.label[locale]}>
+          {pixogram.pixels.map((color) => <span class={`p p--${color}`}></span>)}
+        </div>
+        <div>
+          <h3>{pixogram.label[locale]}</h3>
+          <p>{pixogram.description[locale]}</p>
+        </div>
+      </article>
+    ))}
+  </div>
+
+  <div class="pixograms__nav" role="tablist" aria-label="Pixogram examples">
+    {pixograms.map((pixogram, index) => (
+      <button type="button" class={index === 0 ? 'is-active' : ''} data-pixogram-trigger={pixogram.id}>
+        {pixogram.label[locale]}
+      </button>
+    ))}
+  </div>
+</section>
+
+<script>
+  const triggers = document.querySelectorAll('[data-pixogram-trigger]');
+  const cards = document.querySelectorAll('[data-pixogram]');
+
+  triggers.forEach((trigger) => {
+    trigger.addEventListener('click', () => {
+      const id = trigger.getAttribute('data-pixogram-trigger');
+      triggers.forEach((item) => item.classList.toggle('is-active', item === trigger));
+      cards.forEach((card) => card.classList.toggle('is-active', card.getAttribute('data-pixogram') === id));
+    });
+  });
+</script>
+
+<style>
+  .pixograms {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(280px, 1fr);
+    gap: clamp(1.5rem, 4vw, 3rem);
+    align-items: center;
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    border-radius: 32px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 28px 90px rgba(0,0,0,0.2);
+  }
+  .pixograms--light {
+    background: rgba(255,255,255,0.76);
+    border-color: rgba(10,10,10,0.08);
+    box-shadow: 0 24px 80px rgba(48,61,92,0.12);
+  }
+  .pixograms__copy h2 {
+    font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    font-size: clamp(2rem, 5vw, 4rem);
+    line-height: 0.98;
+    letter-spacing: -0.04em;
+    margin: 0 0 1rem;
+  }
+  .pixograms__copy p {
+    color: var(--muted);
+    max-width: 46ch;
+  }
+  .pixograms__copy a {
+    display: inline-flex;
+    margin-top: 1.25rem;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  .pixograms__stage {
+    position: relative;
+    min-height: 420px;
+  }
+  .pixogram {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 1.25rem;
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+    pointer-events: none;
+    transition: opacity 0.28s ease, transform 0.28s ease;
+  }
+  .pixogram.is-active {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+  .pixogram__matrix {
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
+    gap: 3px;
+    width: min(68vw, 340px);
+    aspect-ratio: 1;
+    padding: 14px;
+    border-radius: 24px;
+    background: #050607;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 28px 90px rgba(0,0,0,0.34);
+  }
+  .p {
+    border-radius: 2px;
+    background: rgba(255,255,255,0.06);
+  }
+  .p--1 { background: #ffd56a; box-shadow: 0 0 12px rgba(255,213,106,0.6); }
+  .p--2 { background: #5bc8ff; box-shadow: 0 0 12px rgba(91,200,255,0.55); }
+  .p--3 { background: #ff7b45; box-shadow: 0 0 12px rgba(255,123,69,0.55); }
+  .p--4 { background: #ff4f8b; box-shadow: 0 0 12px rgba(255,79,139,0.55); }
+  .pixogram h3 {
+    font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    margin: 0 0 0.35rem;
+    font-size: 1.4rem;
+  }
+  .pixogram p {
+    margin: 0;
+    color: var(--muted);
+    text-align: center;
+    max-width: 32ch;
+  }
+  .pixograms__nav {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  .pixograms__nav button {
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    padding: 0.7rem 1rem;
+    font-weight: 700;
+    opacity: 0.7;
+  }
+  .pixograms__nav button.is-active {
+    background: var(--draft-fg, var(--fg));
+    color: var(--draft-bg, #fff);
+    border-color: var(--draft-fg, var(--fg));
+    opacity: 1;
+  }
+  @media (max-width: 860px) {
+    .pixograms {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

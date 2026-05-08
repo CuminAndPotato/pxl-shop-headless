@@ -1,0 +1,307 @@
+---
+import type { Locale } from '../i18n/strings';
+
+interface Props {
+  locale: Locale;
+  /**
+   * 'embedded' = transparent, inherits page tone (hero strip, sidebar, etc.)
+   * 'card'     = a soft card shell with its own surface
+   * 'panel'    = larger framed panel (used in pixel-native section)
+   */
+  variant?: 'embedded' | 'card' | 'panel';
+  /** Pre-selected pixogram id. Defaults to 'pulse'. */
+  initial?: 'pulse' | 'heart' | 'orbit' | 'rain' | 'clock' | 'wave';
+  /** Shows the title/lead block above the picker. */
+  showCopy?: boolean;
+}
+
+const { locale, variant = 'card', initial = 'pulse', showCopy = true } = Astro.props;
+
+const pixograms = [
+  { id: 'pulse', label: { en: 'Pulse',   de: 'Pulse'   }, desc: { en: 'A soft, breathing animation. Calm desk presence.',         de: 'Eine weich atmende Animation. Ruhige Schreibtisch-Präsenz.' } },
+  { id: 'heart', label: { en: 'Heart',   de: 'Herz'    }, desc: { en: 'Small, obvious, instantly readable in 24×24 pixels.',     de: 'Klein, direkt, in 24×24 Pixeln sofort lesbar.' } },
+  { id: 'orbit', label: { en: 'Orbit',   de: 'Orbit'   }, desc: { en: 'Three rings rotate around a single warm core.',           de: 'Drei Ringe kreisen um einen warmen Kern.' } },
+  { id: 'rain',  label: { en: 'Rain',    de: 'Regen'   }, desc: { en: 'Ambient pattern. Pixels fall, sparse and quiet.',         de: 'Atmosphärisches Muster. Pixel fallen, sparsam und leise.' } },
+  { id: 'clock', label: { en: 'Clock',   de: 'Uhr'     }, desc: { en: 'The classic readout. Pixels still feel like an object.',  de: 'Der Klassiker. Pixel, die sich nach einem Objekt anfühlen.' } },
+  { id: 'wave',  label: { en: 'Wave',    de: 'Welle'   }, desc: { en: 'A slow horizontal sweep — pixel painting in motion.',     de: 'Ein langsamer horizontaler Sweep — Pixelmalerei in Bewegung.' } },
+];
+
+const ui = locale === 'de'
+  ? { eyebrow: 'Live-Vorschau', title: '24×24 Pixel. Sechs Stimmungen. Eine Sekunde, um es zu verstehen.', body: 'Wähle ein Pixogramm und sieh, wie die Uhr aussieht. Jedes hier läuft auch auf der echten PXL Clock.', selectAria: 'Pixogramm auswählen' }
+  : { eyebrow: 'Live preview',  title: '24×24 pixels. Six moods. One second to get it.', body: 'Pick a pixogram and see how the clock looks. Every one here also runs on the real PXL Clock.', selectAria: 'Choose pixogram' };
+---
+
+<section class={`lpp lpp--${variant}`} data-locale={locale}>
+  {showCopy && (
+    <header class="lpp__head">
+      <p class="lpp__eyebrow">{ui.eyebrow}</p>
+      <h2 class="lpp__title">{ui.title}</h2>
+      <p class="lpp__lead">{ui.body}</p>
+    </header>
+  )}
+
+  <div class="lpp__stage">
+    <div class="lpp__device" aria-label="PXL Clock 24x24 matrix" data-lpp-device data-active={initial}>
+      <div class="lpp__bezel">
+        <div class="lpp__matrix" data-lpp-matrix>
+          {Array.from({ length: 576 }).map(() => <span class="p p--0"></span>)}
+        </div>
+      </div>
+    </div>
+
+    <div class="lpp__caption">
+      {pixograms.map((pg) => (
+        <article class={pg.id === initial ? 'lpp__cap is-on' : 'lpp__cap'} data-lpp-cap={pg.id}>
+          <h3>{pg.label[locale]}</h3>
+          <p>{pg.desc[locale]}</p>
+        </article>
+      ))}
+    </div>
+  </div>
+
+  <div class="lpp__nav" role="tablist" aria-label={ui.selectAria}>
+    {pixograms.map((pg) => (
+      <button
+        type="button"
+        class={pg.id === initial ? 'lpp__btn is-on' : 'lpp__btn'}
+        data-lpp-btn={pg.id}
+        role="tab"
+        aria-selected={pg.id === initial}
+      >
+        <span class="lpp__btn-dot" aria-hidden="true"></span>
+        <span>{pg.label[locale]}</span>
+      </button>
+    ))}
+  </div>
+</section>
+
+<script>
+  import { drawers, PIXOGRAM_SIZE } from '../lib/pixograms';
+  const SIZE = PIXOGRAM_SIZE;
+
+  document.querySelectorAll<HTMLElement>('[data-lpp-device]').forEach((device) => {
+    const matrix = device.querySelector<HTMLElement>('[data-lpp-matrix]');
+    if (!matrix) return;
+    const cells = Array.from(matrix.querySelectorAll<HTMLSpanElement>('.p'));
+    const root = device.closest('section');
+    if (!root) return;
+
+    let active = device.dataset.active || 'pulse';
+    let t = 0;
+
+    function paint() {
+      const fn = drawers[active] || drawers.pulse;
+      for (let i = 0; i < cells.length; i += 1) {
+        const x = i % SIZE;
+        const y = Math.floor(i / SIZE);
+        const c = fn(x, y, t);
+        cells[i].className = `p p--${c}`;
+      }
+      t += 1;
+    }
+
+    paint();
+    const interval = setInterval(paint, 240);
+
+    root.querySelectorAll<HTMLButtonElement>('[data-lpp-btn]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.lppBtn;
+        if (!id) return;
+        active = id;
+        device.dataset.active = id;
+        root.querySelectorAll('[data-lpp-btn]').forEach((b) => b.classList.toggle('is-on', b === btn));
+        root.querySelectorAll('[data-lpp-btn]').forEach((b) => b.setAttribute('aria-selected', String(b === btn)));
+        root.querySelectorAll('[data-lpp-cap]').forEach((c) => c.classList.toggle('is-on', (c as HTMLElement).dataset.lppCap === id));
+        t = 0;
+        paint();
+      });
+    });
+
+    // Pause when off-screen (battery + jank).
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) {
+          clearInterval(interval);
+        }
+      });
+    }, { threshold: 0 });
+    io.observe(device);
+  });
+</script>
+
+<style>
+  /* ----- Theme tokens (each page sets its own values) ----- */
+  .lpp {
+    --lpp-fg: var(--draft-fg, #0a0a0a);
+    --lpp-muted: var(--draft-muted, rgba(10, 10, 10, 0.62));
+    --lpp-surface: var(--draft-surface, rgba(255, 255, 255, 0.78));
+    --lpp-line: var(--draft-line, rgba(10, 10, 10, 0.12));
+    --lpp-bezel: var(--draft-bezel, #0b0c0e);
+    --lpp-pixel-off: var(--draft-pixel-off, rgba(255, 255, 255, 0.05));
+    --lpp-c1: var(--draft-c1, #ffd56a);
+    --lpp-c2: var(--draft-c2, #5bc8ff);
+    --lpp-c3: var(--draft-c3, #ff7b45);
+    --lpp-c4: var(--draft-c4, #ff4f8b);
+    color: var(--lpp-fg);
+    font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+  }
+  .lpp--card {
+    padding: clamp(1.5rem, 4vw, 2.6rem);
+    background: var(--lpp-surface);
+    border: 1px solid var(--lpp-line);
+    border-radius: 18px;
+  }
+  .lpp--panel {
+    padding: clamp(2rem, 5vw, 3.5rem);
+    background: var(--lpp-surface);
+    border: 1px solid var(--lpp-line);
+    border-radius: 4px;
+  }
+  .lpp--embedded {
+    padding: 0;
+    background: transparent;
+    border: 0;
+  }
+
+  .lpp__head {
+    max-width: 56ch;
+    margin-bottom: clamp(1.25rem, 3vw, 2rem);
+  }
+  .lpp__eyebrow {
+    margin: 0 0 0.6rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--lpp-muted);
+  }
+  .lpp__title {
+    margin: 0 0 0.65rem;
+    font-size: clamp(1.6rem, 3.2vw, 2.6rem);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    font-weight: 700;
+  }
+  .lpp__lead {
+    margin: 0;
+    color: var(--lpp-muted);
+    font-size: clamp(0.98rem, 1.3vw, 1.06rem);
+    line-height: 1.55;
+  }
+
+  .lpp__stage {
+    display: grid;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    gap: clamp(1.25rem, 4vw, 2.6rem);
+    align-items: center;
+  }
+
+  .lpp__device {
+    width: clamp(220px, 30vw, 360px);
+    aspect-ratio: 1;
+    perspective: 1200px;
+  }
+  .lpp__bezel {
+    width: 100%;
+    height: 100%;
+    padding: 6%;
+    border-radius: 14px;
+    background: var(--lpp-bezel);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+      0 30px 70px rgba(0, 0, 0, 0.28),
+      0 8px 18px rgba(0, 0, 0, 0.18);
+  }
+  .lpp__matrix {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
+    grid-template-rows: repeat(24, 1fr);
+    gap: 1px;
+    border-radius: 4px;
+    background: #050607;
+    overflow: hidden;
+  }
+  .lpp .p {
+    background: var(--lpp-pixel-off);
+    transition: background-color 120ms ease, box-shadow 120ms ease;
+  }
+  .lpp .p--1 { background: var(--lpp-c1); box-shadow: 0 0 7px var(--lpp-c1); }
+  .lpp .p--2 { background: var(--lpp-c2); box-shadow: 0 0 7px var(--lpp-c2); }
+  .lpp .p--3 { background: var(--lpp-c3); box-shadow: 0 0 7px var(--lpp-c3); }
+  .lpp .p--4 { background: var(--lpp-c4); box-shadow: 0 0 7px var(--lpp-c4); }
+
+  .lpp__caption {
+    position: relative;
+    min-height: 110px;
+  }
+  .lpp__cap {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 220ms ease, transform 220ms ease;
+    pointer-events: none;
+  }
+  .lpp__cap.is-on {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .lpp__cap h3 {
+    margin: 0 0 0.4rem;
+    font-size: clamp(1.15rem, 2vw, 1.5rem);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .lpp__cap p {
+    margin: 0;
+    color: var(--lpp-muted);
+    line-height: 1.55;
+    max-width: 36ch;
+  }
+
+  .lpp__nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: clamp(1.25rem, 3vw, 2rem);
+  }
+  .lpp__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.55rem 0.95rem;
+    border-radius: 999px;
+    border: 1px solid var(--lpp-line);
+    background: transparent;
+    color: var(--lpp-fg);
+    font-family: inherit;
+    font-size: 0.86rem;
+    font-weight: 600;
+    cursor: pointer;
+    line-height: 1;
+    transition: background 160ms ease, border-color 160ms ease;
+  }
+  .lpp__btn-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--lpp-muted);
+    transition: background 160ms ease;
+  }
+  .lpp__btn:hover { border-color: var(--lpp-fg); }
+  .lpp__btn.is-on {
+    background: var(--lpp-fg);
+    color: var(--draft-bg, #fff);
+    border-color: var(--lpp-fg);
+  }
+  .lpp__btn.is-on .lpp__btn-dot { background: var(--draft-bg, #fff); }
+
+  @media (max-width: 720px) {
+    .lpp__stage { grid-template-columns: 1fr; }
+    .lpp__device { margin: 0 auto; }
+    .lpp__caption { min-height: auto; }
+  }
+</style>

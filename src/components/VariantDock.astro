@@ -1,0 +1,466 @@
+---
+import type { Locale } from '../i18n/strings';
+import type { PageVariantSlug } from '../lib/page-variants';
+import { getCompareHref, getVariantHref, pageVariants } from '../lib/page-variants';
+import { getVariantUpdate, formatVariantDate, formatVariantDateLong } from '../lib/variant-dates';
+
+interface Props {
+  locale: Locale;
+  currentSlug: PageVariantSlug;
+}
+
+const { locale, currentSlug } = Astro.props;
+const currentIndex = pageVariants.findIndex((variant) => variant.slug === currentSlug);
+const comparePeer = pageVariants[(currentIndex + 1) % pageVariants.length]?.slug ?? 'default';
+
+const ORIGINAL_SLUG: PageVariantSlug = 'default';
+const FRESH_SLUGS: PageVariantSlug[] = ['ribbon', 'sidebar', 'native', 'editorial'];
+const original = pageVariants.find((v) => v.slug === ORIGINAL_SLUG);
+const fresh = FRESH_SLUGS
+  .map((slug) => pageVariants.find((v) => v.slug === slug))
+  .filter((v): v is NonNullable<typeof v> => v != null);
+const legacy = pageVariants.filter(
+  (v) => v.slug !== ORIGINAL_SLUG && !FRESH_SLUGS.includes(v.slug),
+);
+const legacyHasActive = legacy.some((v) => v.slug === currentSlug);
+
+// Build a slug → date map at build time. Uses git log mtime, falls back to fs mtime.
+const variantDates: Record<string, { short: string; long: string }> = {};
+for (const v of pageVariants) {
+  const d = getVariantUpdate(v.slug);
+  variantDates[v.slug] = {
+    short: formatVariantDate(d, locale),
+    long: formatVariantDateLong(d, locale),
+  };
+}
+
+const labels = locale === 'de'
+  ? {
+      title: 'Landing Lab',
+      compare: 'Vergleichen',
+      home: 'Shop-Seite',
+      original: 'Original',
+      fresh: 'Neu',
+      legacy: 'Archiv',
+      collapse: 'Lab einklappen',
+      expand: 'Lab öffnen',
+      updated: 'Aktualisiert',
+    }
+  : {
+      title: 'Landing Lab',
+      compare: 'Compare',
+      home: 'Shop page',
+      original: 'Original',
+      fresh: 'New',
+      legacy: 'Archive',
+      collapse: 'Collapse lab',
+      expand: 'Open lab',
+      updated: 'Updated',
+    };
+---
+
+<aside class="variant-dock" aria-label={labels.title} data-variant-dock>
+  <div class="variant-dock__body">
+  <p class="variant-dock__label">{labels.title}</p>
+
+  {original && (
+    <>
+      <p class="variant-dock__group variant-dock__group--original">{labels.original}</p>
+      <ol class="variant-dock__list">
+        {(() => {
+          const variant = original;
+          const copy = variant.copy[locale];
+          const isActive = variant.slug === currentSlug;
+          const dates = variantDates[variant.slug];
+          return (
+            <li>
+              <a
+                class={isActive ? 'variant-dock__item variant-dock__item--original variant-dock__item--active' : 'variant-dock__item variant-dock__item--original'}
+                href={getVariantHref(locale, variant.slug)}
+                aria-current={isActive ? 'page' : undefined}
+                title={dates?.long ? `${copy.shortName} · ${variant.layout} · ${labels.updated}: ${dates.long}` : `${copy.shortName} · ${variant.layout}`}
+              >
+                <span>{copy.shortName}</span>
+                <small>{dates?.short ?? variant.layout}</small>
+              </a>
+            </li>
+          );
+        })()}
+      </ol>
+    </>
+  )}
+
+  <p class="variant-dock__group variant-dock__group--fresh">{labels.fresh}</p>
+  <ol class="variant-dock__list">
+    {fresh.map((variant) => {
+      const copy = variant.copy[locale];
+      const isActive = variant.slug === currentSlug;
+      const dates = variantDates[variant.slug];
+      return (
+        <li>
+          <a
+            class={isActive ? 'variant-dock__item variant-dock__item--active' : 'variant-dock__item'}
+            href={getVariantHref(locale, variant.slug)}
+            aria-current={isActive ? 'page' : undefined}
+            title={dates?.long ? `${copy.shortName} · ${variant.layout} · ${labels.updated}: ${dates.long}` : `${copy.shortName} · ${variant.layout}`}
+          >
+            <span>{copy.shortName}</span>
+            <small>{dates?.short ?? variant.layout}</small>
+          </a>
+        </li>
+      );
+    })}
+  </ol>
+
+  <details class="variant-dock__legacy" data-variant-dock-legacy open={legacyHasActive}>
+    <summary class="variant-dock__group variant-dock__group--legacy">
+      <span>{labels.legacy}</span>
+      <span class="variant-dock__chevron" aria-hidden="true">
+        <svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+          <path d="M3 3.5 5 6l2-2.5" />
+        </svg>
+      </span>
+    </summary>
+    <ol class="variant-dock__list variant-dock__list--legacy">
+      {legacy.map((variant) => {
+        const copy = variant.copy[locale];
+        const isActive = variant.slug === currentSlug;
+        const dates = variantDates[variant.slug];
+        return (
+          <li>
+            <a
+              class={isActive ? 'variant-dock__item variant-dock__item--active' : 'variant-dock__item'}
+              href={getVariantHref(locale, variant.slug)}
+              aria-current={isActive ? 'page' : undefined}
+              title={dates?.long ? `${copy.shortName} · ${variant.layout} · ${labels.updated}: ${dates.long}` : `${copy.shortName} · ${variant.layout}`}
+            >
+              <span>{copy.shortName}</span>
+              <small>{dates?.short ?? variant.layout}</small>
+            </a>
+          </li>
+        );
+      })}
+    </ol>
+  </details>
+
+  <div class="variant-dock__actions">
+    <a class="variant-dock__link" href={getCompareHref(locale, currentSlug, comparePeer)}>{labels.compare}</a>
+    <a class="variant-dock__link" href={locale === 'de' ? '/de/' : '/'}>{labels.home}</a>
+  </div>
+  </div>
+
+  <button
+    type="button"
+    class="variant-dock__handle"
+    data-variant-dock-toggle
+    aria-label={labels.collapse}
+    aria-expanded="true"
+    title={labels.collapse}
+  >
+    <span class="variant-dock__handle-icon variant-dock__handle-icon--collapse" aria-hidden="true">
+      <svg viewBox="0 0 14 14" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <path d="M9 3 4 7l5 4" />
+      </svg>
+    </span>
+    <span class="variant-dock__handle-icon variant-dock__handle-icon--expand" aria-hidden="true">
+      <svg viewBox="0 0 14 14" width="14" height="14">
+        <rect x="2" y="3" width="10" height="2" rx="0.5" fill="currentColor" />
+        <rect x="2" y="6" width="10" height="2" rx="0.5" fill="currentColor" />
+        <rect x="2" y="9" width="10" height="2" rx="0.5" fill="currentColor" />
+      </svg>
+    </span>
+    <span class="variant-dock__handle-text">{labels.title}</span>
+  </button>
+</aside>
+
+<script is:inline>
+  (function () {
+    const dock = document.querySelector('[data-variant-dock]');
+    const toggle = dock?.querySelector('[data-variant-dock-toggle]');
+    if (!dock || !toggle) return;
+    const STORAGE_KEY = 'lab-dock-collapsed';
+    const collapseLabel = toggle.getAttribute('aria-label');
+    const expandLabel = toggle.dataset.expandLabel || (document.documentElement.lang === 'de' ? 'Lab öffnen' : 'Open lab');
+
+    function apply(collapsed) {
+      dock.classList.toggle('variant-dock--collapsed', collapsed);
+      toggle.setAttribute('aria-expanded', String(!collapsed));
+      toggle.setAttribute('aria-label', collapsed ? expandLabel : collapseLabel);
+      toggle.setAttribute('title', collapsed ? expandLabel : collapseLabel);
+    }
+
+    let initial = false;
+    try { initial = localStorage.getItem(STORAGE_KEY) === '1'; } catch (e) {}
+    apply(initial);
+
+    toggle.addEventListener('click', () => {
+      const next = !dock.classList.contains('variant-dock--collapsed');
+      apply(next);
+      try { localStorage.setItem(STORAGE_KEY, next ? '1' : '0'); } catch (e) {}
+    });
+
+    // Legacy/archive collapsible — persist open/closed state across pages.
+    const legacy = dock.querySelector('[data-variant-dock-legacy]');
+    if (legacy && legacy.tagName.toLowerCase() === 'details') {
+      const LEGACY_KEY = 'lab-legacy-open';
+      const hasActive = legacy.querySelector('.variant-dock__item--active') != null;
+      let storedLegacy = null;
+      try { storedLegacy = localStorage.getItem(LEGACY_KEY); } catch (e) {}
+      if (hasActive) {
+        legacy.open = true;
+      } else if (storedLegacy === '1') {
+        legacy.open = true;
+      } else if (storedLegacy === '0') {
+        legacy.open = false;
+      }
+      legacy.addEventListener('toggle', () => {
+        try { localStorage.setItem(LEGACY_KEY, legacy.open ? '1' : '0'); } catch (e) {}
+      });
+    }
+  })();
+</script>
+
+<style>
+  .variant-dock {
+    position: fixed;
+    left: 1rem;
+    bottom: 1rem;
+    z-index: 90;
+    width: min(190px, calc(100vw - 2rem));
+    padding: 0.45rem;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.9);
+    border: 1px solid rgba(10,10,10,0.1);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 12px 34px rgba(0,0,0,0.14);
+    font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    transition: width 220ms ease, padding 220ms ease, border-radius 220ms ease;
+  }
+  /* Handle is always visible. When dock is open, it sits at the bottom-left
+     as a small "collapse" icon button. When dock is collapsed, the body is
+     hidden and the handle becomes the only visible element. */
+  .variant-dock__handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    margin-top: 0.35rem;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid rgba(10, 10, 10, 0.1);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.7);
+    color: #0a0a0a;
+    font-family: inherit;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 160ms ease, border-color 160ms ease;
+  }
+  .variant-dock__handle:hover {
+    background: #fff;
+    border-color: rgba(10, 10, 10, 0.22);
+  }
+  .variant-dock__handle-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    color: #0a0a0a;
+  }
+  .variant-dock__handle-icon--expand { display: none; }
+  .variant-dock__handle-text { display: none; }
+
+  .variant-dock__body { display: contents; }
+
+  /* Collapsed state: hide the body, swap the icon, show a tiny "Lab" label */
+  .variant-dock--collapsed {
+    width: auto;
+    padding: 0.35rem;
+  }
+  .variant-dock--collapsed .variant-dock__body { display: none; }
+  .variant-dock--collapsed .variant-dock__handle {
+    margin-top: 0;
+    padding: 0.55rem 0.7rem;
+  }
+  .variant-dock--collapsed .variant-dock__handle-icon--collapse { display: none; }
+  .variant-dock--collapsed .variant-dock__handle-icon--expand { display: inline-flex; }
+  .variant-dock--collapsed .variant-dock__handle-text { display: inline; }
+  .variant-dock__label {
+    display: block;
+    margin: 0 0 0.35rem;
+    color: rgba(10,10,10,0.58);
+    font-size: 0.64rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+  .variant-dock__group {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.5rem 0 0.3rem;
+    font-size: 0.56rem;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  .variant-dock__group::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(10, 10, 10, 0.12);
+  }
+  .variant-dock__group--original {
+    color: #0a0a0a;
+    margin-top: 0;
+  }
+  .variant-dock__item--original:not(.variant-dock__item--active) {
+    background: #fff;
+    border-color: rgba(10, 10, 10, 0.18);
+  }
+  .variant-dock__item--original::before {
+    content: '★';
+    margin-right: 0.35rem;
+    font-size: 0.7rem;
+    color: rgba(10, 10, 10, 0.55);
+    line-height: 1;
+  }
+  .variant-dock__item--original.variant-dock__item--active::before {
+    color: rgba(255, 255, 255, 0.7);
+  }
+  .variant-dock__group--fresh {
+    color: #0a0a0a;
+    margin-top: 0.7rem;
+  }
+  .variant-dock__group--legacy {
+    color: rgba(10, 10, 10, 0.4);
+    margin-top: 0.7rem;
+  }
+  /* Legacy collapsible block */
+  .variant-dock__legacy {
+    margin-top: 0;
+  }
+  .variant-dock__legacy summary {
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+    margin: 0.7rem 0 0.3rem;
+  }
+  .variant-dock__legacy summary::-webkit-details-marker { display: none; }
+  .variant-dock__legacy summary:hover { color: rgba(10, 10, 10, 0.7); }
+  /* Push chevron after the inherited ::after hairline */
+  .variant-dock__chevron {
+    order: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 12px;
+    margin-left: 0.4rem;
+    color: rgba(10, 10, 10, 0.55);
+    transition: transform 180ms ease;
+    transform: rotate(-90deg);
+  }
+  .variant-dock__legacy[open] .variant-dock__chevron {
+    transform: rotate(0deg);
+  }
+  .variant-dock__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 2px;
+  }
+  .variant-dock__list--legacy .variant-dock__item:not(.variant-dock__item--active) {
+    background: transparent;
+    border-color: rgba(10, 10, 10, 0.06);
+    color: rgba(10, 10, 10, 0.55);
+    font-weight: 500;
+  }
+  .variant-dock__list--legacy .variant-dock__item:not(.variant-dock__item--active) span {
+    text-decoration: line-through;
+    text-decoration-color: rgba(10, 10, 10, 0.25);
+    text-decoration-thickness: 1px;
+  }
+  .variant-dock__list--legacy .variant-dock__item:not(.variant-dock__item--active):hover {
+    color: #0a0a0a;
+    background: rgba(255, 255, 255, 0.7);
+  }
+  .variant-dock__list--legacy .variant-dock__item:not(.variant-dock__item--active):hover span {
+    text-decoration: none;
+  }
+  .variant-dock__list--legacy .variant-dock__item:not(.variant-dock__item--active) small {
+    color: rgba(10, 10, 10, 0.3);
+  }
+  .variant-dock__item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 24px;
+    padding: 0.28rem 0.42rem;
+    border-radius: 6px;
+    border: 1px solid rgba(10,10,10,0.1);
+    background: rgba(255,255,255,0.82);
+    color: #0a0a0a;
+    font-weight: 700;
+    font-size: 0.76rem;
+    line-height: 1;
+  }
+  .variant-dock__item:hover {
+    background: #fff;
+    border-color: rgba(10,10,10,0.22);
+  }
+  .variant-dock__item span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .variant-dock__item small {
+    color: rgba(10,10,10,0.42);
+    font-size: 0.56rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+  .variant-dock__item--active {
+    background: #0a0a0a;
+    border-color: #0a0a0a;
+    color: #fff;
+  }
+  .variant-dock__item--active small {
+    color: rgba(255,255,255,0.58);
+  }
+  .variant-dock__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.3rem;
+    margin-top: 0.45rem;
+  }
+  .variant-dock__link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 26px;
+    padding: 0.28rem 0.35rem;
+    border-radius: 6px;
+    background: rgba(10,10,10,0.05);
+    border: 1px solid rgba(10,10,10,0.08);
+    color: #0a0a0a;
+    font-weight: 700;
+    font-size: 0.68rem;
+    line-height: 1;
+  }
+  @media (max-width: 720px) {
+    .variant-dock {
+      left: 0.75rem;
+      bottom: 0.75rem;
+      width: min(190px, calc(100vw - 1.5rem));
+    }
+  }
+</style>

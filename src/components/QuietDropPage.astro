@@ -1,0 +1,532 @@
+---
+import type { Locale } from '../i18n/strings';
+import { t } from '../i18n/strings';
+import type { Product } from '../lib/shop';
+import type { PageVariant } from '../lib/page-variants';
+import { lifestyleGallery, workshopGallery } from '../lib/assets';
+import Hero from './Hero.astro';
+import LivePixogramPicker from './LivePixogramPicker.astro';
+import AISandbox from './AISandbox.astro';
+import SectionDivider from './SectionDivider.astro';
+
+interface Props {
+  locale: Locale;
+  variant: PageVariant;
+  product: Product | null;
+}
+
+const { locale, product } = Astro.props;
+const s = t(locale);
+
+const productImage = '/img/products/whatis-clock-tight.png';
+const price = product?.discountedPrice?.formatted ?? product?.price?.formatted ?? '229,00€';
+const oldPrice = product?.discountedPrice ? product?.price?.formatted : '';
+const cartHref = locale === 'de' ? '/de/cart' : '/cart';
+const defaultVariantId = product?.variants[0]?.id ?? '';
+
+const drop = locale === 'de'
+  ? {
+      tag: 'Drop · 100',
+      title: 'PXL Clock.',
+      sub: 'Eine programmierbare Pixel-Uhr aus echtem Glas. 24 × 24 Pixel, 576 LEDs, 100 handgefertigte Stück. Cumin & Potato GmbH, Köln.',
+    }
+  : {
+      tag: 'Drop · 100',
+      title: 'PXL Clock.',
+      sub: 'A programmable pixel clock behind real glass. 24 × 24 pixels, 576 LEDs, 100 handmade pieces. Cumin & Potato GmbH, Cologne.',
+    };
+
+const tldr = locale === 'de'
+  ? '24 × 24 RGB-LEDs · echtes Glas · programmierbar in C# · WiFi & OTA · handgefertigt in Deutschland · Versand in 2–4 Werktagen'
+  : '24 × 24 RGB LEDs · real glass · programmable in C# · WiFi & OTA · handmade in Germany · ships in 2–4 business days';
+
+const places = locale === 'de'
+  ? [
+      { tag: 'Wand',          body: 'Wie ein Bild, das Zeit kennt.',        img: lifestyleGallery[2] },
+      { tag: 'Schreibtisch',  body: 'Ein Akzent, kein Bildschirm.',         img: lifestyleGallery[7] },
+      { tag: 'Regal',          body: 'Sammlerobjekt mit Plug.',              img: lifestyleGallery[10] },
+      { tag: 'Werkstatt',      body: 'Build-Status auf 576 Pixeln.',         img: workshopGallery[3] },
+    ]
+  : [
+      { tag: 'Wall',     body: 'A picture that knows the time.',  img: lifestyleGallery[2] },
+      { tag: 'Desk',     body: 'An accent, not a screen.',         img: lifestyleGallery[7] },
+      { tag: 'Shelf',    body: 'A collected object with a plug.',  img: lifestyleGallery[10] },
+      { tag: 'Workshop', body: 'Build status on 576 pixels.',      img: workshopGallery[3] },
+    ];
+
+const placesHeadline = locale === 'de'
+  ? 'Vier Plätze. Ein Objekt.'
+  : 'Four places. One object.';
+
+const tryHeadline = locale === 'de'
+  ? 'Beschreibe ein Pixogramm. Sieh, wie sie antwortet.'
+  : 'Describe a pixogram. Watch it answer.';
+
+const closing = locale === 'de'
+  ? {
+      title: 'Direkt aus der Werkstatt. Solange Vorrat reicht.',
+      body: 'Cumin & Potato GmbH · Köln. Mit Promo-Code RONALD sparst du 25 €. DHL aus Deutschland.',
+    }
+  : {
+      title: 'Straight from the workshop. While stock lasts.',
+      body: 'Cumin & Potato GmbH · Cologne. Promo code RONALD saves 25 €. DHL from Germany.',
+    };
+
+// Spec table — proper table with hairlines, not dl/dt slop, not pill chips.
+const specs = locale === 'de'
+  ? [
+      ['Format',     '24 × 24 RGB-LEDs · 576 Pixel'],
+      ['Maße',       '27 × 27 × 6 cm · 2 kg'],
+      ['Gehäuse',    'Echtes Glas, handgefertigter Rahmen'],
+      ['Programmierung', 'C# / .NET mit Browser-Simulator'],
+      ['Setup',      'WLAN, OTA-Updates, App für iOS & Android'],
+      ['Versand',    'DHL aus Deutschland, 2–4 Werktage'],
+    ]
+  : [
+      ['Format',     '24 × 24 RGB LEDs · 576 pixels'],
+      ['Size',       '27 × 27 × 6 cm · 2 kg'],
+      ['Body',       'Real glass, handmade frame'],
+      ['Programming','C# / .NET with browser simulator'],
+      ['Setup',      'Wi-Fi, OTA updates, app for iOS & Android'],
+      ['Shipping',   'DHL from Germany, 2–4 business days'],
+    ];
+---
+
+<section class="qd">
+  <Hero locale={locale} />
+
+  <div class="qd-marquee" aria-hidden="true">
+    <div class="qd-marquee__track">
+      <span>{tldr}</span>
+      <span>{tldr}</span>
+      <span>{tldr}</span>
+    </div>
+  </div>
+
+  <!-- Drop stage -->
+  <section class="qd-stage">
+    <div class="qd-stage__copy">
+      <p class="qd-tag">{drop.tag}</p>
+      <h2 class="qd-title">{drop.title}</h2>
+      <p class="qd-sub">{drop.sub}</p>
+    </div>
+    <figure class="qd-stage__media" data-qd-parallax data-speed="0.06">
+      <img src={productImage} alt={product?.name ?? 'PXL Clock'} loading="lazy" />
+    </figure>
+  </section>
+
+  <!-- Picker + product info side by side; spec block uses real table, no pill chips -->
+  <section class="qd-buyrow">
+    <div class="qd-buyrow__pick">
+      <LivePixogramPicker locale={locale} variant="embedded" initial="orbit" showCopy={false} />
+    </div>
+    <article class="qd-buyrow__panel">
+      <h3 class="qd-buyrow__name">{product?.name ?? 'PXL Clock'}</h3>
+      <table class="qd-spec">
+        <tbody>
+          {specs.map(([k, v]) => (
+            <tr>
+              <th scope="row">{k}</th>
+              <td>{v}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p class="qd-buyrow__price">
+        <strong>{price}</strong>
+        {oldPrice && <span>{s.price.salePrefix} {oldPrice}</span>}
+      </p>
+      <p class="qd-buyrow__shipping">{s.shipping}</p>
+      <button class="qd-btn" type="button" data-qd-buy data-product-id={product?.id ?? ''} data-variant-id={defaultVariantId} data-cart-href={cartHref}>
+        {s.whatIs.cta}
+      </button>
+    </article>
+  </section>
+
+  <!-- Place strip — four images, not three. Headlines as captions, not eyebrows. -->
+  <section class="qd-places">
+    <SectionDivider side="top" pattern="arc" fill="rgba(255, 255, 255, 0.4)" height="120px" />
+    <header>
+      <h2 class="qd-h">{placesHeadline}</h2>
+    </header>
+    <div class="qd-places__strip">
+      {places.map((p) => (
+        <article class="qd-place">
+          <figure><img src={p.img} alt="" loading="lazy" /></figure>
+          <p class="qd-place__title">{p.tag}.</p>
+          <p class="qd-place__body">{p.body}</p>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <!-- AI sandbox — no eyebrow, just a strong headline -->
+  <section class="qd-try">
+    <SectionDivider side="top" pattern="split-wave" fill="rgba(255, 255, 255, 0.5)" height="140px" />
+    <header>
+      <h2 class="qd-h">{tryHeadline}</h2>
+    </header>
+    <AISandbox locale={locale} variant="card" tone="light" />
+  </section>
+
+  <!-- Workshop trail -->
+  <section class="qd-trail">
+    <SectionDivider side="top" pattern="scallop" fill="#ffffff" height="100px" />
+    <div class="qd-trail__row" data-qd-parallax data-speed="0.04">
+      <img src={workshopGallery[1]} alt="" loading="lazy" />
+      <img src={workshopGallery[5]} alt="" loading="lazy" />
+      <img src={workshopGallery[9]} alt="" loading="lazy" />
+      <img src={workshopGallery[12]} alt="" loading="lazy" />
+      <img src={lifestyleGallery[5]} alt="" loading="lazy" />
+    </div>
+    <SectionDivider side="bottom" pattern="wave-asym" fill="#ffffff" height="120px" flip={true} />
+  </section>
+
+  <!-- Final monolithic buy panel, no eyebrow -->
+  <section class="qd-final">
+    <div class="qd-final__inner">
+      <h2 class="qd-title qd-title--final">{closing.title}</h2>
+      <p class="qd-sub">{closing.body}</p>
+      <button class="qd-btn qd-btn--lg" type="button" data-qd-buy data-product-id={product?.id ?? ''} data-variant-id={defaultVariantId} data-cart-href={cartHref}>
+        {s.whatIs.cta} · {price}
+      </button>
+    </div>
+  </section>
+</section>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-qd-buy]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const productId = btn.dataset.productId;
+      if (!productId) return;
+      btn.disabled = true;
+      try {
+        const { addToCart } = await import('../lib/shop-browser');
+        await addToCart({ productId, variantId: btn.dataset.variantId || undefined, quantity: 1 });
+        window.location.href = btn.dataset.cartHref || '/cart';
+      } catch (err) {
+        console.error('[QuietDrop] addToCart failed:', err);
+        btn.disabled = false;
+      }
+    });
+  });
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduced) {
+    const targets = Array.from(document.querySelectorAll<HTMLElement>('[data-qd-parallax]'));
+    let raf = 0;
+    function update() {
+      const vh = window.innerHeight;
+      for (const el of targets) {
+        const rect = el.getBoundingClientRect();
+        const center = rect.top + rect.height / 2;
+        const off = (center - vh / 2) / vh;
+        const speed = parseFloat(el.dataset.speed || '0.05');
+        const y = Math.max(-22, Math.min(22, -off * speed * 200));
+        el.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`;
+      }
+      raf = 0;
+    }
+    window.addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(update); }, { passive: true });
+    update();
+  }
+</script>
+
+<style>
+  .qd {
+    /* Page gradient mirrors the live landing — pewter blue, honey amber,
+       indigo violet — keeps the brand world. Black stays as the only
+       interaction accent. */
+    --qd-bg: #ffffff;
+    --qd-surface: #ffffff;
+    --qd-paper: #e6e6e6;
+    --qd-ink: #0a0a0a;
+    --qd-muted: rgba(10, 10, 10, 0.6);
+    --qd-line: rgba(10, 10, 10, 0.14);
+
+    --draft-fg: var(--qd-ink);
+    --draft-bg: var(--qd-bg);
+    --draft-muted: var(--qd-muted);
+    --draft-surface: var(--qd-surface);
+    --draft-line: var(--qd-line);
+    --draft-bezel: #0a0a0a;
+    --draft-c1: #fbb238;
+    --draft-c2: #485dbd;
+    --draft-c3: #c0d1da;
+    --draft-c4: #ffffff;
+
+    background:
+      radial-gradient(ellipse 60% 50% at 88% 8%, rgba(192, 209, 218, 1) 0%, rgba(192, 209, 218, 0) 60%),
+      radial-gradient(ellipse 70% 40% at 64% 35%, rgba(251, 182, 56, 0.32) 0%, rgba(251, 182, 56, 0) 60%),
+      radial-gradient(ellipse 80% 50% at 2% 70%, rgba(192, 209, 218, 0.7) 0%, rgba(192, 209, 218, 0) 60%),
+      radial-gradient(ellipse 70% 40% at 94% 60%, rgba(72, 93, 189, 0.42) 0%, rgba(72, 93, 189, 0) 65%),
+      radial-gradient(ellipse 80% 60% at 50% 90%, rgba(231, 250, 152, 0.28) 0%, rgba(231, 250, 152, 0) 65%),
+      #ffffff;
+    background-attachment: fixed;
+    color: var(--qd-ink);
+    font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  .qd-tag {
+    margin: 0 0 1rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--qd-ink);
+  }
+  .qd-title {
+    margin: 0 0 1rem;
+    font-size: clamp(3.4rem, 9vw, 8.5rem);
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+    font-weight: 700;
+  }
+  .qd-title--final { font-size: clamp(2.6rem, 7vw, 6rem); }
+  .qd-sub {
+    margin: 0;
+    font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+    line-height: 1.6;
+    color: var(--qd-muted);
+    max-width: 56ch;
+  }
+  .qd-h {
+    margin: 0 0 1rem;
+    font-size: clamp(1.8rem, 3.6vw, 2.8rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.08;
+  }
+
+  /* Marquee — transparent strip on the page gradient */
+  .qd-marquee {
+    border-top: 1px solid var(--qd-line);
+    border-bottom: 1px solid var(--qd-line);
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(6px);
+    overflow: hidden;
+    position: relative;
+  }
+  .qd-marquee__track {
+    display: flex;
+    gap: 3rem;
+    padding: 0.95rem 0;
+    white-space: nowrap;
+    animation: qd-scroll 60s linear infinite;
+  }
+  .qd-marquee__track span {
+    font-size: 0.86rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--qd-ink);
+  }
+  @keyframes qd-scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .qd-marquee__track { animation: none; justify-content: center; }
+    .qd-marquee__track span:not(:first-child) { display: none; }
+  }
+
+  /* Drop stage */
+  .qd-stage {
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem) clamp(6rem, 12vw, 10rem);
+    max-width: 1480px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+  }
+  .qd-stage__media { margin: 0; will-change: transform; }
+  .qd-stage__media img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 30px 60px rgba(10, 10, 10, 0.22));
+  }
+  @media (max-width: 860px) {
+    .qd-stage { grid-template-columns: 1fr; }
+  }
+
+  /* Buy row — picker + spec panel with real table */
+  .qd-buyrow {
+    padding: clamp(2rem, 5vw, 4rem) clamp(1rem, 4vw, 3rem) clamp(6rem, 12vw, 10rem);
+    max-width: 1280px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: stretch;
+  }
+  .qd-buyrow__pick {
+    background: var(--qd-surface);
+    border: 1px solid var(--qd-line);
+    padding: clamp(1.5rem, 3vw, 2rem);
+  }
+  .qd-buyrow__panel {
+    display: flex;
+    flex-direction: column;
+    background: var(--qd-ink);
+    color: var(--qd-bg);
+    padding: clamp(2rem, 4vw, 2.6rem);
+
+    --draft-fg: var(--qd-bg);
+    --draft-bg: var(--qd-ink);
+  }
+  .qd-buyrow__name {
+    margin: 0 0 1.4rem;
+    font-size: clamp(1.8rem, 3.6vw, 2.8rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1;
+  }
+  .qd-spec {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+    margin-bottom: 1.4rem;
+  }
+  .qd-spec tr { border-bottom: 1px solid rgba(231, 227, 220, 0.18); }
+  .qd-spec tr:first-child { border-top: 1px solid rgba(231, 227, 220, 0.18); }
+  .qd-spec th, .qd-spec td {
+    text-align: left;
+    padding: 0.85rem 0;
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  .qd-spec th {
+    width: 36%;
+    font-weight: 600;
+    color: rgba(231, 227, 220, 0.6);
+    padding-right: 1.2rem;
+    letter-spacing: 0.02em;
+  }
+  .qd-spec td {
+    color: var(--qd-bg);
+    font-feature-settings: 'tnum' 1;
+  }
+  .qd-buyrow__price { margin: 0 0 0.4rem; }
+  .qd-buyrow__price strong {
+    font-size: clamp(1.8rem, 3vw, 2.4rem);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .qd-buyrow__price span { color: rgba(231, 227, 220, 0.6); text-decoration: line-through; margin-left: 0.6rem; font-size: 0.95rem; }
+  .qd-buyrow__shipping { margin: 0 0 1.4rem; color: rgba(231, 227, 220, 0.62); font-size: 0.85rem; }
+  @media (max-width: 980px) {
+    .qd-buyrow { grid-template-columns: 1fr; }
+  }
+
+  .qd-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 1.7rem;
+    border: 0;
+    background: var(--qd-bg);
+    color: var(--qd-ink);
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 160ms ease;
+    width: 100%;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .qd-btn:hover { background: #fff; }
+  .qd-btn--lg { padding: 1.15rem 2rem; font-size: 1.05rem; width: auto; align-self: center; background: var(--qd-ink); color: var(--qd-bg); margin-top: 1.6rem; }
+  .qd-btn--lg:hover { background: #000; }
+
+  /* Place strip — transparent on page gradient, no border line */
+  .qd-places {
+    position: relative;
+    padding: clamp(6rem, 11vw, 9rem) 0 clamp(5rem, 10vw, 8rem);
+    background: transparent;
+  }
+  .qd-places > header,
+  .qd-places > .qd-places__strip { position: relative; z-index: 2; }
+  .qd-places header {
+    max-width: 1280px;
+    margin: 0 auto clamp(2rem, 4vw, 3rem);
+    padding: 0 clamp(1rem, 4vw, 3rem);
+  }
+  .qd-places__strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--qd-line);
+    border-top: 1px solid var(--qd-line);
+    border-bottom: 1px solid var(--qd-line);
+  }
+  .qd-place {
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(4px);
+    padding: 1.4rem clamp(1rem, 2.5vw, 1.6rem) 1.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .qd-place figure {
+    margin: 0 0 0.85rem;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    background: var(--qd-paper);
+  }
+  .qd-place img { width: 100%; height: 100%; object-fit: cover; transition: transform 700ms ease; }
+  .qd-place:hover img { transform: scale(1.04); }
+  .qd-place__title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--qd-ink);
+  }
+  .qd-place__body { margin: 0; color: var(--qd-muted); font-size: 0.95rem; line-height: 1.5; }
+  @media (max-width: 720px) {
+    .qd-places__strip { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* Try-it sandbox — transparent on page gradient */
+  .qd-try {
+    position: relative;
+    padding: clamp(6rem, 11vw, 9rem) clamp(1rem, 4vw, 3rem);
+    background: transparent;
+  }
+  .qd-try > header, .qd-try > :global(.ais) { position: relative; z-index: 2; }
+  .qd-try header { max-width: 56ch; margin: 0 auto clamp(2rem, 4vw, 3rem); }
+  .qd-try > :global(.ais) { max-width: 1180px; margin: 0 auto; }
+
+  /* Workshop trail — dark contrast block flanked by wave transitions */
+  .qd-trail {
+    position: relative;
+    overflow: hidden;
+    background: var(--qd-ink);
+    padding: clamp(4rem, 7vw, 6rem) 0;
+  }
+  .qd-trail__row {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0 clamp(1rem, 4vw, 3rem);
+    will-change: transform;
+  }
+  .qd-trail__row img {
+    width: clamp(180px, 24vw, 280px);
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  /* Final monolithic buy — transparent on page gradient */
+  .qd-final {
+    padding: clamp(6rem, 12vw, 10rem) clamp(1rem, 4vw, 3rem);
+    text-align: center;
+    background: transparent;
+  }
+  .qd-final__inner { max-width: 760px; margin: 0 auto; }
+  .qd-final .qd-sub { margin: 0 auto 1rem; }
+</style>

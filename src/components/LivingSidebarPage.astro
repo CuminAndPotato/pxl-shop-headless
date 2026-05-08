@@ -1,0 +1,573 @@
+---
+import type { Locale } from '../i18n/strings';
+import { t } from '../i18n/strings';
+import type { Product } from '../lib/shop';
+import type { PageVariant } from '../lib/page-variants';
+import { lifestyleGallery, workshopGallery } from '../lib/assets';
+import Hero from './Hero.astro';
+import LivePixogramPicker from './LivePixogramPicker.astro';
+import AISandbox from './AISandbox.astro';
+import SectionDivider from './SectionDivider.astro';
+
+interface Props {
+  locale: Locale;
+  variant: PageVariant;
+  product: Product | null;
+}
+
+const { locale, product } = Astro.props;
+const s = t(locale);
+
+const productImage = '/img/products/whatis-clock-tight.png';
+const price = product?.discountedPrice?.formatted ?? product?.price?.formatted ?? '229,00€';
+const oldPrice = product?.discountedPrice ? product?.price?.formatted : '';
+const cartHref = locale === 'de' ? '/de/cart' : '/cart';
+const defaultVariantId = product?.variants[0]?.id ?? '';
+
+// Each chapter has a different anatomy on purpose — no eyebrow → H2 → lead → chips repeat.
+type ChapterShape = 'lede' | 'quote' | 'code' | 'still' | 'order';
+interface Chapter {
+  pix: 'clock' | 'pulse' | 'orbit' | 'rain' | 'sunset';
+  shape: ChapterShape;
+  title?: string;
+  body?: string;
+  inlineSpecs?: string;
+  quote?: string;
+  byline?: string;
+  caption?: string;
+  img?: string;
+}
+
+const chapters: Chapter[] = locale === 'de'
+  ? [
+      {
+        pix: 'clock',
+        shape: 'lede',
+        title: 'Eine Uhr, die zeigt, was du ihr sagst.',
+        body:
+          'Die PXL Clock ist eine Pixel-Matrix von 24 mal 24 Punkten hinter echtem Glas. Tags zeigt sie die Zeit, abends eine Animation, wenn du willst auch deinen Build-Status oder das Wetter. 576 Pixel sind nicht viel — und genau das ist die Idee.',
+        inlineSpecs: '576 Pixel · WLAN-Setup in unter einer Minute · Mobile App für iOS und Android.',
+      },
+      {
+        pix: 'pulse',
+        shape: 'quote',
+        quote: 'Sie hängt da und atmet. Das ist eigentlich alles, was ein Objekt im Raum tun muss.',
+        byline: 'Aus einem ersten Test mit einer Beta-Uhr.',
+        img: lifestyleGallery[4],
+        caption: 'Black Edition, 27 × 27 × 6 cm, 2 kg in der Hand.',
+      },
+      {
+        pix: 'orbit',
+        shape: 'code',
+        title: 'Die Uhr ist offen.',
+        body:
+          'Du schreibst Pixogramme — kleine C#-Programme, die in 24 × 24 Pixeln laufen. Lokal im Browser-Simulator entwickeln, dann per OTA auf die echte Clock. Beispiele auf GitHub, Diskussion auf Discord.',
+      },
+      {
+        pix: 'rain',
+        shape: 'still',
+        img: workshopGallery[3],
+        caption:
+          'Sefa und Ronald, Cumin & Potato GmbH. Kleinserie, hundert Stück, jede Uhr wird einzeln aufgebaut, gemessen, geflasht und verpackt.',
+      },
+      {
+        pix: 'sunset',
+        shape: 'order',
+        title: 'Das Ding will einen Platz haben.',
+        body: 'Versand in zwei bis vier Werktagen mit DHL aus Deutschland. Mit Promo-Code RONALD sparst du fünfundzwanzig Euro.',
+      },
+    ]
+  : [
+      {
+        pix: 'clock',
+        shape: 'lede',
+        title: 'A clock that shows what you tell it.',
+        body:
+          'The PXL Clock is a 24 by 24 pixel matrix behind real glass. By day it shows time, in the evening an animation, and a build status or the weather if that is what you want. 576 pixels is not much — that is the point.',
+        inlineSpecs: '576 pixels · WiFi setup in under a minute · mobile app for iOS and Android.',
+      },
+      {
+        pix: 'pulse',
+        shape: 'quote',
+        quote: 'It hangs there and breathes. That is really all an object in a room has to do.',
+        byline: 'From an early test with a beta unit.',
+        img: lifestyleGallery[4],
+        caption: 'Black Edition, 27 × 27 × 6 cm, 2 kg in the hand.',
+      },
+      {
+        pix: 'orbit',
+        shape: 'code',
+        title: 'The clock is open.',
+        body:
+          'You write pixograms — small C# programs that run on a 24 × 24 grid. Build locally in the browser simulator, push to the clock over OTA. Examples on GitHub, conversation on Discord.',
+      },
+      {
+        pix: 'rain',
+        shape: 'still',
+        img: workshopGallery[3],
+        caption:
+          'Sefa and Ronald, Cumin & Potato GmbH. Small run, one hundred pieces, each clock built, measured, flashed, and packed by hand.',
+      },
+      {
+        pix: 'sunset',
+        shape: 'order',
+        title: 'The thing wants a place to be.',
+        body: 'Ships in two to four business days with DHL from Germany. Promo code RONALD takes twenty-five euros off.',
+      },
+    ];
+
+const codeSample = `public sealed class Orbit : Pixogram
+{
+    public override async Task Run(Matrix m)
+    {
+        await m.Clear("#0e0d0b");
+        for (var i = 0; i < 3; i++)
+        {
+            var r = 4.5f + i * 3.5f;
+            await m.Orbit(r, speed: 1f / (i + 1));
+        }
+        await m.Play();
+    }
+}`;
+---
+
+<section class="lsb">
+  <Hero locale={locale} />
+
+  <div class="lsb-split">
+    <aside class="lsb-stage" aria-label="Live preview">
+      <div class="lsb-stage__inner">
+        <div class="lsb-stage__bezel">
+          <div class="lsb-stage__matrix" data-lsb-matrix>
+            {Array.from({ length: 576 }).map(() => <span class="p p--0"></span>)}
+          </div>
+        </div>
+        <p class="lsb-stage__caption" data-lsb-caption>
+          {locale === 'de' ? 'Sieht und bewegt sich,' : 'Watches and moves'}<br />
+          <span data-lsb-pix>{locale === 'de' ? 'während du liest.' : 'while you read.'}</span>
+        </p>
+      </div>
+    </aside>
+
+    <div class="lsb-flow">
+      {chapters.map((ch) => {
+        if (ch.shape === 'lede') {
+          return (
+            <article class="lsb-chap lsb-chap--lede" data-lsb-chap={ch.pix}>
+              <h2 class="lsb-chap__title">{ch.title}</h2>
+              <p class="lsb-chap__body">{ch.body}</p>
+              {ch.inlineSpecs && <p class="lsb-chap__specs">{ch.inlineSpecs}</p>}
+            </article>
+          );
+        }
+        if (ch.shape === 'quote') {
+          return (
+            <article class="lsb-chap lsb-chap--quote" data-lsb-chap={ch.pix}>
+              <blockquote>
+                <p>"{ch.quote}"</p>
+                <cite>— {ch.byline}</cite>
+              </blockquote>
+              {ch.img && (
+                <figure class="lsb-chap__figure">
+                  <img src={ch.img} alt="" loading="lazy" />
+                  <figcaption>{ch.caption}</figcaption>
+                </figure>
+              )}
+            </article>
+          );
+        }
+        if (ch.shape === 'code') {
+          return (
+            <article class="lsb-chap lsb-chap--code" data-lsb-chap={ch.pix}>
+              <h2 class="lsb-chap__title">{ch.title}</h2>
+              <p class="lsb-chap__body">{ch.body}</p>
+              <pre class="lsb-chap__code"><code>{codeSample}</code></pre>
+            </article>
+          );
+        }
+        if (ch.shape === 'still') {
+          return (
+            <article class="lsb-chap lsb-chap--still" data-lsb-chap={ch.pix}>
+              {ch.img && (
+                <figure>
+                  <img src={ch.img} alt="" loading="lazy" />
+                  <figcaption>{ch.caption}</figcaption>
+                </figure>
+              )}
+            </article>
+          );
+        }
+        return (
+          <article class="lsb-chap lsb-chap--order" data-lsb-chap={ch.pix}>
+            <h2 class="lsb-chap__title">{ch.title}</h2>
+            <p class="lsb-chap__body">{ch.body}</p>
+            <div class="lsb-buy">
+              <figure><img src={productImage} alt={product?.name ?? 'PXL Clock'} loading="lazy" /></figure>
+              <div>
+                <p class="lsb-buy__price">
+                  <strong>{price}</strong>
+                  {oldPrice && <span>{s.price.salePrefix} {oldPrice}</span>}
+                </p>
+                <p class="lsb-buy__note">{s.shipping}</p>
+                <button class="lsb-btn" type="button" data-lsb-buy data-product-id={product?.id ?? ''} data-variant-id={defaultVariantId} data-cart-href={cartHref}>
+                  {s.whatIs.cta}
+                </button>
+              </div>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  </div>
+
+  <section class="lsb-ai">
+    <SectionDivider side="top" pattern="arc" fill="rgba(255, 255, 255, 0.4)" height="120px" />
+    <AISandbox locale={locale} variant="card" tone="dark" />
+  </section>
+
+  <section class="lsb-picker">
+    <SectionDivider side="top" pattern="split-wave" fill="rgba(255, 255, 255, 0.5)" height="140px" flip={true} />
+    <LivePixogramPicker locale={locale} variant="embedded" initial="orbit" showCopy={false} />
+  </section>
+</section>
+
+<style is:global>
+  @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Mona+Sans:wght@500;700&display=swap');
+</style>
+
+<script>
+  import { drawers, PIXOGRAM_SIZE } from '../lib/pixograms';
+  const SIZE = PIXOGRAM_SIZE;
+
+  const root = document.querySelector<HTMLElement>('.lsb');
+  if (root) {
+    const matrix = root.querySelector<HTMLElement>('[data-lsb-matrix]');
+    const split = root.querySelector<HTMLElement>('.lsb-split');
+    if (matrix && split) {
+      const cells = Array.from(matrix.querySelectorAll<HTMLSpanElement>('.p'));
+      const fn = drawers.journey;
+      const T_MAX = 360;
+      let lastT = -1;
+      let inView = true;
+
+      function paint(t: number) {
+        for (let i = 0; i < cells.length; i += 1) {
+          const x = i % SIZE;
+          const y = Math.floor(i / SIZE);
+          cells[i].className = `p p--${fn(x, y, t)}`;
+        }
+      }
+
+      function progress(): number {
+        // 0 when split top reaches viewport top; 1 when split bottom leaves viewport bottom.
+        // Sticky stage stays visible across this whole range, so progress drives the animation
+        // smoothly across the whole scroll-through of the sidebar.
+        const rect = split!.getBoundingClientRect();
+        const total = rect.height;
+        const scrolled = -rect.top;
+        return Math.max(0, Math.min(1, scrolled / Math.max(1, total)));
+      }
+
+      let raf = 0;
+      function tick() {
+        raf = 0;
+        if (!inView) return;
+        const p = progress();
+        const t = Math.floor(p * T_MAX);
+        if (t !== lastT) {
+          paint(t);
+          lastT = t;
+        }
+      }
+
+      function schedule() {
+        if (!raf) raf = requestAnimationFrame(tick);
+      }
+
+      paint(0);
+      window.addEventListener('scroll', schedule, { passive: true });
+      window.addEventListener('resize', schedule, { passive: true });
+      schedule();
+
+      // Pause when split is fully out of view.
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => { inView = entry.isIntersecting; });
+        if (inView) schedule();
+      }, { threshold: 0 });
+      io.observe(split);
+    }
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('[data-lsb-buy]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const productId = btn.dataset.productId;
+      if (!productId) return;
+      btn.disabled = true;
+      try {
+        const { addToCart } = await import('../lib/shop-browser');
+        await addToCart({ productId, variantId: btn.dataset.variantId || undefined, quantity: 1 });
+        window.location.href = btn.dataset.cartHref || '/cart';
+      } catch (err) {
+        console.error('[LivingSidebar] addToCart failed:', err);
+        btn.disabled = false;
+      }
+    });
+  });
+</script>
+
+<style>
+  .lsb {
+    /* Same brand-world gradient as the other fresh pages. The clock device
+       (sticky bezel) stays dark for product focus; the page itself is light. */
+    --lsb-bg: #ffffff;
+    --lsb-surface: #ffffff;
+    --lsb-ink: #0a0a0a;
+    --lsb-muted: rgba(10, 10, 10, 0.6);
+    --lsb-line: rgba(10, 10, 10, 0.12);
+    --lsb-accent: #485dbd;       /* indigo */
+    --lsb-accent-warm: #fbb238;  /* honey amber */
+
+    --draft-fg: var(--lsb-ink);
+    --draft-bg: var(--lsb-bg);
+    --draft-muted: var(--lsb-muted);
+    --draft-surface: var(--lsb-surface);
+    --draft-line: var(--lsb-line);
+    --draft-bezel: #0a0a0a;
+    --draft-c1: var(--lsb-accent-warm);
+    --draft-c2: var(--lsb-accent);
+    --draft-c3: #c0d1da;
+    --draft-c4: #e7fa98;
+
+    background:
+      radial-gradient(ellipse 60% 50% at 88% 8%, rgba(192, 209, 218, 1) 0%, rgba(192, 209, 218, 0) 60%),
+      radial-gradient(ellipse 70% 40% at 64% 35%, rgba(251, 182, 56, 0.32) 0%, rgba(251, 182, 56, 0) 60%),
+      radial-gradient(ellipse 80% 50% at 2% 70%, rgba(192, 209, 218, 0.7) 0%, rgba(192, 209, 218, 0) 60%),
+      radial-gradient(ellipse 70% 40% at 94% 60%, rgba(72, 93, 189, 0.42) 0%, rgba(72, 93, 189, 0) 65%),
+      radial-gradient(ellipse 80% 60% at 50% 90%, rgba(231, 250, 152, 0.28) 0%, rgba(231, 250, 152, 0) 65%),
+      #ffffff;
+    background-attachment: fixed;
+    color: var(--lsb-ink);
+    font-family: 'Inter Tight', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    font-feature-settings: 'tnum' 1, 'cv11' 1;
+  }
+
+  .lsb-split {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    gap: 0;
+    max-width: 1480px;
+    margin: 0 auto;
+  }
+
+  /* Sticky stage with caption */
+  .lsb-stage { position: relative; }
+  .lsb-stage__inner {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    padding: clamp(2rem, 5vw, 4rem);
+  }
+  .lsb-stage__bezel {
+    width: clamp(280px, 30vw, 460px);
+    aspect-ratio: 1;
+    padding: 5%;
+    border-radius: 18px;
+    background: #050505;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+      0 32px 80px rgba(0, 0, 0, 0.5),
+      0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+  .lsb-stage__matrix {
+    width: 100%; height: 100%;
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
+    grid-template-rows: repeat(24, 1fr);
+    gap: 1px;
+    border-radius: 4px;
+    background: #050607;
+    overflow: hidden;
+  }
+  .lsb-stage .p { background: rgba(255, 255, 255, 0.03); transition: background-color 120ms ease; }
+  .lsb-stage .p--1 { background: var(--lsb-accent-warm); box-shadow: 0 0 7px var(--lsb-accent-warm); }
+  .lsb-stage .p--2 { background: var(--lsb-accent); box-shadow: 0 0 7px var(--lsb-accent); }
+  .lsb-stage .p--3 { background: #c0d1da; box-shadow: 0 0 7px rgba(192, 209, 218, 0.6); }
+  .lsb-stage .p--4 { background: #e7fa98; box-shadow: 0 0 7px rgba(231, 250, 152, 0.5); }
+
+  .lsb-stage__caption {
+    margin: 0;
+    text-align: center;
+    color: var(--lsb-muted);
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+  .lsb-stage__caption span { color: var(--lsb-ink); }
+
+  /* Right column flow */
+  .lsb-flow {
+    padding: clamp(4rem, 9vw, 7rem) clamp(1rem, 4vw, 3rem) clamp(6rem, 12vw, 10rem);
+    max-width: 64ch;
+  }
+  .lsb-chap {
+    padding: clamp(3rem, 6vw, 5rem) 0;
+  }
+  .lsb-chap__title {
+    margin: 0 0 1rem;
+    font-family: 'Mona Sans', 'Inter Tight', sans-serif;
+    font-size: clamp(1.9rem, 3.4vw, 2.7rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    color: var(--lsb-ink);
+  }
+  .lsb-chap__body {
+    margin: 0;
+    color: var(--lsb-muted);
+    line-height: 1.65;
+    font-size: clamp(1rem, 1.4vw, 1.1rem);
+  }
+  .lsb-chap__specs {
+    margin: 1.4rem 0 0;
+    color: var(--lsb-muted);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    border-top: 1px solid var(--lsb-line);
+    padding-top: 1rem;
+  }
+
+  /* Pull-quote chapter */
+  .lsb-chap--quote blockquote {
+    margin: 0 0 2rem;
+    padding: 0;
+    border: 0;
+  }
+  .lsb-chap--quote blockquote p {
+    margin: 0 0 0.6rem;
+    font-family: 'Mona Sans', 'Inter Tight', sans-serif;
+    font-size: clamp(1.6rem, 2.8vw, 2.2rem);
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+    color: var(--lsb-ink);
+  }
+  .lsb-chap--quote blockquote cite {
+    font-style: normal;
+    color: var(--lsb-muted);
+    font-size: 0.92rem;
+  }
+  .lsb-chap__figure {
+    margin: 0;
+  }
+  .lsb-chap__figure img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+  .lsb-chap__figure figcaption {
+    margin-top: 0.85rem;
+    color: var(--lsb-muted);
+    font-size: 0.86rem;
+    line-height: 1.55;
+  }
+
+  /* Code chapter */
+  .lsb-chap__code {
+    margin: 1.5rem 0 0;
+    padding: 1.4rem 1.6rem;
+    background: var(--lsb-surface);
+    border-radius: 8px;
+    border: 1px solid var(--lsb-line);
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.84rem;
+    line-height: 1.55;
+    color: var(--lsb-ink);
+  }
+
+  /* Still chapter — pure image with caption */
+  .lsb-chap--still figure {
+    margin: 0;
+  }
+  .lsb-chap--still img {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+  .lsb-chap--still figcaption {
+    margin-top: 1rem;
+    color: var(--lsb-muted);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    max-width: 48ch;
+  }
+
+  /* Order chapter — buy block */
+  .lsb-buy {
+    margin-top: 1.6rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 1.4rem;
+    padding: 1.5rem;
+    background: var(--lsb-surface);
+    border: 1px solid var(--lsb-line);
+    border-radius: 12px;
+    align-items: center;
+  }
+  .lsb-buy figure { margin: 0; }
+  .lsb-buy img { width: 100%; height: auto; }
+  .lsb-buy__price strong {
+    display: block;
+    font-family: 'Mona Sans', 'Inter Tight', sans-serif;
+    font-size: clamp(1.5rem, 2.2vw, 1.9rem);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-feature-settings: 'tnum' 1;
+  }
+  .lsb-buy__price span { color: var(--lsb-muted); text-decoration: line-through; font-size: 0.92rem; }
+  .lsb-buy__note { margin: 0.4rem 0 1rem; color: var(--lsb-muted); font-size: 0.85rem; }
+  .lsb-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 0.9rem 1.5rem;
+    border: 0;
+    border-radius: 6px;
+    background: var(--lsb-accent);
+    color: var(--lsb-bg);
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.96rem;
+    cursor: pointer;
+    transition: background 160ms ease;
+  }
+  .lsb-btn:hover { background: #f0b059; }
+
+  .lsb-ai {
+    position: relative;
+    background: transparent;
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem);
+  }
+  .lsb-ai > :global(.ais) { max-width: 1180px; margin: 0 auto; position: relative; z-index: 2; }
+
+  .lsb-picker {
+    position: relative;
+    background: transparent;
+    padding: clamp(4rem, 9vw, 7rem) clamp(1rem, 4vw, 3rem) clamp(6rem, 11vw, 9rem);
+  }
+  .lsb-picker > :global(.lpp) { max-width: 1180px; margin: 0 auto; position: relative; z-index: 2; }
+
+  @media (max-width: 980px) {
+    .lsb-split { grid-template-columns: 1fr; }
+    .lsb-stage__inner { position: static; height: auto; padding-top: 4rem; padding-bottom: 0; }
+    .lsb-buy { grid-template-columns: 1fr; }
+  }
+</style>

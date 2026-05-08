@@ -1,0 +1,696 @@
+---
+import type { Locale } from '../i18n/strings';
+import { t } from '../i18n/strings';
+import type { Product } from '../lib/shop';
+import type { OriginalTweakSlug, PageVariant } from '../lib/page-variants';
+import { lifestyleGallery, workshopGallery } from '../lib/assets';
+import Hero from './Hero.astro';
+import PixogramShowcase from './PixogramShowcase.astro';
+
+interface Props {
+  locale: Locale;
+  variant: PageVariant;
+  product: Product | null;
+}
+
+type Fact = [string, string];
+type ImagePoint = [string, string, string];
+
+const { locale, variant, product } = Astro.props;
+const s = t(locale);
+const tweakSlug = variant.slug as OriginalTweakSlug;
+
+const productImage = '/img/products/whatis-clock-tight.png';
+const price = product?.discountedPrice?.formatted ?? product?.price?.formatted ?? '229,00 EUR';
+const oldPrice = product?.discountedPrice ? product.price?.formatted : '';
+const defaultVariantId = product?.variants[0]?.id ?? '';
+const cartHref = locale === 'de' ? '/de/cart' : '/cart';
+const stock = product?.inStock
+  ? locale === 'de' ? 'Auf Lager, Versand aus Deutschland' : 'In stock, ships from Germany'
+  : locale === 'de' ? 'Aktuell nicht verfuegbar' : 'Currently out of stock';
+
+const ctaLabel = s.whatIs.cta;
+const productName = product?.name ?? 'PXL Clock';
+const shortDefinition = locale === 'de'
+  ? 'Eine handgefertigte 24x24 RGB-Pixeluhr mit echtem Glas, App, WLAN und eigenen Animationen.'
+  : 'A handmade 24x24 RGB pixel clock with real glass, app setup, WiFi, and custom animations.';
+const oneLine = locale === 'de'
+  ? 'Sie zeigt Zeit in 576 leuchtenden Pixeln und kann mehr: Farben, Pixogramme, Code und kleine Ideen im Raum.'
+  : 'It shows time in 576 glowing pixels and can do more: colors, pixograms, code, and tiny ideas in the room.';
+
+const coreFacts: Fact[] = locale === 'de'
+  ? [
+      ['24x24 RGB', '576 einzeln ansteuerbare Lichtpunkte'],
+      ['Echtes Glas', 'handgebauter Rahmen, kein nacktes LED-Panel'],
+      ['Programmierbar', 'C# / .NET, Simulator, GitHub und Community'],
+      ['Schnell kaufbar', 'Versand aus Deutschland, DHL, Wix-Checkout'],
+    ]
+  : [
+      ['24x24 RGB', '576 individually addressable points of light'],
+      ['Real glass', 'handmade frame, not a bare LED panel'],
+      ['Programmable', 'C# / .NET, simulator, GitHub, and community'],
+      ['Ready to buy', 'ships from Germany, DHL, Wix checkout'],
+    ];
+
+const useCases: ImagePoint[] = locale === 'de'
+  ? [
+      ['Uhr', 'Minimal, bunt oder ruhig: Zeit bleibt der sofort verstandene Einstieg.', lifestyleGallery[3]],
+      ['Lichtobjekt', 'Animationen koennen dezent laufen, ohne wie ein weiterer Bildschirm zu wirken.', lifestyleGallery[8]],
+      ['Playground', 'Eigene Pixogramme machen aus dem Objekt ein kleines persoenliches Display.', workshopGallery[4]],
+    ]
+  : [
+      ['Clock', 'Minimal, colorful, or calm: time remains the instantly understood entry point.', lifestyleGallery[3]],
+      ['Light object', 'Animations can run quietly without feeling like another screen.', lifestyleGallery[8]],
+      ['Playground', 'Custom pixograms turn the object into a small personal display.', workshopGallery[4]],
+    ];
+
+const explainerCards: Fact[] = locale === 'de'
+  ? [
+      ['Was ist das?', shortDefinition],
+      ['Warum ist es neu?', 'Pixel-Clock, Designobjekt und programmierbare Hardware fallen hier in ein einziges Produkt.'],
+      ['Fuer wen?', 'Fuer Devs, Maker und Menschen, die Technik im Raum sichtbar, aber schoen haben wollen.'],
+      ['Was bekomme ich?', 'Eine fertige Clock mit App-Setup, OTA-Updates, Code-Beispielen und Community-Anschluss.'],
+    ]
+  : [
+      ['What is it?', shortDefinition],
+      ['Why is it different?', 'Pixel clock, design object, and programmable hardware collapse into one product.'],
+      ['Who is it for?', 'For devs, makers, and people who want technology in the room, but beautiful.'],
+      ['What do I get?', 'A finished clock with app setup, OTA updates, code examples, and community.'],
+    ];
+
+const liveModes: Fact[] = locale === 'de'
+  ? [
+      ['Clockfaces', 'Zeit in Farbe, Raster, Minimalismus oder kleinen Animationen.'],
+      ['Pixogramme', '24x24 Pixel reichen fuer Herz, Orbit, Regen, Status und kleine Charaktere.'],
+      ['Simulator', 'Ideen im Browser testen, bevor sie auf der echten Clock laufen.'],
+      ['PXL-JAM', 'Community-Hackathon als Beweis, dass die Clock bespielt werden will.'],
+    ]
+  : [
+      ['Clockfaces', 'Time in color, grid, minimalism, or tiny animations.'],
+      ['Pixograms', '24x24 pixels are enough for hearts, orbits, rain, status, and small characters.'],
+      ['Simulator', 'Test ideas in the browser before they run on the real clock.'],
+      ['PXL-JAM', 'Community hackathon proof that the clock wants to be played.'],
+    ];
+
+const trustFacts: Fact[] = locale === 'de'
+  ? [
+      ['Preis', `${price}${oldPrice ? ` statt ${oldPrice}` : ''}`],
+      ['Verfuegbarkeit', stock],
+      ['Versand', s.shipping],
+      ['Promo', 'Code RONALD spart 25 Euro im Checkout'],
+    ]
+  : [
+      ['Price', `${price}${oldPrice ? ` instead of ${oldPrice}` : ''}`],
+      ['Availability', stock],
+      ['Shipping', s.shipping],
+      ['Promo', 'Code RONALD saves 25 Euro at checkout'],
+    ];
+
+const processSteps: Fact[] = locale === 'de'
+  ? [
+      ['1. Matrix', '576 LEDs testen: Farbe, Helligkeit, Timing.'],
+      ['2. Rahmen', 'Glas, Tiefe und Kante machen aus Technik ein Objekt.'],
+      ['3. Software', 'App, WLAN, OTA und der Weg zu eigenen Pixogrammen.'],
+      ['4. Versand', 'Fertig geprueft, verpackt und aus Deutschland verschickt.'],
+    ]
+  : [
+      ['1. Matrix', 'Test 576 LEDs: color, brightness, timing.'],
+      ['2. Frame', 'Glass, depth, and edge turn tech into an object.'],
+      ['3. Software', 'App, WiFi, OTA, and the path to custom pixograms.'],
+      ['4. Shipping', 'Checked, packed, and shipped from Germany.'],
+    ];
+
+const faq: Fact[] = locale === 'de'
+  ? [
+      ['Ist das nur Deko?', 'Nein. Es ist Uhr, Lichtobjekt und programmierbare Pixel-Flaeche zugleich.'],
+      ['Warum Beta?', 'Weil Software, Community und Pixogramme weiterwachsen, ohne dass das Produkt unfertig wirkt.'],
+      ['Brauche ich Code?', 'Nein. App und Modi funktionieren direkt. Code ist der Bonus fuer eigene Ideen.'],
+    ]
+  : [
+      ['Is it just decor?', 'No. It is clock, light object, and programmable pixel surface at the same time.'],
+      ['Why beta?', 'Because software, community, and pixograms keep growing without the product feeling unfinished.'],
+      ['Do I need code?', 'No. App and modes work directly. Code is the bonus for your own ideas.'],
+    ];
+
+const codeSample = `public sealed class TinyWeather : Pixogram
+{
+    public override async Task Run(Matrix px)
+    {
+        await px.Clear("#061014");
+        await px.DrawIcon("cloud", 4, 4, "#BFD8E5");
+        await px.Text("21°", 4, 16, "#FFD56A");
+        await px.Play();
+    }
+}`;
+---
+
+<section class={`original-tweak original-tweak--${tweakSlug}`}>
+  <Hero locale={locale} />
+
+  <aside class="tw-sticky-buy" aria-label={locale === 'de' ? 'Kaufen' : 'Buy'}>
+    <span>{price}</span>
+    <button
+      type="button"
+      data-tweak-buy
+      data-product-id={product?.id ?? ''}
+      data-variant-id={defaultVariantId}
+      data-cart-href={cartHref}
+      disabled={product != null && !product.inStock}
+    >
+      {ctaLabel}
+    </button>
+  </aside>
+
+  {tweakSlug === 'spatial' && (
+    <>
+      <section class="tw-explain-hero">
+        <div class="container tw-explain-hero__grid">
+          <div class="tw-explain-hero__copy">
+            <p class="eyebrow">{locale === 'de' ? 'Entwurf 01 · Sofort erklaeren' : 'Draft 01 · Explain immediately'}</p>
+            <h2>{locale === 'de' ? 'Was ist die PXL Clock?' : 'What is the PXL Clock?'}</h2>
+            <p class="tw-definition">{shortDefinition}</p>
+            <p class="lead">{oneLine}</p>
+            <div class="tw-hero-actions">
+              <button type="button" class="btn" data-tweak-buy data-product-id={product?.id ?? ''} data-variant-id={defaultVariantId} data-cart-href={cartHref}>{ctaLabel}</button>
+              <a class="btn btn--ghost" href="https://github.com/CuminAndPotato/PXL-Clock" target="_blank" rel="noopener">GitHub</a>
+            </div>
+          </div>
+          <figure class="tw-product-stage">
+            <div class="tw-product-stage__shape" aria-hidden="true"></div>
+            <img src={productImage} alt={productName} />
+            <figcaption>24 x 24 · RGB · C#</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="tw-answer-board">
+        <div class="container">
+          <div class="tw-answer-board__grid">
+            {explainerCards.map(([title, body]) => (
+              <article>
+                <h3>{title}</h3>
+                <p>{body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section class="tw-anatomy">
+        <div class="container tw-anatomy__grid">
+          <figure><img src={workshopGallery[6]} alt="" loading="lazy" /></figure>
+          <div>
+            <p class="eyebrow">{locale === 'de' ? 'Warum sie besonders ist' : 'Why it is special'}</p>
+            <h2>{locale === 'de' ? 'Nicht App. Nicht Bildschirm. Ein Objekt mit Pixeln.' : 'Not an app. Not a screen. An object with pixels.'}</h2>
+            <dl>
+              {coreFacts.map(([title, body]) => <><dt>{title}</dt><dd>{body}</dd></>)}
+            </dl>
+          </div>
+        </div>
+      </section>
+
+      <section class="tw-use-cases">
+        <div class="container">
+          <div class="tw-section-head">
+            <p class="eyebrow">{locale === 'de' ? 'Was macht man damit?' : 'What do you do with it?'}</p>
+            <h2>{locale === 'de' ? 'Drei schnelle Einstiege, bevor es technisch wird.' : 'Three quick entry points before it gets technical.'}</h2>
+          </div>
+          <div class="tw-use-cases__grid">
+            {useCases.map(([title, body, image]) => (
+              <article>
+                <img src={image} alt="" loading="lazy" />
+                <div><h3>{title}</h3><p>{body}</p></div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
+  )}
+
+  {tweakSlug === 'live' && (
+    <>
+      <section class="tw-live-hero">
+        <div class="container tw-live-hero__grid">
+          <div>
+            <p class="eyebrow">{locale === 'de' ? 'Entwurf 02 · Demo zuerst' : 'Draft 02 · Demo first'}</p>
+            <h2>{locale === 'de' ? 'Sie lebt, bevor man alle Specs kennt.' : 'It feels alive before you know every spec.'}</h2>
+            <p class="lead">{locale === 'de' ? 'Diese Richtung macht die programmierbare 24x24-Flaeche zum zweiten Hero. Besucher verstehen zuerst: Das ist eine Uhr, aber auch ein kleines Medium fuer eigene Ideen.' : 'This direction turns the programmable 24x24 surface into the second hero. Visitors understand first: it is a clock, but also a small medium for custom ideas.'}</p>
+            <div class="tw-live-actions">
+              <button type="button" class="btn" data-tweak-buy data-product-id={product?.id ?? ''} data-variant-id={defaultVariantId} data-cart-href={cartHref}>{ctaLabel}</button>
+              <a class="btn btn--ghost" href="https://discord.gg/KDbVdKQh5j" target="_blank" rel="noopener">Discord</a>
+            </div>
+          </div>
+          <PixogramShowcase locale={locale} tone="dark" />
+        </div>
+      </section>
+
+      <section class="tw-mode-strip">
+        <div class="container tw-mode-strip__grid">
+          {liveModes.map(([title, body]) => (
+            <article>
+              <span>{title}</span>
+              <p>{body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section class="tw-code-story">
+        <div class="container tw-code-story__grid">
+          <div>
+            <p class="eyebrow">{locale === 'de' ? 'Vom Simulator zur Clock' : 'From simulator to clock'}</p>
+            <h2>{locale === 'de' ? 'Eigene Animationen sind kein verstecktes Feature.' : 'Custom animations are not a hidden feature.'}</h2>
+            <p class="lead">{locale === 'de' ? 'Die Seite sollte den kreativen Weg zeigen: Idee bauen, im Browser pruefen, auf der echten Clock laufen lassen. Das ist der Unterschied zu normaler Deko.' : 'The page should show the creative path: build an idea, test it in the browser, run it on the real clock. That is the difference from regular decor.'}</p>
+          </div>
+          <pre><code>{codeSample}</code></pre>
+        </div>
+      </section>
+
+      <section class="tw-live-gallery">
+        <div class="container tw-live-gallery__grid">
+          {useCases.map(([title, body, image]) => (
+            <figure>
+              <img src={image} alt="" loading="lazy" />
+              <figcaption><strong>{title}</strong><span>{body}</span></figcaption>
+            </figure>
+          ))}
+        </div>
+      </section>
+    </>
+  )}
+
+  {tweakSlug === 'proof' && (
+    <>
+      <section class="tw-store-hero">
+        <div class="container tw-store-hero__grid">
+          <div class="tw-store-gallery">
+            <img class="tw-store-gallery__main" src={productImage} alt={productName} />
+            {lifestyleGallery.slice(0, 3).map((image) => <img src={image} alt="" loading="lazy" />)}
+          </div>
+          <aside class="tw-store-buy">
+            <p class="eyebrow">{locale === 'de' ? 'Entwurf 03 · Kaufvertrauen zuerst' : 'Draft 03 · Purchase confidence first'}</p>
+            <h2>{productName}</h2>
+            <p>{shortDefinition}</p>
+            <strong>{price}</strong>
+            {oldPrice && <span>{s.price.salePrefix} {oldPrice}</span>}
+            <p class="tw-stock">{stock}</p>
+            <button type="button" class="btn" data-tweak-buy data-product-id={product?.id ?? ''} data-variant-id={defaultVariantId} data-cart-href={cartHref}>{ctaLabel}</button>
+            <ul>
+              <li>{s.shipping}</li>
+              <li>{locale === 'de' ? 'Promo-Code RONALD spart 25 Euro' : 'Promo code RONALD saves 25 Euro'}</li>
+              <li>{locale === 'de' ? 'Checkout, Zahlung und Bestellung ueber Wix' : 'Checkout, payment, and orders through Wix'}</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section class="tw-trust-grid">
+        <div class="container">
+          <div class="tw-section-head">
+            <p class="eyebrow">{locale === 'de' ? 'Was muss vor dem Kauf klar sein?' : 'What must be clear before buying?'}</p>
+            <h2>{locale === 'de' ? 'Preis, Nutzen, Lieferung und Beta werden nicht versteckt.' : 'Price, use, shipping, and beta are not hidden.'}</h2>
+          </div>
+          <div class="tw-trust-grid__cards">
+            {trustFacts.map(([title, body]) => <article><h3>{title}</h3><p>{body}</p></article>)}
+          </div>
+        </div>
+      </section>
+
+      <section class="tw-process">
+        <div class="container tw-process__grid">
+          <figure><img src={workshopGallery[7]} alt="" loading="lazy" /></figure>
+          <div>
+            <p class="eyebrow">{locale === 'de' ? 'Warum kostet sie das?' : 'Why this price?'}</p>
+            <h2>{locale === 'de' ? 'Kleine Serie, echtes Material, echte Software.' : 'Small run, real material, real software.'}</h2>
+            <div class="tw-process__steps">
+              {processSteps.map(([title, body]) => <article><strong>{title}</strong><span>{body}</span></article>)}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tw-faq">
+        <div class="container tw-faq__grid">
+          {faq.map(([title, body]) => <article><h3>{title}</h3><p>{body}</p></article>)}
+        </div>
+      </section>
+    </>
+  )}
+
+  <section class="tw-final-cta">
+    <div class="container tw-final-cta__grid">
+      <div>
+        <p class="eyebrow">{locale === 'de' ? 'Naechster Schritt' : 'Next step'}</p>
+        <h2>{locale === 'de' ? 'Die PXL Clock ist kein bekanntes Produkt. Genau deshalb muss die Seite sie zeigen.' : 'The PXL Clock is not a familiar product. That is why the page must show it.'}</h2>
+        <p>{locale === 'de' ? 'Diese Variante testet, ob Besucher schneller verstehen, was sie kaufen, warum es besonders ist und was sie danach damit machen koennen.' : 'This variant tests whether visitors understand faster what they are buying, why it is special, and what they can do with it.'}</p>
+      </div>
+      <aside>
+        <strong>{price}</strong>
+        <span>{stock}</span>
+        <button type="button" data-tweak-buy data-product-id={product?.id ?? ''} data-variant-id={defaultVariantId} data-cart-href={cartHref}>{ctaLabel}</button>
+      </aside>
+    </div>
+  </section>
+</section>
+
+<script define:vars={{ defaultVariantId, cartHref }}>
+  import { addToCart } from '../lib/shop-browser';
+
+  document.querySelectorAll('[data-tweak-buy]').forEach((node) => {
+    node.addEventListener('click', async () => {
+      const button = node;
+      const productId = button.dataset.productId;
+      if (!productId) return;
+
+      const originalLabel = button.textContent;
+      button.disabled = true;
+
+      try {
+        await addToCart({ productId, variantId: button.dataset.variantId || defaultVariantId || undefined, quantity: 1 });
+        window.location.href = button.dataset.cartHref || cartHref;
+      } catch (error) {
+        console.error('[OriginalTweakPage] addToCart failed:', error);
+        button.disabled = false;
+        if (originalLabel) button.textContent = originalLabel;
+      }
+    });
+  });
+</script>
+
+<style>
+  .original-tweak {
+    --tw-bg: #f4f5f7;
+    --tw-bg-2: #ffffff;
+    --tw-ink: #0a0a0a;
+    --tw-muted: #5b5f66;
+    --tw-line: rgba(10, 10, 10, 0.12);
+    --tw-accent: #c48c2d;
+    --tw-dark: #0a0a0a;
+    color: var(--tw-ink);
+    background: var(--tw-bg);
+    overflow: clip;
+  }
+  .original-tweak--live {
+    --tw-bg: #06090b;
+    --tw-bg-2: #10181c;
+    --tw-ink: #f7fbff;
+    --tw-muted: #a7bbc2;
+    --tw-line: rgba(255, 255, 255, 0.14);
+    --tw-accent: #46e6a0;
+  }
+  .original-tweak--proof {
+    --tw-bg: #f4efe8;
+    --tw-bg-2: #ffffff;
+    --tw-ink: #171412;
+    --tw-muted: #655b53;
+    --tw-line: rgba(23, 20, 18, 0.14);
+    --tw-accent: #b87735;
+  }
+  .original-tweak h2,
+  .original-tweak h3 {
+    font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    letter-spacing: -0.025em;
+  }
+  .original-tweak .eyebrow { color: var(--tw-muted); }
+  .original-tweak .lead { color: var(--tw-muted); }
+
+  .tw-sticky-buy {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 88;
+    display: flex;
+    gap: 0.45rem;
+    align-items: center;
+    padding: 0.45rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.92);
+    border: 1px solid rgba(10,10,10,0.1);
+    box-shadow: 0 12px 34px rgba(0,0,0,0.16);
+    backdrop-filter: blur(14px);
+  }
+  .tw-sticky-buy span { padding-left: 0.65rem; color: #0a0a0a; font-weight: 900; }
+  .tw-sticky-buy button,
+  .tw-final-cta button {
+    min-height: 36px;
+    border: 0;
+    border-radius: 999px;
+    padding: 0 0.9rem;
+    background: #0a0a0a;
+    color: #fff;
+    font-weight: 800;
+  }
+
+  .tw-explain-hero,
+  .tw-live-hero,
+  .tw-store-hero {
+    position: relative;
+    margin-top: -1px;
+    padding: clamp(5rem, 9vw, 8rem) 0 clamp(4rem, 8vw, 7rem);
+  }
+  .tw-explain-hero { background: linear-gradient(135deg, #f1f5f7 0%, #fff 54%, #efe5d7 100%); }
+  .tw-live-hero { background: radial-gradient(circle at 72% 18%, rgba(70,230,160,0.18), transparent 30%), #06090b; color: #f7fbff; }
+  .tw-store-hero { background: #fffaf4; }
+  .tw-explain-hero__grid,
+  .tw-anatomy__grid,
+  .tw-live-hero__grid,
+  .tw-code-story__grid,
+  .tw-store-hero__grid,
+  .tw-process__grid,
+  .tw-final-cta__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: clamp(2rem, 5vw, 5rem);
+    align-items: center;
+  }
+  .tw-explain-hero h2,
+  .tw-live-hero h2,
+  .tw-store-buy h2,
+  .tw-section-head h2,
+  .tw-anatomy h2,
+  .tw-code-story h2,
+  .tw-process h2,
+  .tw-final-cta h2 {
+    margin: 0 0 1rem;
+    font-size: clamp(3rem, 7vw, 6.8rem);
+    line-height: 0.92;
+  }
+  .tw-definition {
+    max-width: 24ch;
+    margin: 0 0 1.1rem;
+    font-size: clamp(1.55rem, 3vw, 2.5rem);
+    line-height: 1.05;
+    font-weight: 900;
+  }
+  .tw-hero-actions,
+  .tw-live-actions { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 1.6rem; }
+  .tw-hero-actions .btn--ghost,
+  .tw-live-actions .btn--ghost { color: var(--tw-ink); border-color: currentColor; }
+  .original-tweak--live .tw-live-actions .btn--ghost { color: #fff; }
+
+  .tw-product-stage {
+    position: relative;
+    min-height: 620px;
+    margin: 0;
+    display: grid;
+    place-items: center;
+  }
+  .tw-product-stage__shape {
+    position: absolute;
+    inset: 10% 6% 8% 16%;
+    clip-path: polygon(0 0, 85% 0, 100% 16%, 86% 100%, 0 88%);
+    background: linear-gradient(135deg, rgba(192,209,218,0.78), rgba(245,185,79,0.28));
+    border: 1px solid var(--tw-line);
+  }
+  .tw-product-stage img {
+    position: relative;
+    z-index: 1;
+    width: min(68%, 520px);
+    filter: drop-shadow(0 34px 52px rgba(0,0,0,0.26));
+  }
+  .tw-product-stage figcaption {
+    position: absolute;
+    right: 4%;
+    bottom: 7%;
+    z-index: 2;
+    padding: 0.7rem 0.9rem;
+    background: #fff;
+    border: 1px solid var(--tw-line);
+    border-radius: 999px;
+    font-weight: 900;
+  }
+
+  .tw-answer-board,
+  .tw-anatomy,
+  .tw-use-cases,
+  .tw-mode-strip,
+  .tw-code-story,
+  .tw-live-gallery,
+  .tw-trust-grid,
+  .tw-process,
+  .tw-faq,
+  .tw-final-cta {
+    padding: clamp(4rem, 8vw, 7rem) 0;
+  }
+  .tw-answer-board { background: #fff; }
+  .tw-answer-board__grid,
+  .tw-mode-strip__grid,
+  .tw-trust-grid__cards,
+  .tw-faq__grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--tw-line);
+    border: 1px solid var(--tw-line);
+  }
+  .tw-answer-board article,
+  .tw-mode-strip article,
+  .tw-trust-grid article,
+  .tw-faq article {
+    min-height: 260px;
+    padding: clamp(1.2rem, 3vw, 2rem);
+    background: var(--tw-bg-2);
+  }
+  .tw-answer-board h3,
+  .tw-mode-strip span,
+  .tw-trust-grid h3,
+  .tw-faq h3 {
+    display: block;
+    margin: 0 0 1rem;
+    font-size: clamp(1.7rem, 3vw, 2.6rem);
+    line-height: 1;
+    font-weight: 900;
+  }
+  .tw-answer-board p,
+  .tw-mode-strip p,
+  .tw-trust-grid p,
+  .tw-faq p { color: var(--tw-muted); }
+
+  .tw-anatomy { background: #f4f5f7; }
+  .tw-anatomy figure,
+  .tw-process figure { margin: 0; height: 620px; overflow: hidden; }
+  .tw-anatomy img,
+  .tw-process img,
+  .tw-store-gallery img,
+  .tw-use-cases img,
+  .tw-live-gallery img { width: 100%; height: 100%; object-fit: cover; }
+  .tw-anatomy figure { clip-path: polygon(0 8%, 100% 0, 90% 100%, 5% 92%); }
+  .tw-anatomy dl {
+    display: grid;
+    grid-template-columns: 0.7fr 1fr;
+    border-top: 1px solid var(--tw-line);
+  }
+  .tw-anatomy dt,
+  .tw-anatomy dd { margin: 0; padding: 1rem 0; border-bottom: 1px solid var(--tw-line); }
+  .tw-anatomy dt { font-weight: 900; }
+  .tw-anatomy dd { color: var(--tw-muted); }
+  .tw-section-head { max-width: 780px; margin-bottom: 2rem; }
+  .tw-use-cases { background: #fff; }
+  .tw-use-cases__grid,
+  .tw-live-gallery__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .tw-use-cases article,
+  .tw-live-gallery figure {
+    margin: 0;
+    min-height: 520px;
+    display: flex;
+    flex-direction: column;
+    background: var(--tw-bg-2);
+    border: 1px solid var(--tw-line);
+  }
+  .tw-use-cases img,
+  .tw-live-gallery img { aspect-ratio: 4 / 3; height: auto; }
+  .tw-use-cases div,
+  .tw-live-gallery figcaption { padding: 1.25rem; }
+  .tw-use-cases h3 { margin: 0 0 0.6rem; font-size: 2.2rem; line-height: 1; }
+  .tw-use-cases p,
+  .tw-live-gallery span { color: var(--tw-muted); }
+
+  .tw-live-hero__grid { grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr); }
+  .tw-mode-strip { background: #0a1114; color: #f7fbff; }
+  .tw-mode-strip__grid { border-color: rgba(255,255,255,0.16); background: rgba(255,255,255,0.16); }
+  .tw-mode-strip article { background: #080d10; }
+  .tw-mode-strip p { color: #a7bbc2; }
+  .tw-code-story { background: #06090b; color: #f7fbff; }
+  .tw-code-story pre {
+    margin: 0;
+    padding: clamp(1.2rem, 3vw, 2rem);
+    background: #020404;
+    color: #e7ff4f;
+    border: 1px solid rgba(255,255,255,0.16);
+    overflow: auto;
+  }
+  .tw-code-story code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; line-height: 1.6; }
+  .tw-live-gallery { background: #10181c; color: #f7fbff; }
+  .tw-live-gallery figure { background: #06090b; border-color: rgba(255,255,255,0.14); }
+  .tw-live-gallery strong { display: block; margin-bottom: 0.5rem; font-size: 1.5rem; }
+
+  .tw-store-hero__grid { grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr); align-items: stretch; }
+  .tw-store-gallery { display: grid; grid-template-columns: 1.2fr 0.8fr; grid-auto-rows: 260px; gap: 1px; background: var(--tw-line); }
+  .tw-store-gallery__main { grid-row: span 2; object-fit: contain !important; padding: 10%; background: #fff; }
+  .tw-store-buy {
+    padding: clamp(1.5rem, 4vw, 3rem);
+    background: #fff;
+    border: 1px solid var(--tw-line);
+    display: flex;
+    flex-direction: column;
+  }
+  .tw-store-buy h2 { font-size: clamp(2.8rem, 6vw, 5rem); }
+  .tw-store-buy strong { font-size: 3rem; line-height: 1; font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif; }
+  .tw-store-buy span,
+  .tw-store-buy p,
+  .tw-store-buy li { color: var(--tw-muted); }
+  .tw-store-buy .btn { width: 100%; margin: 1.4rem 0; }
+  .tw-store-buy ul { margin: auto 0 0; padding: 0; list-style: none; display: grid; gap: 0.7rem; }
+  .tw-store-buy li { padding-top: 0.7rem; border-top: 1px solid var(--tw-line); }
+  .tw-trust-grid { background: #fff; }
+  .tw-process { background: #f4efe8; }
+  .tw-process figure { clip-path: polygon(8% 0, 100% 6%, 92% 100%, 0 92%); }
+  .tw-process__steps { display: grid; gap: 0.8rem; margin-top: 2rem; }
+  .tw-process__steps article { padding: 1rem; background: #fff; border: 1px solid var(--tw-line); }
+  .tw-process__steps strong { display: block; margin-bottom: 0.35rem; font-size: 1.2rem; }
+  .tw-process__steps span { color: var(--tw-muted); }
+  .tw-faq { background: #fff; }
+  .tw-faq__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+  .tw-final-cta { background: #0a0a0a; color: #fff; padding-bottom: clamp(6rem, 10vw, 9rem); }
+  .tw-final-cta .eyebrow,
+  .tw-final-cta p { color: rgba(255,255,255,0.68); }
+  .tw-final-cta aside {
+    padding: 1.3rem;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.08);
+  }
+  .tw-final-cta strong { display: block; font-size: 3rem; line-height: 1; font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif; }
+  .tw-final-cta span { display: block; margin: 0.7rem 0 1rem; color: rgba(255,255,255,0.68); }
+  .tw-final-cta button { background: #fff; color: #0a0a0a; width: 100%; }
+
+  @media (max-width: 1080px) {
+    .tw-explain-hero__grid,
+    .tw-anatomy__grid,
+    .tw-live-hero__grid,
+    .tw-code-story__grid,
+    .tw-store-hero__grid,
+    .tw-process__grid,
+    .tw-final-cta__grid,
+    .tw-answer-board__grid,
+    .tw-mode-strip__grid,
+    .tw-trust-grid__cards,
+    .tw-faq__grid,
+    .tw-use-cases__grid,
+    .tw-live-gallery__grid { grid-template-columns: 1fr; }
+    .tw-product-stage { min-height: 520px; }
+    .tw-store-gallery { grid-template-columns: 1fr 1fr; }
+    .tw-sticky-buy { display: none; }
+  }
+  @media (max-width: 720px) {
+    .tw-store-gallery { grid-template-columns: 1fr; }
+    .tw-store-gallery__main { grid-row: auto; }
+    .tw-anatomy figure,
+    .tw-process figure { height: 420px; }
+  }
+</style>

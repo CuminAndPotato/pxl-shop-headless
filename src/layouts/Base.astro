@@ -10,8 +10,12 @@ interface Props {
   description?: string;
   /** "dark" (default) for hero pages; "light" for /cart, /thank-you, etc. */
   headerVariant?: 'dark' | 'light';
+  languageHrefs?: {
+    de: string;
+    en: string;
+  };
 }
-const { locale, title, description, headerVariant = 'dark' } = Astro.props;
+const { locale, title, description, headerVariant = 'dark', languageHrefs } = Astro.props;
 ---
 
 <!doctype html>
@@ -26,7 +30,7 @@ const { locale, title, description, headerVariant = 'dark' } = Astro.props;
     <link rel="alternate" hreflang="de" href={Astro.site ? new URL('/de/', Astro.site).toString() : '/de/'} />
   </head>
   <body>
-    <Header locale={locale} variant={headerVariant} />
+    <Header locale={locale} variant={headerVariant} languageHrefs={languageHrefs} />
     <main>
       <slot />
     </main>

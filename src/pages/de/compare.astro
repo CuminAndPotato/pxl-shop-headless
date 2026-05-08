@@ -1,0 +1,16 @@
+---
+import Base from '../../layouts/Base.astro';
+import VariantCompare from '../../components/VariantCompare.astro';
+
+const locale = 'de';
+---
+
+<Base
+  locale={locale}
+  title="PXL Clock · Varianten vergleichen"
+  description="Side-by-side Vergleich für Landingpage-Varianten."
+  headerVariant="light"
+  languageHrefs={{ de: '/de/compare', en: '/compare' }}
+>
+  <VariantCompare locale={locale} />
+</Base>

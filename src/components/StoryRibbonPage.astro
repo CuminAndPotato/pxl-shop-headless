@@ -1,0 +1,496 @@
+---
+import type { Locale } from '../i18n/strings';
+import { t } from '../i18n/strings';
+import type { Product } from '../lib/shop';
+import type { PageVariant } from '../lib/page-variants';
+import { lifestyleGallery, workshopGallery } from '../lib/assets';
+import Hero from './Hero.astro';
+import LivePixogramPicker from './LivePixogramPicker.astro';
+import AISandbox from './AISandbox.astro';
+import SectionDivider from './SectionDivider.astro';
+
+interface Props {
+  locale: Locale;
+  variant: PageVariant;
+  product: Product | null;
+}
+
+const { locale, product } = Astro.props;
+const s = t(locale);
+
+const productImage = '/img/products/whatis-clock-tight.png';
+const price = product?.discountedPrice?.formatted ?? product?.price?.formatted ?? '229,00€';
+const oldPrice = product?.discountedPrice ? product?.price?.formatted : '';
+const cartHref = locale === 'de' ? '/de/cart' : '/cart';
+const defaultVariantId = product?.variants[0]?.id ?? '';
+
+// Running product summary — replaces the three-card TL;DR slop with one sentence.
+const summary = locale === 'de'
+  ? 'Eine programmierbare Pixel-Uhr aus 24 × 24 RGB-LEDs. 576 Punkte hinter echtem Glas. Kleinserie aus Köln.'
+  : 'A programmable pixel clock built from 24 × 24 RGB LEDs. 576 points behind real glass. Small run from Cologne.';
+
+const intro = locale === 'de'
+  ? {
+      headline: 'Eine programmierbare Pixel-Uhr, die nicht laut sein will.',
+      paragraphs: [
+        'Die PXL Clock zeigt die Zeit. Wenn du willst, zeigt sie auch ein langsames Pulsieren am Abend, ein kleines Herz an deinem Geburtstag, einen Build-Status, oder eine Animation, die nur du gebaut hast.',
+        '24 mal 24 Pixel sind nicht viel — und genau das ist die Idee. Auf 576 LEDs hinter echtem Glas wird jede Anzeige zu einer kleinen grafischen Form. Kein zweiter Bildschirm, sondern ein Objekt, das einen Platz im Raum bekommt.',
+      ],
+      ctaPrice: '229,00 €',
+    }
+  : {
+      headline: 'A programmable pixel clock that refuses to be loud.',
+      paragraphs: [
+        'The PXL Clock shows the time. If you want, it also shows a slow pulse in the evening, a small heart on your birthday, a build status, or an animation only you built.',
+        '24 by 24 pixels is not much — that is the point. On 576 LEDs behind real glass, every display turns into a small graphic shape. Not a second screen, but an object that earns a place in the room.',
+      ],
+      ctaPrice: '229,00 €',
+    };
+
+// Three places — but rendered as a continuous staggered editorial spread, not three identical cards.
+const places = locale === 'de'
+  ? [
+      {
+        title: 'An der Wand wird sie zum kleinen digitalen Bild.',
+        body: 'Sparsam tags, atmosphärisch abends. Eine Animation läuft, die nicht mehr Aufmerksamkeit fordert als ein Kerzenglas.',
+        img: lifestyleGallery[2],
+      },
+      {
+        title: 'Auf dem Schreibtisch ist sie ein Akzent, kein Bildschirm.',
+        body: 'Sie zeigt Zeit, Wetter oder einen Build-Status. Keine Push-Notifications, keine Apps. Nur eine ruhige Anzeige, die sich am Tag anpasst.',
+        img: lifestyleGallery[7],
+      },
+      {
+        title: 'Im Regal steht sie wie ein Stück, das du dazustellst.',
+        body: 'Auch ausgeschaltet ist sie ein gefasstes Quadrat. Der Holzrahmen mit Glas trägt sie als Objekt, nicht als Gerät.',
+        img: lifestyleGallery[10],
+      },
+    ]
+  : [
+      {
+        title: 'On the wall it turns into a small digital picture.',
+        body: 'Sparse by day, atmospheric in the evening. An animation runs that asks no more attention than a candle.',
+        img: lifestyleGallery[2],
+      },
+      {
+        title: 'On a desk it is an accent, not a screen.',
+        body: 'It shows time, weather, or a build status. No push, no apps. Just a calm display that adjusts through the day.',
+        img: lifestyleGallery[7],
+      },
+      {
+        title: 'On a shelf it sits like a piece you chose to keep.',
+        body: 'Switched off it is still a framed square. The wooden frame with glass carries it as an object, not a device.',
+        img: lifestyleGallery[10],
+      },
+    ];
+
+const craft = locale === 'de'
+  ? {
+      headline: 'Jede Uhr wird einzeln aufgebaut, gemessen, geflasht, verpackt.',
+      body:
+        'Kleine Serie. Echtes Glas. Software, Rahmen und Versand kommen aus Deutschland — aus einer Werkstatt, nicht aus einer Fabrikhalle. Cumin & Potato GmbH, Köln.',
+    }
+  : {
+      headline: 'Each clock is built, tested, flashed, and packed by hand.',
+      body:
+        'Small run. Real glass. Software, frame, and shipping all from Germany — out of a workshop, not a factory floor. Cumin & Potato GmbH, Cologne.',
+    };
+
+const closing = locale === 'de'
+  ? {
+      headline: 'Eine Beta-Serie. Eine ehrliche Entscheidung.',
+      body: 'Versand in zwei bis vier Werktagen mit DHL. Mit Promo-Code RONALD sparst du fünfundzwanzig Euro.',
+    }
+  : {
+      headline: 'A beta run. An honest decision.',
+      body: 'Ships in two to four business days with DHL. Promo code RONALD takes twenty-five euros off.',
+    };
+---
+
+<section class="sr">
+  <Hero locale={locale} />
+
+  <!-- Single-line summary, replaces three-card TL;DR -->
+  <div class="sr-summary-wrap">
+    <p class="sr-summary">{summary}</p>
+  </div>
+
+  <!-- Intro: cutout + running prose, no eyebrow -->
+  <section class="sr-intro">
+    <div class="sr-intro__copy">
+      <h2 class="sr-h">{intro.headline}</h2>
+      {intro.paragraphs.map((p) => <p class="sr-lead">{p}</p>)}
+      <div class="sr-cta-row">
+        <button class="sr-btn" type="button" data-sr-buy data-product-id={product?.id ?? ''} data-variant-id={defaultVariantId} data-cart-href={cartHref}>
+          {s.whatIs.cta} · <span class="sr-price">{price}</span>
+        </button>
+        {oldPrice && <span class="sr-oldprice">{s.price.salePrefix} {oldPrice}</span>}
+      </div>
+    </div>
+    <figure class="sr-intro__media" data-sr-parallax data-speed="0.06">
+      <img src={productImage} alt={product?.name ?? 'PXL Clock'} loading="lazy" />
+    </figure>
+  </section>
+
+  <!-- Live preview band -->
+  <section class="sr-preview">
+    <LivePixogramPicker locale={locale} variant="card" initial="pulse" />
+    <SectionDivider side="bottom" pattern="wave-asym" fill="#131613" height="160px" />
+  </section>
+
+  <!-- Places: continuous editorial spread, not 3 identical cards -->
+  <section class="sr-places">
+    <h2 class="sr-h sr-places__h">{locale === 'de' ? 'Drei Plätze, an denen die Uhr Sinn ergibt.' : 'Three places where the clock makes sense.'}</h2>
+    <div class="sr-places__flow">
+      <article class="sr-place sr-place--a" data-sr-parallax data-speed="0.04">
+        <figure><img src={places[0].img} alt="" loading="lazy" /></figure>
+        <div>
+          <h3>{places[0].title}</h3>
+          <p>{places[0].body}</p>
+        </div>
+      </article>
+      <article class="sr-place sr-place--b" data-sr-parallax data-speed="0.06">
+        <div>
+          <h3>{places[1].title}</h3>
+          <p>{places[1].body}</p>
+        </div>
+        <figure><img src={places[1].img} alt="" loading="lazy" /></figure>
+      </article>
+      <article class="sr-place sr-place--c" data-sr-parallax data-speed="0.05">
+        <figure><img src={places[2].img} alt="" loading="lazy" /></figure>
+        <div>
+          <h3>{places[2].title}</h3>
+          <p>{places[2].body}</p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- Workshop on dark stage with running headline -->
+  <section class="sr-craft">
+    <div class="sr-craft__inner">
+      <div class="sr-craft__copy">
+        <h2 class="sr-h sr-h--light">{craft.headline}</h2>
+        <p class="sr-craft__body">{craft.body}</p>
+      </div>
+      <div class="sr-craft__grid">
+        <img src={workshopGallery[1]} alt="" loading="lazy" />
+        <img src={workshopGallery[5]} alt="" loading="lazy" />
+        <img src={workshopGallery[8]} alt="" loading="lazy" />
+        <img src={workshopGallery[11]} alt="" loading="lazy" />
+      </div>
+    </div>
+    <SectionDivider side="bottom" pattern="scallop" fill="#ffffff" height="140px" />
+  </section>
+
+  <!-- AI sandbox -->
+  <section class="sr-ai">
+    <SectionDivider side="top" pattern="arc" fill="rgba(255, 255, 255, 0.45)" height="120px" />
+    <AISandbox locale={locale} variant="card" tone="light" />
+  </section>
+
+  <!-- Closing buy panel, no eyebrow -->
+  <section class="sr-buy">
+    <SectionDivider side="top" pattern="split-wave" fill="rgba(255, 255, 255, 0.5)" height="140px" flip={true} />
+    <div class="sr-buy__inner">
+      <h2 class="sr-h">{closing.headline}</h2>
+      <p class="sr-buy__body">{closing.body}</p>
+      <div class="sr-cta-row">
+        <button class="sr-btn sr-btn--lg" type="button" data-sr-buy data-product-id={product?.id ?? ''} data-variant-id={defaultVariantId} data-cart-href={cartHref}>
+          {s.whatIs.cta} · <span class="sr-price">{price}</span>
+        </button>
+      </div>
+    </div>
+  </section>
+</section>
+
+<script>
+  import { addToCart } from '../lib/shop-browser';
+
+  document.querySelectorAll<HTMLButtonElement>('[data-sr-buy]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const productId = btn.dataset.productId;
+      if (!productId) return;
+      btn.disabled = true;
+      try {
+        await addToCart({ productId, variantId: btn.dataset.variantId || undefined, quantity: 1 });
+        window.location.href = btn.dataset.cartHref || '/cart';
+      } catch (err) {
+        console.error('[StoryRibbon] addToCart failed:', err);
+        btn.disabled = false;
+      }
+    });
+  });
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduced) {
+    const targets = Array.from(document.querySelectorAll<HTMLElement>('[data-sr-parallax]'));
+    function update() {
+      const vh = window.innerHeight;
+      for (const el of targets) {
+        const rect = el.getBoundingClientRect();
+        const center = rect.top + rect.height / 2;
+        const off = (center - vh / 2) / vh;
+        const speed = parseFloat(el.dataset.speed || '0.05');
+        const y = Math.max(-18, Math.min(18, -off * speed * 200));
+        el.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`;
+      }
+      raf = 0;
+    }
+    let raf = 0;
+    window.addEventListener('scroll', () => { if (raf) return; raf = requestAnimationFrame(update); }, { passive: true });
+    update();
+  }
+</script>
+
+<style>
+  .sr {
+    /* Palette pulled from the original landing — pewter-blue, honey-amber,
+       indigo-violet — applied as multi-section gradients (see global.css
+       --bg-whatis / --bg-variants / --bg-create / --bg-footer). */
+    --sr-bg: #ffffff;
+    --sr-bg-2: rgba(255, 255, 255, 0.5);
+    --sr-ink: #0a0a0a;
+    --sr-muted: #5d5d5d;
+    --sr-line: rgba(10, 10, 10, 0.12);
+    --sr-accent: #485dbd;       /* indigo from the original gradient */
+    --sr-accent-warm: #fbb238;  /* honey-amber from the original */
+    --sr-dark: #131613;
+    --sr-dark-fg: #ece4d4;
+
+    --draft-fg: var(--sr-ink);
+    --draft-bg: #ffffff;
+    --draft-muted: var(--sr-muted);
+    --draft-surface: #ffffff;
+    --draft-line: var(--sr-line);
+    --draft-bezel: #131613;
+    --draft-c1: #fbb238;
+    --draft-c2: #485dbd;
+    --draft-c3: #c0d1da;
+    --draft-c4: #e7fa98;
+
+    background:
+      radial-gradient(ellipse 60% 50% at 88% 8%, rgba(192, 209, 218, 1) 0%, rgba(192, 209, 218, 0) 60%),
+      radial-gradient(ellipse 70% 40% at 64% 35%, rgba(251, 182, 56, 0.32) 0%, rgba(251, 182, 56, 0) 60%),
+      radial-gradient(ellipse 80% 50% at 2% 70%, rgba(192, 209, 218, 0.7) 0%, rgba(192, 209, 218, 0) 60%),
+      radial-gradient(ellipse 70% 40% at 94% 60%, rgba(72, 93, 189, 0.42) 0%, rgba(72, 93, 189, 0) 65%),
+      radial-gradient(ellipse 80% 60% at 50% 90%, rgba(231, 250, 152, 0.28) 0%, rgba(231, 250, 152, 0) 65%),
+      #ffffff;
+    background-attachment: fixed;
+    color: var(--sr-ink);
+    font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  .sr-h {
+    margin: 0 0 1.1rem;
+    font-size: clamp(2rem, 4.4vw, 3.6rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.06;
+    color: var(--sr-ink);
+  }
+  .sr-h--light { color: var(--sr-dark-fg); }
+  .sr-lead {
+    margin: 0 0 1.1rem;
+    font-size: clamp(1.02rem, 1.4vw, 1.14rem);
+    line-height: 1.7;
+    color: var(--sr-muted);
+    max-width: 56ch;
+  }
+
+  .sr-cta-row { display: flex; align-items: center; gap: 1rem; margin-top: 1.6rem; flex-wrap: wrap; }
+  .sr-btn {
+    display: inline-flex; align-items: center; gap: 0.6rem;
+    padding: 0.95rem 1.5rem; border-radius: 999px; border: 0;
+    background: var(--sr-ink); color: var(--sr-bg);
+    font-family: inherit; font-weight: 700; font-size: 1rem; cursor: pointer;
+    transition: transform 160ms ease, background 160ms ease;
+  }
+  .sr-btn:hover { transform: translateY(-1px); background: #000; }
+  .sr-btn--lg { padding: 1.1rem 1.8rem; font-size: 1.06rem; }
+  .sr-price { opacity: 0.8; font-weight: 600; font-feature-settings: 'tnum' 1; }
+  .sr-oldprice { color: var(--sr-muted); text-decoration: line-through; font-size: 0.95rem; }
+
+  /* Single-line summary instead of three cards */
+  .sr-summary-wrap {
+    margin-top: -3.2rem;
+    padding: 0 clamp(1rem, 4vw, 3rem);
+    position: relative;
+    z-index: 5;
+  }
+  .sr-summary {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 1.4rem 1.8rem;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 24px 60px rgba(31, 27, 22, 0.14);
+    color: var(--sr-ink);
+    font-size: clamp(1rem, 1.5vw, 1.18rem);
+    line-height: 1.55;
+    text-align: center;
+  }
+
+  /* Intro section sits on the page-wide gradient background */
+  .sr-intro {
+    position: relative;
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem) clamp(7rem, 12vw, 10rem);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: clamp(2rem, 6vw, 5rem);
+    align-items: center;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  .sr-intro__copy { max-width: 56ch; }
+  .sr-intro__media { margin: 0; will-change: transform; }
+  .sr-intro__media img {
+    width: 100%; height: auto; object-fit: contain;
+    filter: drop-shadow(0 30px 50px rgba(31, 27, 22, 0.18));
+  }
+  @media (max-width: 860px) {
+    .sr-intro { grid-template-columns: 1fr; padding-top: 5rem; }
+  }
+
+  /* Section transition cuts */
+  .sr-cut {
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 80px;
+    pointer-events: none;
+  }
+  .sr-cut--soft path { fill: var(--sr-bg-2); }
+  .sr-cut--invert path { fill: var(--sr-bg); }
+  .sr-cut--diag path { fill: var(--sr-bg); }
+
+  /* Live preview band — transparent, sits on the page gradient */
+  .sr-preview {
+    position: relative;
+    background: transparent;
+    padding: clamp(4rem, 9vw, 7rem) clamp(1rem, 4vw, 3rem) clamp(7rem, 12vw, 10rem);
+  }
+  .sr-preview > :global(.lpp) { max-width: 1180px; margin: 0 auto; }
+
+  /* Places — continuous spread, alternating side */
+  .sr-places {
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem);
+    max-width: 1380px;
+    margin: 0 auto;
+  }
+  .sr-places__h {
+    max-width: 28ch;
+    margin: 0 0 clamp(2.5rem, 5vw, 4rem);
+  }
+  .sr-places__flow {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(3rem, 7vw, 6rem);
+  }
+  .sr-place {
+    display: grid;
+    gap: clamp(1.5rem, 4vw, 3rem);
+    align-items: center;
+    will-change: transform;
+  }
+  .sr-place--a { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); padding-right: 8%; }
+  .sr-place--b { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); padding-left: 12%; }
+  .sr-place--c { grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); padding-right: 4%; padding-left: 4%; }
+  .sr-place figure {
+    margin: 0;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    border-radius: 4px;
+    background: var(--sr-bg-2);
+  }
+  .sr-place--c figure { aspect-ratio: 5 / 6; }
+  .sr-place img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform 700ms ease;
+  }
+  .sr-place:hover img { transform: scale(1.02); }
+  .sr-place h3 {
+    margin: 0 0 0.8rem;
+    font-size: clamp(1.4rem, 2.4vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    max-width: 28ch;
+  }
+  .sr-place p {
+    margin: 0;
+    color: var(--sr-muted);
+    line-height: 1.65;
+    font-size: 1rem;
+    max-width: 38ch;
+  }
+  @media (max-width: 860px) {
+    .sr-place--a, .sr-place--b, .sr-place--c {
+      grid-template-columns: 1fr;
+      padding-left: 0; padding-right: 0;
+    }
+  }
+
+  /* Craft band — dark stage, no eyebrow */
+  .sr-craft {
+    position: relative;
+    background: var(--sr-dark);
+    color: var(--sr-dark-fg);
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem) clamp(8rem, 14vw, 11rem);
+  }
+  .sr-craft__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    max-width: 1280px;
+    margin: 0 auto;
+    align-items: center;
+  }
+  .sr-craft__copy { max-width: 50ch; }
+  .sr-craft__body {
+    margin: 0;
+    line-height: 1.7;
+    color: rgba(236, 228, 212, 0.78);
+    max-width: 48ch;
+  }
+  .sr-craft__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(0.6rem, 1.5vw, 1rem);
+  }
+  .sr-craft__grid img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+  .sr-craft__grid img:nth-child(1) { transform: translateY(-1.5rem); }
+  .sr-craft__grid img:nth-child(4) { transform: translateY(1.5rem); }
+  @media (max-width: 860px) {
+    .sr-craft__inner { grid-template-columns: 1fr; }
+    .sr-craft__grid img:nth-child(1), .sr-craft__grid img:nth-child(4) { transform: none; }
+  }
+
+  /* AI sandbox band — transparent on page gradient */
+  .sr-ai {
+    position: relative;
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem);
+    background: transparent;
+  }
+  .sr-ai > :global(.ais) { max-width: 1180px; margin: 0 auto; position: relative; z-index: 2; }
+
+  /* Buy band — transparent on page gradient */
+  .sr-buy {
+    position: relative;
+    padding: clamp(4rem, 9vw, 7rem) clamp(1rem, 4vw, 3rem) clamp(6rem, 12vw, 10rem);
+    background: transparent;
+    text-align: center;
+  }
+  .sr-buy__inner { position: relative; z-index: 2; }
+  .sr-buy__inner { max-width: 720px; margin: 0 auto; }
+  .sr-buy__body { margin: 0 auto; color: var(--sr-muted); max-width: 48ch; line-height: 1.7; }
+  .sr-buy .sr-cta-row { justify-content: center; }
+</style>

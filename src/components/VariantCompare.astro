@@ -1,0 +1,275 @@
+---
+import type { Locale } from '../i18n/strings';
+import { getVariantHref, pageVariants } from '../lib/page-variants';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const ui = locale === 'de'
+  ? {
+      eyebrow: 'Landing Lab',
+      title: 'Varianten direkt vergleichen',
+      body: 'Jede Spalte lädt eine echte Seite in einem eigenen Frame. So vergleichst du Reihenfolge, Header-Verhalten und Gesamtwirkung fair.',
+      left: 'Links',
+      right: 'Rechts',
+      swap: 'Tauschen',
+      open: 'Einzeln öffnen',
+      back: 'Zur Default-Variante',
+    }
+  : {
+      eyebrow: 'Landing Lab',
+      title: 'Compare variants directly',
+      body: 'Each column loads a real page in its own frame, so order, header behavior, and overall feel stay comparable.',
+      left: 'Left',
+      right: 'Right',
+      swap: 'Swap',
+      open: 'Open alone',
+      back: 'Open default variant',
+    };
+const variants = pageVariants.map((variant) => ({
+  slug: variant.slug,
+  label: variant.copy[locale].name,
+}));
+const defaultLeft = 'default';
+const defaultRight = 'dev';
+---
+
+<section class="compare-page">
+  <div class="container compare-page__inner">
+    <div class="compare-page__top">
+      <div>
+        <p class="eyebrow">{ui.eyebrow}</p>
+        <h1 class="h-section compare-page__title">{ui.title}</h1>
+        <p class="lead compare-page__body">{ui.body}</p>
+      </div>
+
+      <a class="btn btn--ghost compare-page__back" href={getVariantHref(locale, 'default')}>{ui.back}</a>
+    </div>
+
+    <div class="compare-toolbar">
+      <label class="compare-toolbar__field">
+        <span>{ui.left}</span>
+        <select data-compare-select="left">
+          {variants.map((variant) => <option value={variant.slug}>{variant.label}</option>)}
+        </select>
+      </label>
+
+      <label class="compare-toolbar__field">
+        <span>{ui.right}</span>
+        <select data-compare-select="right">
+          {variants.map((variant) => <option value={variant.slug}>{variant.label}</option>)}
+        </select>
+      </label>
+
+      <button class="compare-toolbar__swap" type="button" data-compare-swap>{ui.swap}</button>
+    </div>
+
+    <div class="compare-grid">
+      <section class="compare-frame">
+        <header class="compare-frame__header">
+          <strong data-compare-label="left"></strong>
+          <a data-compare-open="left" href={getVariantHref(locale, defaultLeft)}>{ui.open}</a>
+        </header>
+        <iframe
+          title={ui.left}
+          loading="eager"
+          src="about:blank"
+          data-compare-frame="left"
+        ></iframe>
+      </section>
+
+      <section class="compare-frame">
+        <header class="compare-frame__header">
+          <strong data-compare-label="right"></strong>
+          <a data-compare-open="right" href={getVariantHref(locale, defaultRight)}>{ui.open}</a>
+        </header>
+        <iframe
+          title={ui.right}
+          loading="eager"
+          src="about:blank"
+          data-compare-frame="right"
+        ></iframe>
+      </section>
+    </div>
+  </div>
+</section>
+
+<script define:vars={{ variants, locale, defaultLeft, defaultRight }}>
+  const variantMap = new Map(variants.map((variant) => [variant.slug, variant]));
+  const leftSelect = document.querySelector('select[data-compare-select="left"]');
+  const rightSelect = document.querySelector('select[data-compare-select="right"]');
+  const leftFrame = document.querySelector('iframe[data-compare-frame="left"]');
+  const rightFrame = document.querySelector('iframe[data-compare-frame="right"]');
+  const leftLabel = document.querySelector('[data-compare-label="left"]');
+  const rightLabel = document.querySelector('[data-compare-label="right"]');
+  const leftOpen = document.querySelector('[data-compare-open="left"]');
+  const rightOpen = document.querySelector('[data-compare-open="right"]');
+  const swapButton = document.querySelector('[data-compare-swap]');
+
+  function getHref(slug) {
+    return locale === 'de' ? `/de/v/${slug}` : `/v/${slug}`;
+  }
+
+  function normalize(slug, fallback) {
+    return variantMap.has(slug) ? slug : fallback;
+  }
+
+  function render(left, right, push) {
+    if (!leftSelect || !rightSelect || !leftFrame || !rightFrame || !leftLabel || !rightLabel || !leftOpen || !rightOpen) {
+      return;
+    }
+
+    leftSelect.value = left;
+    rightSelect.value = right;
+    leftFrame.src = getHref(left);
+    rightFrame.src = getHref(right);
+    leftLabel.textContent = variantMap.get(left)?.label ?? left;
+    rightLabel.textContent = variantMap.get(right)?.label ?? right;
+    leftOpen.href = getHref(left);
+    rightOpen.href = getHref(right);
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('left', left);
+    url.searchParams.set('right', right);
+    if (push) {
+      window.history.pushState({}, '', url);
+    } else {
+      window.history.replaceState({}, '', url);
+    }
+  }
+
+  function readFromUrl(push) {
+    const params = new URLSearchParams(window.location.search);
+    const left = normalize(params.get('left'), defaultLeft);
+    const rightFallback = left === 'dev' ? 'maker' : defaultRight;
+    const right = normalize(params.get('right'), rightFallback);
+    render(left, right, push);
+  }
+
+  leftSelect?.addEventListener('change', () => {
+    render(leftSelect.value, normalize(rightSelect?.value, defaultRight), true);
+  });
+
+  rightSelect?.addEventListener('change', () => {
+    render(normalize(leftSelect?.value, defaultLeft), rightSelect.value, true);
+  });
+
+  swapButton?.addEventListener('click', () => {
+    const left = normalize(leftSelect?.value, defaultLeft);
+    const right = normalize(rightSelect?.value, defaultRight);
+    render(right, left, true);
+  });
+
+  window.addEventListener('popstate', () => readFromUrl(false));
+  readFromUrl(false);
+</script>
+
+<style>
+  .compare-page {
+    padding-top: clamp(10rem, 16vw, 13rem);
+    padding-bottom: clamp(3rem, 8vw, 5rem);
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 10% 18%, rgba(192,209,218,0.42), transparent 28%),
+      radial-gradient(circle at 90% 20%, rgba(255,183,88,0.3), transparent 24%),
+      linear-gradient(180deg, #f7f8fb 0%, #fff 100%);
+  }
+  .compare-page__top {
+    display: flex;
+    gap: 2rem;
+    justify-content: space-between;
+    align-items: end;
+    margin-bottom: 2rem;
+  }
+  .compare-page__title {
+    margin-bottom: 0.75rem;
+  }
+  .compare-page__body {
+    max-width: 58ch;
+  }
+  .compare-page__back {
+    min-width: 0;
+    white-space: nowrap;
+  }
+  .compare-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: end;
+    margin-bottom: 1.5rem;
+  }
+  .compare-toolbar__field {
+    display: grid;
+    gap: 0.35rem;
+    font-weight: 700;
+  }
+  .compare-toolbar__field span {
+    font-size: 0.82rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .compare-toolbar__field select,
+  .compare-toolbar__swap {
+    height: 52px;
+    padding: 0 1rem;
+    border-radius: 14px;
+    border: 1px solid rgba(10,10,10,0.12);
+    background: rgba(255,255,255,0.88);
+    font: inherit;
+  }
+  .compare-toolbar__field select {
+    min-width: 220px;
+  }
+  .compare-toolbar__swap {
+    font-weight: 700;
+  }
+  .compare-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .compare-frame {
+    min-width: 0;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid rgba(10,10,10,0.08);
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+  }
+  .compare-frame__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid rgba(10,10,10,0.08);
+    background: rgba(255,255,255,0.9);
+  }
+  .compare-frame__header strong {
+    font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    font-size: 1rem;
+  }
+  .compare-frame__header a {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--muted);
+  }
+  .compare-frame iframe {
+    width: 100%;
+    height: min(78vh, 1200px);
+    border: 0;
+    background: #fff;
+  }
+  @media (max-width: 960px) {
+    .compare-page__top {
+      flex-direction: column;
+      align-items: start;
+    }
+    .compare-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
