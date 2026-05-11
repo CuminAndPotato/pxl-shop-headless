@@ -1,0 +1,238 @@
+---
+import Base from '../../layouts/Base.astro';
+import { RENDER_MODES } from '../../lib/pixel-canvas';
+
+const locale = 'en';
+
+const pickerPixograms = [
+  { id: 'pulse',   label: 'Pulse' },
+  { id: 'heart',   label: 'Heart' },
+  { id: 'orbit',   label: 'Orbit' },
+  { id: 'rain',    label: 'Rain' },
+  { id: 'clock',   label: 'Clock' },
+  { id: 'wave',    label: 'Wave' },
+  { id: 'sunset',  label: 'Sunset' },
+  { id: 'journey', label: 'Journey' },
+];
+---
+
+<Base
+  locale={locale}
+  title="Pixel-Style Lab · PXL Clock"
+  description="Five visual styles side-by-side, all rendered to canvas."
+  headerVariant="light"
+>
+  <main class="ps">
+    <header class="ps__head">
+      <p class="ps__eyebrow">Lab</p>
+      <h1 class="ps__title">Fünf Wege, die PXL Clock zu zeichnen.</h1>
+      <p class="ps__lead">
+        Gleiches Pixogramm, gleiche Animation, fünf Render-Modi nebeneinander. Wähle ein Pixogramm
+        und vergleich, welcher Look sich am ehesten nach echtem LED hinter Glas anfühlt.
+      </p>
+    </header>
+
+    <section class="ps__picker" aria-label="Pixogramm wählen">
+      {pickerPixograms.map((p, i) => (
+        <button
+          type="button"
+          class={i === 0 ? 'ps__pick is-on' : 'ps__pick'}
+          data-ps-pick={p.id}
+        >{p.label}</button>
+      ))}
+    </section>
+
+    <section class="ps__grid">
+      {RENDER_MODES.map((mode) => (
+        <article class="ps__card">
+          <div class="ps__card-head">
+            <span class="ps__card-mode">{mode.label}</span>
+            <p class="ps__card-desc">{mode.description}</p>
+          </div>
+          <div class="ps__canvas-wrap">
+            <canvas class="ps__canvas" data-ps-canvas={mode.id} width="480" height="480"></canvas>
+          </div>
+        </article>
+      ))}
+    </section>
+  </main>
+
+  <script>
+    import { drawers, PIXOGRAM_SIZE } from '../../lib/pixograms';
+    import type { PixogramId } from '../../lib/pixograms';
+    import { renderPixogram, RENDER_MODES } from '../../lib/pixel-canvas';
+    import type { RenderMode } from '../../lib/pixel-canvas';
+
+    const SIZE = PIXOGRAM_SIZE;
+    const canvases: Array<{ el: HTMLCanvasElement; mode: RenderMode }> = [];
+    document.querySelectorAll<HTMLCanvasElement>('[data-ps-canvas]').forEach((c) => {
+      canvases.push({ el: c, mode: c.dataset.psCanvas as RenderMode });
+    });
+
+    let active: PixogramId = 'pulse';
+    let t = 0;
+    let inView = true;
+
+    function paint() {
+      if (!inView) return;
+      const fn = drawers[active] || drawers.pulse;
+      const draw = (x: number, y: number) => fn(x, y, t);
+      for (const { el, mode } of canvases) {
+        renderPixogram(el, draw, { width: SIZE, height: SIZE, mode });
+      }
+      t += 1;
+    }
+
+    let interval: number | null = null;
+    function start() {
+      if (interval) return;
+      interval = window.setInterval(paint, 200);
+    }
+    function stop() {
+      if (interval) { clearInterval(interval); interval = null; }
+    }
+
+    paint();
+    start();
+
+    // Pause when the lab page tab is hidden — saves a bit of battery.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stop(); else start();
+    });
+
+    // Pause when nothing is on-screen.
+    const grid = document.querySelector('.ps__grid');
+    if (grid) {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => { inView = entry.isIntersecting; });
+        if (inView) start(); else stop();
+      }, { threshold: 0 });
+      io.observe(grid);
+    }
+
+    // Picker
+    document.querySelectorAll<HTMLButtonElement>('[data-ps-pick]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.psPick as PixogramId;
+        if (!id) return;
+        active = id;
+        t = 0;
+        document.querySelectorAll('[data-ps-pick]').forEach((b) => b.classList.toggle('is-on', b === btn));
+        paint();
+      });
+    });
+
+    // Re-render on resize so DPR/layout changes are picked up.
+    let resizeRaf = 0;
+    window.addEventListener('resize', () => {
+      if (resizeRaf) return;
+      resizeRaf = requestAnimationFrame(() => {
+        resizeRaf = 0;
+        for (const { el } of canvases) {
+          el.width = el.clientWidth * Math.min(window.devicePixelRatio || 1, 2);
+          el.height = el.clientHeight * Math.min(window.devicePixelRatio || 1, 2);
+        }
+        paint();
+      });
+    }, { passive: true });
+  </script>
+
+  <style>
+    .ps {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: clamp(7rem, 11vw, 9rem) clamp(1rem, 4vw, 3rem) clamp(4rem, 8vw, 6rem);
+      font-family: 'Inter Tight', 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+      color: #0a0a0a;
+    }
+    .ps__head { max-width: 60ch; margin-bottom: clamp(2rem, 4vw, 3rem); }
+    .ps__eyebrow {
+      margin: 0 0 0.6rem;
+      font-size: 0.74rem;
+      font-weight: 800;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(10, 10, 10, 0.5);
+    }
+    .ps__title {
+      margin: 0 0 1rem;
+      font-family: 'Mona Sans', 'Inter Tight', sans-serif;
+      font-size: clamp(1.8rem, 3.6vw, 2.8rem);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      line-height: 1.1;
+    }
+    .ps__lead {
+      margin: 0;
+      color: rgba(10, 10, 10, 0.7);
+      line-height: 1.6;
+      font-size: clamp(1rem, 1.4vw, 1.08rem);
+    }
+
+    .ps__picker {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 0 0 clamp(2rem, 4vw, 3rem);
+    }
+    .ps__pick {
+      padding: 0.55rem 0.95rem;
+      border-radius: 999px;
+      border: 1px solid rgba(10, 10, 10, 0.14);
+      background: #fff;
+      color: #0a0a0a;
+      font-family: inherit;
+      font-size: 0.86rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 160ms ease, border-color 160ms ease;
+    }
+    .ps__pick:hover { border-color: rgba(10, 10, 10, 0.5); }
+    .ps__pick.is-on {
+      background: #0a0a0a;
+      color: #fff;
+      border-color: #0a0a0a;
+    }
+
+    .ps__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: clamp(1rem, 2vw, 1.5rem);
+    }
+    .ps__card {
+      background: #ffffff;
+      border: 1px solid rgba(10, 10, 10, 0.10);
+      border-radius: 10px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+    .ps__card-head { display: flex; flex-direction: column; gap: 0.35rem; }
+    .ps__card-mode {
+      font-family: 'Mona Sans', 'Inter Tight', sans-serif;
+      font-size: 0.92rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: #0a0a0a;
+    }
+    .ps__card-desc {
+      margin: 0;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      color: rgba(10, 10, 10, 0.6);
+    }
+    .ps__canvas-wrap {
+      aspect-ratio: 1;
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #050608;
+    }
+    .ps__canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+  </style>
+</Base>

@@ -43,9 +43,7 @@ const ui = locale === 'de'
   <div class="lpp__stage">
     <div class="lpp__device" aria-label="PXL Clock 24x24 matrix" data-lpp-device data-active={initial}>
       <div class="lpp__bezel">
-        <div class="lpp__matrix" data-lpp-matrix>
-          {Array.from({ length: 576 }).map(() => <span class="p p--0"></span>)}
-        </div>
+        <canvas class="lpp__canvas" data-lpp-canvas width="480" height="480"></canvas>
       </div>
     </div>
 
@@ -77,12 +75,12 @@ const ui = locale === 'de'
 
 <script>
   import { drawers, PIXOGRAM_SIZE } from '../lib/pixograms';
+  import { renderPixogram } from '../lib/pixel-canvas';
   const SIZE = PIXOGRAM_SIZE;
 
   document.querySelectorAll<HTMLElement>('[data-lpp-device]').forEach((device) => {
-    const matrix = device.querySelector<HTMLElement>('[data-lpp-matrix]');
-    if (!matrix) return;
-    const cells = Array.from(matrix.querySelectorAll<HTMLSpanElement>('.p'));
+    const canvas = device.querySelector<HTMLCanvasElement>('[data-lpp-canvas]');
+    if (!canvas) return;
     const root = device.closest('section');
     if (!root) return;
 
@@ -91,12 +89,7 @@ const ui = locale === 'de'
 
     function paint() {
       const fn = drawers[active] || drawers.pulse;
-      for (let i = 0; i < cells.length; i += 1) {
-        const x = i % SIZE;
-        const y = Math.floor(i / SIZE);
-        const c = fn(x, y, t);
-        cells[i].className = `p p--${c}`;
-      }
+      renderPixogram(canvas, (x, y) => fn(x, y, t), { width: SIZE, height: SIZE, mode: 'photoreal' });
       t += 1;
     }
 
@@ -212,25 +205,13 @@ const ui = locale === 'de'
       0 30px 70px rgba(0, 0, 0, 0.28),
       0 8px 18px rgba(0, 0, 0, 0.18);
   }
-  .lpp__matrix {
+  .lpp__canvas {
     width: 100%;
     height: 100%;
-    display: grid;
-    grid-template-columns: repeat(24, 1fr);
-    grid-template-rows: repeat(24, 1fr);
-    gap: 1px;
+    display: block;
     border-radius: 4px;
     background: #050607;
-    overflow: hidden;
   }
-  .lpp .p {
-    background: var(--lpp-pixel-off);
-    transition: background-color 120ms ease, box-shadow 120ms ease;
-  }
-  .lpp .p--1 { background: var(--lpp-c1); box-shadow: 0 0 7px var(--lpp-c1); }
-  .lpp .p--2 { background: var(--lpp-c2); box-shadow: 0 0 7px var(--lpp-c2); }
-  .lpp .p--3 { background: var(--lpp-c3); box-shadow: 0 0 7px var(--lpp-c3); }
-  .lpp .p--4 { background: var(--lpp-c4); box-shadow: 0 0 7px var(--lpp-c4); }
 
   .lpp__caption {
     position: relative;

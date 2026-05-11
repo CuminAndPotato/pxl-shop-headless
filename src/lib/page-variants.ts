@@ -3,7 +3,7 @@ import type { OriginalDraftSlug } from './original-drafts';
 
 export type OriginalTweakSlug = 'spatial' | 'live' | 'proof';
 export type ExperimentVariantSlug = 'poster' | 'console' | 'catalog' | 'interior' | 'buildbook';
-export type FreshLayoutSlug = 'ribbon' | 'sidebar' | 'native' | 'editorial' | 'drop';
+export type FreshLayoutSlug = 'ribbon' | 'sidebar' | 'native' | 'editorial' | 'drop' | 'plus';
 export type PageVariantSlug = 'default' | 'dev' | 'maker' | OriginalDraftSlug | OriginalTweakSlug | ExperimentVariantSlug | FreshLayoutSlug;
 
 interface VariantLocaleCopy {
@@ -25,7 +25,7 @@ export interface PageVariant {
   slug: PageVariantSlug;
   layout:
     | 'default' | 'dev' | 'maker' | 'original' | 'tweak' | 'experiment'
-    | 'ribbon' | 'sidebar' | 'native' | 'editorial' | 'drop';
+    | 'ribbon' | 'sidebar' | 'native' | 'editorial' | 'drop' | 'plus';
   theme: 'graphite' | 'amber' | 'mist';
   headerVariant?: 'dark' | 'light';
   copy: Record<Locale, VariantLocaleCopy>;
@@ -680,6 +680,36 @@ export const pageVariants: PageVariant[] = [
         bullets: ['Schwarz-auf-Creme Monolith', 'Kein Sektions-Lärm', 'Ein Kauf-Moment'],
         note: 'Am nächsten an einer Small-Batch-Möbel- oder Fashion-Drop-Seite: souverän, ruhig, vollständig.',
         quote: { line1: 'Eine Drop-Seite,', line2: 'kein langer Verkaufsbrief.' },
+      },
+    },
+  },
+  {
+    slug: 'plus',
+    layout: 'plus',
+    theme: 'graphite',
+    headerVariant: 'dark',
+    copy: {
+      en: {
+        name: 'Original Plus',
+        shortName: 'Plus',
+        thesis: 'The default homepage with the live pixogram picker and the AI sandbox folded in at natural spots.',
+        introEyebrow: 'Original layout, two new sections',
+        introTitle: ['Time.', 'Design.', 'Expression.'],
+        introLead: 'Identical to the production homepage in structure and tone, but adds the live pixogram preview after the "started" statement and the AI sandbox after the DIY chapter.',
+        bullets: ['Original section order kept', 'Live picker after the "started" statement', 'AI sandbox after CreateItYourself'],
+        note: 'Lets us test whether the two new interactive sections lift the existing default flow without rewriting it.',
+        quote: { line1: 'Same story.', line2: 'Two more moments to play.' },
+      },
+      de: {
+        name: 'Original Plus',
+        shortName: 'Plus',
+        thesis: 'Die Original-Startseite, ergänzt um den Live-Pixogramm-Picker und die KI-Sandbox an passenden Stellen.',
+        introEyebrow: 'Original-Layout, zwei neue Sektionen',
+        introTitle: ['Zeit.', 'Design.', 'Ausdruck.'],
+        introLead: 'Aufbau und Tonalität wie die Produktions-Startseite. Neu: der Live-Picker direkt nach dem "Started"-Statement und die KI-Sandbox nach dem DIY-Kapitel.',
+        bullets: ['Original-Sektionsreihenfolge bleibt', 'Live-Picker nach dem "Started"-Statement', 'KI-Sandbox nach CreateItYourself'],
+        note: 'Testet, ob die beiden neuen interaktiven Sektionen den bestehenden Default-Flow heben, ohne ihn umzuschreiben.',
+        quote: { line1: 'Gleiche Geschichte.', line2: 'Zwei Momente mehr zum Spielen.' },
       },
     },
   },

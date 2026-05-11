@@ -21,6 +21,7 @@ import LivingSidebarPage from './LivingSidebarPage.astro';
 import PixelNativePage from './PixelNativePage.astro';
 import EditorialObjectPage from './EditorialObjectPage.astro';
 import QuietDropPage from './QuietDropPage.astro';
+import OriginalPlusPage from './OriginalPlusPage.astro';
 import { lifestyleGallery, workshopGallery, shapeSpacesBg, startedBg } from '../lib/assets';
 
 interface Props {
@@ -123,4 +124,8 @@ const copy = variant.copy[locale];
 
 {variant.layout === 'drop' && (
   <QuietDropPage locale={locale} variant={variant} product={product} />
+)}
+
+{variant.layout === 'plus' && (
+  <OriginalPlusPage locale={locale} variant={variant} product={product} />
 )}

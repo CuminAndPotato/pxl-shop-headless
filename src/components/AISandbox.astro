@@ -120,9 +120,7 @@ pixogram.Gradient(below: 18,
 
     <aside class="ais__device" aria-label="PXL Clock preview">
       <div class="ais__bezel">
-        <div class="ais__matrix" data-ais-matrix>
-          {Array.from({ length: 576 }).map(() => <span class="p p--0"></span>)}
-        </div>
+        <canvas class="ais__canvas" data-ais-canvas width="420" height="420"></canvas>
       </div>
       <pre class="ais__code" data-ais-code aria-live="polite"><code>{prompts[0].code}</code></pre>
     </aside>
@@ -149,14 +147,14 @@ pixogram.Gradient(below: 18,
 <script>
   import { drawers, PIXOGRAM_SIZE } from '../lib/pixograms';
   import type { PixogramId } from '../lib/pixograms';
+  import { renderPixogram } from '../lib/pixel-canvas';
   const SIZE = PIXOGRAM_SIZE;
 
   document.querySelectorAll<HTMLElement>('.ais').forEach((root) => {
-    const matrix = root.querySelector<HTMLElement>('[data-ais-matrix]');
+    const canvas = root.querySelector<HTMLCanvasElement>('[data-ais-canvas]');
     const messages = root.querySelector<HTMLElement>('[data-ais-messages]');
     const codeBox = root.querySelector<HTMLElement>('[data-ais-code]');
-    if (!matrix || !messages || !codeBox) return;
-    const cells = Array.from(matrix.querySelectorAll<HTMLSpanElement>('.p'));
+    if (!canvas || !messages || !codeBox) return;
 
     let active: PixogramId = 'pulse';
     let t = 0;
@@ -164,12 +162,7 @@ pixogram.Gradient(below: 18,
 
     function paint() {
       const fn = drawers[active] || drawers.pulse;
-      for (let i = 0; i < cells.length; i += 1) {
-        const x = i % SIZE;
-        const y = Math.floor(i / SIZE);
-        const c = fn(x, y, t);
-        cells[i].className = `p p--${c}`;
-      }
+      renderPixogram(canvas, (x, y) => fn(x, y, t), { width: SIZE, height: SIZE, mode: 'photoreal' });
       t += 1;
     }
 
@@ -395,22 +388,13 @@ pixogram.Gradient(below: 18,
       inset 0 0 0 1px rgba(255, 255, 255, 0.05),
       0 22px 60px rgba(0, 0, 0, 0.24);
   }
-  .ais__matrix {
+  .ais__canvas {
     width: 100%;
     height: 100%;
-    display: grid;
-    grid-template-columns: repeat(24, 1fr);
-    grid-template-rows: repeat(24, 1fr);
-    gap: 1px;
+    display: block;
     background: #050607;
     border-radius: 4px;
-    overflow: hidden;
   }
-  .ais .p { background: var(--ais-pixel-off); }
-  .ais .p--1 { background: var(--ais-c1); box-shadow: 0 0 6px var(--ais-c1); }
-  .ais .p--2 { background: var(--ais-c2); box-shadow: 0 0 6px var(--ais-c2); }
-  .ais .p--3 { background: var(--ais-c3); box-shadow: 0 0 6px var(--ais-c3); }
-  .ais .p--4 { background: var(--ais-c4); box-shadow: 0 0 6px var(--ais-c4); }
 
   .ais__code {
     margin: 0;

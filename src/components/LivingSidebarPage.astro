@@ -138,9 +138,7 @@ const codeSample = `public sealed class Orbit : Pixogram
     <aside class="lsb-stage" aria-label="Live preview">
       <div class="lsb-stage__inner">
         <div class="lsb-stage__bezel">
-          <div class="lsb-stage__matrix" data-lsb-matrix>
-            {Array.from({ length: 576 }).map(() => <span class="p p--0"></span>)}
-          </div>
+          <canvas class="lsb-stage__canvas" data-lsb-canvas width="520" height="520"></canvas>
         </div>
         <p class="lsb-stage__caption" data-lsb-caption>
           {locale === 'de' ? 'Sieht und bewegt sich,' : 'Watches and moves'}<br />
@@ -237,25 +235,21 @@ const codeSample = `public sealed class Orbit : Pixogram
 
 <script>
   import { drawers, PIXOGRAM_SIZE } from '../lib/pixograms';
+  import { renderPixogram } from '../lib/pixel-canvas';
   const SIZE = PIXOGRAM_SIZE;
 
   const root = document.querySelector<HTMLElement>('.lsb');
   if (root) {
-    const matrix = root.querySelector<HTMLElement>('[data-lsb-matrix]');
+    const canvas = root.querySelector<HTMLCanvasElement>('[data-lsb-canvas]');
     const split = root.querySelector<HTMLElement>('.lsb-split');
-    if (matrix && split) {
-      const cells = Array.from(matrix.querySelectorAll<HTMLSpanElement>('.p'));
+    if (canvas && split) {
       const fn = drawers.journey;
       const T_MAX = 360;
       let lastT = -1;
       let inView = true;
 
       function paint(t: number) {
-        for (let i = 0; i < cells.length; i += 1) {
-          const x = i % SIZE;
-          const y = Math.floor(i / SIZE);
-          cells[i].className = `p p--${fn(x, y, t)}`;
-        }
+        renderPixogram(canvas, (x, y) => fn(x, y, t), { width: SIZE, height: SIZE, mode: 'photoreal' });
       }
 
       function progress(): number {
@@ -384,21 +378,13 @@ const codeSample = `public sealed class Orbit : Pixogram
       0 32px 80px rgba(0, 0, 0, 0.5),
       0 8px 24px rgba(0, 0, 0, 0.4);
   }
-  .lsb-stage__matrix {
-    width: 100%; height: 100%;
-    display: grid;
-    grid-template-columns: repeat(24, 1fr);
-    grid-template-rows: repeat(24, 1fr);
-    gap: 1px;
+  .lsb-stage__canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
     border-radius: 4px;
     background: #050607;
-    overflow: hidden;
   }
-  .lsb-stage .p { background: rgba(255, 255, 255, 0.03); transition: background-color 120ms ease; }
-  .lsb-stage .p--1 { background: var(--lsb-accent-warm); box-shadow: 0 0 7px var(--lsb-accent-warm); }
-  .lsb-stage .p--2 { background: var(--lsb-accent); box-shadow: 0 0 7px var(--lsb-accent); }
-  .lsb-stage .p--3 { background: #c0d1da; box-shadow: 0 0 7px rgba(192, 209, 218, 0.6); }
-  .lsb-stage .p--4 { background: #e7fa98; box-shadow: 0 0 7px rgba(231, 250, 152, 0.5); }
 
   .lsb-stage__caption {
     margin: 0;

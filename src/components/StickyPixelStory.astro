@@ -1,0 +1,312 @@
+---
+import type { Locale } from '../i18n/strings';
+
+// Sticky-pixel-display + scroll-driven content section. Originally built for
+// LivingSidebar; extracted so we can drop it into other layouts without
+// duplicating the canvas/animation wiring.
+
+export type ChapterShape = 'lede' | 'quote' | 'code' | 'still' | 'order';
+export interface StickyChapter {
+  shape: ChapterShape;
+  title?: string;
+  body?: string;
+  inlineSpecs?: string;
+  quote?: string;
+  byline?: string;
+  caption?: string;
+  img?: string;
+  code?: string;
+}
+
+interface Props {
+  locale: Locale;
+  chapters: StickyChapter[];
+  /** Optional caption shown under the sticky display. */
+  caption?: { lead: string; tail: string };
+  /** Color of the on-pixels (1/2/3/4). Defaults match the brand gradient. */
+  palette?: { c1: string; c2: string; c3: string; c4: string };
+}
+
+const {
+  locale,
+  chapters,
+  caption,
+  palette = { c1: '#fbb238', c2: '#485dbd', c3: '#c0d1da', c4: '#e7fa98' },
+} = Astro.props;
+
+const fallbackCaption = locale === 'de'
+  ? { lead: 'Sieht und bewegt sich,', tail: 'während du liest.' }
+  : { lead: 'Watches and moves', tail: 'while you read.' };
+const cap = caption ?? fallbackCaption;
+---
+
+<section class="sps" data-sps>
+  <aside class="sps-stage" aria-label="PXL Clock preview">
+    <div class="sps-stage__inner">
+      <div class="sps-stage__bezel">
+        <canvas class="sps-stage__canvas" data-sps-canvas width="520" height="520"></canvas>
+      </div>
+      <p class="sps-stage__caption">
+        {cap.lead}<br />
+        <span>{cap.tail}</span>
+      </p>
+    </div>
+  </aside>
+
+  <div class="sps-flow">
+    {chapters.map((ch) => {
+      if (ch.shape === 'lede') {
+        return (
+          <article class="sps-chap sps-chap--lede">
+            {ch.title && <h2 class="sps-chap__title">{ch.title}</h2>}
+            {ch.body && <p class="sps-chap__body">{ch.body}</p>}
+            {ch.inlineSpecs && <p class="sps-chap__specs">{ch.inlineSpecs}</p>}
+          </article>
+        );
+      }
+      if (ch.shape === 'quote') {
+        return (
+          <article class="sps-chap sps-chap--quote">
+            <blockquote>
+              {ch.quote && <p>"{ch.quote}"</p>}
+              {ch.byline && <cite>— {ch.byline}</cite>}
+            </blockquote>
+            {ch.img && (
+              <figure class="sps-chap__figure">
+                <img src={ch.img} alt="" loading="lazy" />
+                {ch.caption && <figcaption>{ch.caption}</figcaption>}
+              </figure>
+            )}
+          </article>
+        );
+      }
+      if (ch.shape === 'code') {
+        return (
+          <article class="sps-chap sps-chap--code">
+            {ch.title && <h2 class="sps-chap__title">{ch.title}</h2>}
+            {ch.body && <p class="sps-chap__body">{ch.body}</p>}
+            {ch.code && <pre class="sps-chap__code"><code>{ch.code}</code></pre>}
+          </article>
+        );
+      }
+      if (ch.shape === 'still') {
+        return (
+          <article class="sps-chap sps-chap--still">
+            {ch.img && (
+              <figure>
+                <img src={ch.img} alt="" loading="lazy" />
+                {ch.caption && <figcaption>{ch.caption}</figcaption>}
+              </figure>
+            )}
+          </article>
+        );
+      }
+      return (
+        <article class="sps-chap sps-chap--order">
+          {ch.title && <h2 class="sps-chap__title">{ch.title}</h2>}
+          {ch.body && <p class="sps-chap__body">{ch.body}</p>}
+        </article>
+      );
+    })}
+  </div>
+</section>
+
+<script>
+  import { drawers, PIXOGRAM_SIZE } from '../lib/pixograms';
+  import { renderPixogram } from '../lib/pixel-canvas';
+  const SIZE = PIXOGRAM_SIZE;
+
+  document.querySelectorAll<HTMLElement>('[data-sps]').forEach((section) => {
+    const canvas = section.querySelector<HTMLCanvasElement>('[data-sps-canvas]');
+    if (!canvas) return;
+    const fn = drawers.journey;
+    const T_MAX = 280;
+    let lastT = -1;
+    let inView = true;
+
+    function paint(t: number) {
+      renderPixogram(canvas, (x, y) => fn(x, y, t), { width: SIZE, height: SIZE, mode: 'photoreal' });
+    }
+
+    function progress(): number {
+      const rect = section.getBoundingClientRect();
+      const total = rect.height;
+      const scrolled = -rect.top;
+      return Math.max(0, Math.min(1, scrolled / Math.max(1, total)));
+    }
+
+    let raf = 0;
+    function tick() {
+      raf = 0;
+      if (!inView) return;
+      const p = progress();
+      const t = Math.floor(p * T_MAX);
+      if (t !== lastT) {
+        paint(t);
+        lastT = t;
+      }
+    }
+    function schedule() {
+      if (!raf) raf = requestAnimationFrame(tick);
+    }
+
+    paint(0);
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule, { passive: true });
+    schedule();
+
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => { inView = entry.isIntersecting; });
+      if (inView) schedule();
+    }, { threshold: 0 });
+    io.observe(section);
+  });
+</script>
+
+<style define:vars={{ c1: palette.c1, c2: palette.c2, c3: palette.c3, c4: palette.c4 }}>
+  .sps {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    gap: 0;
+    max-width: 1480px;
+    margin: 0 auto;
+    color: #0a0a0a;
+    font-family: 'Inter Tight', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  .sps-stage { position: relative; }
+  .sps-stage__inner {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    padding: clamp(2rem, 5vw, 4rem);
+  }
+  .sps-stage__bezel {
+    width: clamp(280px, 30vw, 440px);
+    aspect-ratio: 1;
+    padding: 5%;
+    border-radius: 18px;
+    background: #050505;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+      0 32px 80px rgba(0, 0, 0, 0.45),
+      0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+  .sps-stage__canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border-radius: 4px;
+    background: #050607;
+  }
+
+  .sps-stage__caption {
+    margin: 0;
+    text-align: center;
+    color: rgba(10, 10, 10, 0.62);
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+  .sps-stage__caption span { color: #0a0a0a; }
+
+  .sps-flow {
+    padding: clamp(4rem, 9vw, 7rem) clamp(1rem, 4vw, 3rem) clamp(6rem, 12vw, 10rem);
+    max-width: 60ch;
+  }
+  .sps-chap { padding: clamp(3rem, 6vw, 5rem) 0; }
+  .sps-chap__title {
+    margin: 0 0 1rem;
+    font-family: 'Mona Sans', 'Inter Tight', sans-serif;
+    font-size: clamp(1.8rem, 3.2vw, 2.5rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    color: #0a0a0a;
+  }
+  .sps-chap__body {
+    margin: 0;
+    color: rgba(10, 10, 10, 0.7);
+    line-height: 1.65;
+    font-size: clamp(1rem, 1.4vw, 1.08rem);
+  }
+  .sps-chap__specs {
+    margin: 1.4rem 0 0;
+    color: rgba(10, 10, 10, 0.6);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    border-top: 1px solid rgba(10, 10, 10, 0.12);
+    padding-top: 1rem;
+  }
+
+  .sps-chap--quote blockquote {
+    margin: 0 0 2rem;
+    padding: 0;
+    border: 0;
+  }
+  .sps-chap--quote blockquote p {
+    margin: 0 0 0.6rem;
+    font-family: 'Mona Sans', 'Inter Tight', sans-serif;
+    font-size: clamp(1.5rem, 2.6vw, 2.1rem);
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+    color: #0a0a0a;
+  }
+  .sps-chap--quote blockquote cite {
+    font-style: normal;
+    color: rgba(10, 10, 10, 0.6);
+    font-size: 0.92rem;
+  }
+  .sps-chap__figure { margin: 0; }
+  .sps-chap__figure img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+  .sps-chap__figure figcaption {
+    margin-top: 0.85rem;
+    color: rgba(10, 10, 10, 0.6);
+    font-size: 0.86rem;
+    line-height: 1.55;
+  }
+
+  .sps-chap__code {
+    margin: 1.5rem 0 0;
+    padding: 1.4rem 1.6rem;
+    background: #1a1815;
+    color: #ece6da;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.84rem;
+    line-height: 1.55;
+  }
+
+  .sps-chap--still figure { margin: 0; }
+  .sps-chap--still img {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+  .sps-chap--still figcaption {
+    margin-top: 1rem;
+    color: rgba(10, 10, 10, 0.6);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    max-width: 48ch;
+  }
+
+  @media (max-width: 980px) {
+    .sps { grid-template-columns: 1fr; }
+    .sps-stage__inner { position: static; height: auto; padding-top: 4rem; padding-bottom: 0; }
+  }
+</style>

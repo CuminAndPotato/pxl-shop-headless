@@ -10,6 +10,7 @@ import type { PageVariantSlug } from './page-variants';
 // edits to either count.
 const VARIANT_FILES: Record<PageVariantSlug, string[]> = {
   // Fresh layouts (own file each)
+  plus:      ['src/components/OriginalPlusPage.astro'],
   ribbon:    ['src/components/StoryRibbonPage.astro'],
   sidebar:   ['src/components/LivingSidebarPage.astro'],
   native:    ['src/components/PixelNativePage.astro'],

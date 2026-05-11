@@ -1,0 +1,172 @@
+---
+import type { Locale } from '../i18n/strings';
+import { t } from '../i18n/strings';
+import type { Product } from '../lib/shop';
+import type { PageVariant } from '../lib/page-variants';
+import { lifestyleGallery, workshopGallery, shapeSpacesBg, startedBg } from '../lib/assets';
+import Hero from './Hero.astro';
+import ProductPanel from './ProductPanel.astro';
+import Gallery from './Gallery.astro';
+import Variants from './Variants.astro';
+import Statement from './Statement.astro';
+import Handmade from './Handmade.astro';
+import CreateItYourself from './CreateItYourself.astro';
+import Setup from './Setup.astro';
+import OurStory from './OurStory.astro';
+import LivePixogramPicker from './LivePixogramPicker.astro';
+import AISandbox from './AISandbox.astro';
+import StickyPixelStory from './StickyPixelStory.astro';
+import type { StickyChapter } from './StickyPixelStory.astro';
+
+interface Props {
+  locale: Locale;
+  variant: PageVariant;
+  product: Product | null;
+}
+
+const { locale, product } = Astro.props;
+const s = t(locale);
+
+const stickyCode = `public sealed class Orbit : Pixogram
+{
+    public override async Task Run(Matrix m)
+    {
+        await m.Clear("#0e0d0b");
+        for (var i = 0; i < 3; i++)
+        {
+            var r = 4.5f + i * 3.5f;
+            await m.Orbit(r, speed: 1f / (i + 1));
+        }
+        await m.Play();
+    }
+}`;
+
+const stickyChapters: StickyChapter[] = locale === 'de'
+  ? [
+      {
+        shape: 'lede',
+        title: 'Eine Uhr, die zeigt, was du ihr sagst.',
+        body:
+          'Die PXL Clock ist eine Pixel-Matrix von 24 mal 24 Punkten hinter echtem Glas. Tags zeigt sie die Zeit, abends eine Animation, wenn du willst auch deinen Build-Status oder das Wetter. 576 Pixel sind nicht viel — und genau das ist die Idee.',
+        inlineSpecs: '576 Pixel · WLAN-Setup in unter einer Minute · Mobile App für iOS und Android.',
+      },
+      {
+        shape: 'quote',
+        quote: 'Sie hängt da und atmet. Das ist eigentlich alles, was ein Objekt im Raum tun muss.',
+        byline: 'Aus einem ersten Test mit einer Beta-Uhr.',
+      },
+      {
+        shape: 'code',
+        title: 'Die Uhr ist offen.',
+        body:
+          'Du schreibst Pixogramme — kleine C#-Programme, die in 24 × 24 Pixeln laufen. Lokal im Browser-Simulator entwickeln, dann per OTA auf die echte Clock.',
+        code: stickyCode,
+      },
+    ]
+  : [
+      {
+        shape: 'lede',
+        title: 'A clock that shows what you tell it.',
+        body:
+          'The PXL Clock is a 24 by 24 pixel matrix behind real glass. By day it shows time, in the evening an animation, and a build status or the weather if that is what you want. 576 pixels is not much — that is the point.',
+        inlineSpecs: '576 pixels · WiFi setup in under a minute · mobile app for iOS and Android.',
+      },
+      {
+        shape: 'quote',
+        quote: 'It hangs there and breathes. That is really all an object in a room has to do.',
+        byline: 'From an early test with a beta unit.',
+      },
+      {
+        shape: 'code',
+        title: 'The clock is open.',
+        body:
+          'You write pixograms — small C# programs that run on a 24 × 24 grid. Build locally in the browser simulator, push to the clock over OTA.',
+        code: stickyCode,
+      },
+    ];
+---
+
+<!-- Exactly the default homepage, with two new sections folded in:
+     LivePixogramPicker after Statement("started") so visitors can see the
+     clock react to a click before reading the DIY chapters, and AISandbox
+     after CreateItYourself as the next step in the "make it yours" arc. -->
+<Hero locale={locale} />
+<ProductPanel locale={locale} product={product} />
+<Gallery images={lifestyleGallery} ariaLabel={locale === 'de' ? 'Lifestyle-Galerie' : 'Lifestyle gallery'} />
+<Variants locale={locale} />
+<Statement line1={s.shapeSpaces.line1} line2={s.shapeSpaces.line2} bgImage={shapeSpacesBg} />
+<Handmade locale={locale} productId={product?.id} />
+<Gallery images={workshopGallery} ariaLabel={locale === 'de' ? 'Werkstatt-Galerie' : 'Workshop gallery'} />
+<Statement line1={s.started.line1} line2={s.started.line2} bgImage={startedBg} />
+
+<!-- The Sidebar's signature move: a sticky pixel display on the left, story
+     chapters scrolling on the right, the animation driven frame-by-frame by
+     scroll. Sits where the original page already says "we wanted to make
+     something real" — that's the right moment to actually show the thing
+     reacting to your input. -->
+<section class="op-sticky">
+  <StickyPixelStory locale={locale} chapters={stickyChapters} />
+</section>
+
+<section class="op-section op-section--picker">
+  <div class="op-section__inner">
+    <LivePixogramPicker locale={locale} variant="card" initial="pulse" />
+  </div>
+</section>
+
+<CreateItYourself locale={locale} />
+
+<section class="op-section op-section--sandbox">
+  <div class="op-section__inner">
+    <AISandbox locale={locale} variant="card" tone="light" />
+  </div>
+</section>
+
+<Setup locale={locale} />
+<OurStory locale={locale} />
+
+<style>
+  /* Sticky pixel story sits flush — no surrounding padding, so the scroll-
+     driven animation has the full vertical room it needs to play out. */
+  .op-sticky {
+    background: #ffffff;
+  }
+  .op-section {
+    /* Sit on whatever background the surrounding original sections use.
+       The picker/sandbox cards bring their own surface, so the section
+       itself just provides spacing and a centered max-width. */
+    padding: clamp(3.5rem, 8vw, 6.5rem) clamp(1rem, 3vw, 2rem);
+    background: transparent;
+  }
+  .op-section__inner {
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+  /* Picker block sits between the "started" statement and the DIY chapter.
+     The whole picker uses its own card variant — we just give it air. */
+  .op-section--picker {
+    --draft-fg: #0a0a0a;
+    --draft-bg: #ffffff;
+    --draft-muted: #5d5d5d;
+    --draft-surface: #ffffff;
+    --draft-line: rgba(10, 10, 10, 0.12);
+    --draft-bezel: #0b0c0e;
+    --draft-c1: #fbb238;
+    --draft-c2: #485dbd;
+    --draft-c3: #c0d1da;
+    --draft-c4: #e7fa98;
+  }
+  /* Sandbox block follows CreateItYourself — DIY → AI-assisted DIY. */
+  .op-section--sandbox {
+    --draft-fg: #0a0a0a;
+    --draft-bg: #ffffff;
+    --draft-muted: #5d5d5d;
+    --draft-surface: #ffffff;
+    --draft-line: rgba(10, 10, 10, 0.12);
+    --draft-bezel: #0b0c0e;
+    --draft-c1: #fbb238;
+    --draft-c2: #485dbd;
+    --draft-c3: #c0d1da;
+    --draft-c4: #e7fa98;
+  }
+</style>
