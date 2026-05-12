@@ -1,0 +1,186 @@
+{
+  "generatedAt": "2026-05-12T13:21:12.668Z",
+  "width": 24,
+  "height": 24,
+  "duration": 60,
+  "fps": 5,
+  "count": 16,
+  "items": [
+    {
+      "slug": "aroundtheclock",
+      "file": "aroundtheclock.pxl",
+      "displayName": "Around The Clock",
+      "author": "Urs Enzler",
+      "description": "Three concentric pixel paths show seconds, minutes and hours",
+      "appType": "ClockFace",
+      "type": "ClockFace",
+      "duration": 60,
+      "fps": 5
+    },
+    {
+      "slug": "aroundtheclockcolorful",
+      "file": "aroundtheclockcolorful.pxl",
+      "displayName": "Around The Clock Colorful",
+      "author": "\"Nico & Urs Enzler\"",
+      "description": "Three concentric pixel paths with rainbow colors",
+      "appType": "ClockFace",
+      "type": "ClockFace",
+      "duration": 60,
+      "fps": 5
+    },
+    {
+      "slug": "colordiagonal",
+      "file": "colordiagonal.pxl",
+      "displayName": "Color Diagonal",
+      "author": "\"Nora & Urs Enzler\"",
+      "description": "Animated diagonal lines that alternate direction each minute",
+      "appType": "ClockFace",
+      "type": "ClockFace",
+      "duration": 60,
+      "fps": 5
+    },
+    {
+      "slug": "colordiagonalwithfulledges",
+      "file": "colordiagonalwithfulledges.pxl",
+      "displayName": "Color Diagonal With Full Edges",
+      "author": "\"Nora & Urs Enzler\"",
+      "description": "Diagonal lines with corner fills that change based on time",
+      "appType": "ClockFace",
+      "type": "ClockFace",
+      "duration": 60,
+      "fps": 5
+    },
+    {
+      "slug": "colordiamond",
+      "file": "colordiamond.pxl",
+      "displayName": "Color Diamond",
+      "author": "\"Nico & Urs Enzler\"",
+      "description": "Nested colored rectangles with a seconds hand around the border",
+      "appType": "ClockFace",
+      "type": "ClockFace",
+      "duration": 60,
+      "fps": 5
+    },
+    {
+      "slug": "colourrain",
+      "file": "colourrain.pxl",
+      "displayName": "Colour Rain",
+      "author": "\"Nico & Urs Enzler\"",
+      "description": "Colorful rain lines flowing down with time overlay",
+      "appType": "ClockFace",
+      "type": "ClockFace",
+      "duration": 60,
+      "fps": 5
+    },
+    {
+      "slug": "colourwheel",
+      "file": "colourwheel.pxl",
+      "displayName": "Colour Wheel",
+      "author": "Urs Enzler",
+      "description": "HSV color wheel cycling through the full spectrum",
+      "appType": "ClockFace",
+      "type": "ClockFace",
+      "duration": 60,
+      "fps": 5
+    },
+    {
+      "slug": "colourwheeldynamic",
+      "file": "colourwheeldynamic.pxl",
+      "displayName": "Colour Wheel Dynamic",
+      "author": "Urs Enzler",
+      "description": "Dynamic HSV color wheel where all positions are always visible",
+      "appType": "ClockFace",
+      "type": "ClockFace",
+      "duration": 60,
+      "fps": 5
+    },
+    {
+      "slug": "colourwheelrandom",
+      "file": "colourwheelrandom.pxl",
+      "displayName": "Colour Wheel Random",
+      "author": "Urs Enzler",
+      "description": "Color wheel with random hue seeds that change each minute",
+      "appType": "ClockFace",
+      "type": "ClockFace",
+      "duration": 60,
+      "fps": 5
+    },
+    {
+      "slug": "gameoflife",
+      "file": "gameoflife.pxl",
+      "displayName": "Game Of Life",
+      "author": "Urs Enzler",
+      "description": "Conway's Game of Life seeded with the current time digits",
+      "appType": "ClockFace",
+      "type": "ClockFace",
+      "duration": 60,
+      "fps": 5
+    },
+    {
+      "slug": "letitsnow",
+      "file": "letitsnow.pxl",
+      "displayName": "Let It Snow",
+      "author": "Urs Enzler",
+      "description": "Snow particles falling around time digits displayed as ice",
+      "appType": "ClockFace",
+      "type": "ClockFace",
+      "duration": 60,
+      "fps": 5
+    },
+    {
+      "slug": "mythen",
+      "file": "mythen.pxl",
+      "displayName": "Mythen",
+      "author": "Urs Enzler",
+      "description": "Mountain silhouette with dynamic sky gradient",
+      "appType": "ClockFace",
+      "type": "ClockFace",
+      "duration": 60,
+      "fps": 5
+    },
+    {
+      "slug": "nicosdog",
+      "file": "nicosdog.pxl",
+      "displayName": "Nicos Dog",
+      "author": "Urs Enzler",
+      "description": "Pixel art dog scrolling across the screen with time overlay",
+      "appType": "ClockFace",
+      "type": "ClockFace",
+      "duration": 60,
+      "fps": 5
+    },
+    {
+      "slug": "ourtinysailboat",
+      "file": "ourtinysailboat.pxl",
+      "displayName": "Our Tiny Sailboat",
+      "author": "Ronald Schlenker",
+      "description": "A small sailboat on the open sea, beneath a full day's worth of sky.",
+      "appType": "ClockFace",
+      "type": "ClockFace",
+      "duration": 60,
+      "fps": 5
+    },
+    {
+      "slug": "worm",
+      "file": "worm.pxl",
+      "displayName": "Worm",
+      "author": "Urs Enzler",
+      "description": "Bouncing color worm trail with time overlay",
+      "appType": "ClockFace",
+      "type": "ClockFace",
+      "duration": 60,
+      "fps": 5
+    },
+    {
+      "slug": "sailboatopensea",
+      "file": "sailboatopensea.pxl",
+      "displayName": "Sailboat — Open Sea",
+      "author": "Ronald Schlenker",
+      "description": "Wooden sailboat under a 24s day-night cycle — sun, moon, stars, light tint on the boat",
+      "appType": "Scene",
+      "type": "Scene",
+      "duration": 60,
+      "fps": 5
+    }
+  ]
+}

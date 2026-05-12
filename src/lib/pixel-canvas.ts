@@ -364,6 +364,158 @@ export function renderPixogram(
   RENDERERS[opts.mode](canvas, draw, opts);
 }
 
+// === RGB-direct render =====================================================
+// Same photoreal pipeline as drawPhotoreal, but takes an RGB byte buffer
+// (3 bytes per pixel, row-major). Used for replaying .pxl pixogram files.
+export function renderRgbPhotoreal(
+  canvas: HTMLCanvasElement,
+  frame: Uint8Array,
+  width: number,
+  height: number,
+  opts: Omit<RenderOptions, 'mode' | 'palette'> = { width, height, mode: 'photoreal' } as any,
+): void {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const cssW = canvas.clientWidth;
+  const cssH = canvas.clientHeight;
+  if (cssW === 0 || cssH === 0) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const targetW = Math.round(cssW * dpr);
+  const targetH = Math.round(cssH * dpr);
+  if (canvas.width !== targetW || canvas.height !== targetH) {
+    canvas.width = targetW;
+    canvas.height = targetH;
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (opts.frameColor) {
+    ctx.fillStyle = opts.frameColor;
+    ctx.fillRect(0, 0, cssW, cssH);
+  } else {
+    ctx.clearRect(0, 0, cssW, cssH);
+  }
+  const pad = Math.min(cssW, cssH) * (opts.framePadding ?? 0);
+  const matSize = Math.min(cssW - pad * 2, cssH - pad * 2);
+  const cellSize = matSize / width;
+  const offsetX = (cssW - matSize) / 2;
+  const offsetY = (cssH - matSize) / 2;
+  ctx.fillStyle = opts.voidColor ?? '#050608';
+  ctx.fillRect(offsetX, offsetY, matSize, matSize);
+
+  const gap = cellSize * 0.03;
+  const radius = cellSize * 0.05;
+  const cellSz = cellSize - gap;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const off = (y * width + x) * 3;
+      const r = frame[off];
+      const g = frame[off + 1];
+      const b = frame[off + 2];
+      const sx = offsetX + x * cellSize + gap / 2;
+      const sy = offsetY + y * cellSize + gap / 2;
+      ctx.beginPath();
+      ctx.roundRect(sx, sy, cellSz, cellSz, radius);
+      if (r + g + b < 12) {
+        ctx.fillStyle = '#0c0d10';
+        ctx.fill();
+        continue;
+      }
+      const cx = sx + cellSz / 2;
+      const cy = sy + cellSz / 2;
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, cellSz * 0.7);
+      grad.addColorStop(0, `rgb(${Math.min(255, r + 30)},${Math.min(255, g + 30)},${Math.min(255, b + 30)})`);
+      grad.addColorStop(0.5, `rgb(${r},${g},${b})`);
+      grad.addColorStop(1, `rgb(${Math.round(r * 0.35)},${Math.round(g * 0.35)},${Math.round(b * 0.35)})`);
+      ctx.fillStyle = grad;
+      ctx.fill();
+    }
+  }
+
+  // Bloom — same tight parameters as the colour-id photoreal pipeline.
+  ctx.globalCompositeOperation = 'lighter';
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const off = (y * width + x) * 3;
+      const r = frame[off];
+      const g = frame[off + 1];
+      const b = frame[off + 2];
+      const brightness = (r + g + b) / 765;
+      if (brightness < 0.28) continue;
+      const cx = offsetX + (x + 0.5) * cellSize;
+      const cy = offsetY + (y + 0.5) * cellSize;
+      const bloomR = cellSize * (0.75 + brightness * 0.5);
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, bloomR);
+      grad.addColorStop(0, `rgba(${r},${g},${b},${(brightness * 0.16).toFixed(3)})`);
+      grad.addColorStop(0.4, `rgba(${r},${g},${b},${(brightness * 0.05).toFixed(3)})`);
+      grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(cx - bloomR, cy - bloomR, bloomR * 2, bloomR * 2);
+    }
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+// === RGB-fast =============================================================
+// Stripped-down companion to renderRgbPhotoreal: flat rectangles only, no
+// per-cell gradient and no bloom pass. Designed for grids of small thumbnails
+// (e.g. PixogramLibrary) where Safari's canvas pipeline chokes on the
+// gradient+composite traffic of the full photoreal renderer.
+//
+// Trade-off: each pixel reads as a clean solid square with a thin trench
+// between cells — the "real LED hotspot" effect is gone, but at thumbnail
+// size (~200 px) the difference is hard to see and the framerate is fine.
+export function renderRgbFast(
+  canvas: HTMLCanvasElement,
+  frame: Uint8Array,
+  width: number,
+  height: number,
+  opts: { framePadding?: number; voidColor?: string; dprCap?: number } = {},
+): void {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const cssW = canvas.clientWidth;
+  const cssH = canvas.clientHeight;
+  if (cssW === 0 || cssH === 0) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, opts.dprCap ?? 1.5);
+  const targetW = Math.round(cssW * dpr);
+  const targetH = Math.round(cssH * dpr);
+  if (canvas.width !== targetW || canvas.height !== targetH) {
+    canvas.width = targetW;
+    canvas.height = targetH;
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const pad = Math.min(cssW, cssH) * (opts.framePadding ?? 0);
+  const matSize = Math.min(cssW - pad * 2, cssH - pad * 2);
+  const cellSize = matSize / width;
+  const offsetX = (cssW - matSize) / 2;
+  const offsetY = (cssH - matSize) / 2;
+
+  // Paint the void first; "off" cells (rgb sum < 12) just leave it showing
+  // through, saving 50%+ of the fillRect calls on dark frames.
+  ctx.fillStyle = opts.voidColor ?? '#050608';
+  ctx.fillRect(offsetX, offsetY, matSize, matSize);
+
+  const gap = cellSize * 0.03;
+  const cellSz = cellSize - gap;
+  const cellOff = gap / 2;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const off = (y * width + x) * 3;
+      const r = frame[off];
+      const g = frame[off + 1];
+      const b = frame[off + 2];
+      if (r + g + b < 12) continue;
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(
+        offsetX + x * cellSize + cellOff,
+        offsetY + y * cellSize + cellOff,
+        cellSz, cellSz,
+      );
+    }
+  }
+}
+
 export const RENDER_MODES: { id: RenderMode; label: string; description: string }[] = [
   { id: 'clock',     label: 'Clock',     description: 'Hotspot pro Pixel + sanfter Glow. Studio-Look der ersten Iteration.' },
   { id: 'photoreal', label: 'Photoreal', description: 'Echte Produktfotos als Referenz: Trenn-Steg-Gitter, Bloom durch Glas.' },

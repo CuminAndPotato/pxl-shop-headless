@@ -3,7 +3,7 @@ Festhalten:
 - VSCode PXL Studio erwähnen
 - Live
   * "Custom animations are not a hidden feature."
-  * Clockfaces | Pixograms | Simulator | PXL-JAM
+  * Clockfaces | Pixograms | Simulator | PXL-JAM  
 - Noir
   * "A wall object, not another gadget."
 - Stack

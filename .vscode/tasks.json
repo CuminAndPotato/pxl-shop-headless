@@ -1,0 +1,27 @@
+{
+  // Build tasks for pxl-shop-headless. Trigger with ⇧⌘B / Ctrl+Shift+B
+  // or via "Tasks: Run Task" → pick from the list.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Render Pixograms",
+      "detail": "Interactive: pick clockFaces/scenes from GitHub and render to public/pixograms/",
+      "type": "shell",
+      "command": "dotnet",
+      "args": ["fsi", "scripts/render-pixograms.fsx"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "echo": false,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": true,
+        "showReuseMessage": false
+      },
+      "problemMatcher": [],
+      "group": "build"
+    }
+  ]
+}

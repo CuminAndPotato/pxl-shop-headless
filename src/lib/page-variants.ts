@@ -3,7 +3,7 @@ import type { OriginalDraftSlug } from './original-drafts';
 
 export type OriginalTweakSlug = 'spatial' | 'live' | 'proof';
 export type ExperimentVariantSlug = 'poster' | 'console' | 'catalog' | 'interior' | 'buildbook';
-export type FreshLayoutSlug = 'ribbon' | 'sidebar' | 'native' | 'editorial' | 'drop' | 'plus';
+export type FreshLayoutSlug = 'ribbon' | 'sidebar' | 'native' | 'editorial' | 'drop' | 'plus' | 'plus2';
 export type PageVariantSlug = 'default' | 'dev' | 'maker' | OriginalDraftSlug | OriginalTweakSlug | ExperimentVariantSlug | FreshLayoutSlug;
 
 interface VariantLocaleCopy {
@@ -25,7 +25,7 @@ export interface PageVariant {
   slug: PageVariantSlug;
   layout:
     | 'default' | 'dev' | 'maker' | 'original' | 'tweak' | 'experiment'
-    | 'ribbon' | 'sidebar' | 'native' | 'editorial' | 'drop' | 'plus';
+    | 'ribbon' | 'sidebar' | 'native' | 'editorial' | 'drop' | 'plus' | 'plus2';
   theme: 'graphite' | 'amber' | 'mist';
   headerVariant?: 'dark' | 'light';
   copy: Record<Locale, VariantLocaleCopy>;
@@ -680,6 +680,36 @@ export const pageVariants: PageVariant[] = [
         bullets: ['Schwarz-auf-Creme Monolith', 'Kein Sektions-Lärm', 'Ein Kauf-Moment'],
         note: 'Am nächsten an einer Small-Batch-Möbel- oder Fashion-Drop-Seite: souverän, ruhig, vollständig.',
         quote: { line1: 'Eine Drop-Seite,', line2: 'kein langer Verkaufsbrief.' },
+      },
+    },
+  },
+  {
+    slug: 'plus2',
+    layout: 'plus2',
+    theme: 'graphite',
+    headerVariant: 'dark',
+    copy: {
+      en: {
+        name: 'Original Plus²',
+        shortName: 'Plus²',
+        thesis: 'Sticky scroll-story right after the hero, plus maker chapters (VS Code extension, PXL JAM, AI pipeline) sourced from real material.',
+        introEyebrow: 'Story-led original',
+        introTitle: ['Time.', 'Design.', 'Expression.'],
+        introLead: 'Same core as Plus, but the sticky pixel story lives right after the hero so the live moment lands first. Maker chapters expanded with real material from the PXL ecosystem.',
+        bullets: ['Sticky story right after Hero', 'Maker triptych: code · simulator · device', 'VS Code extension, PXL JAM, AI pipeline'],
+        note: 'Tests whether the show-and-tell moment up front, plus more open-source / community context, lifts the buying intent.',
+        quote: { line1: 'Show first.', line2: 'Tell honestly.' },
+      },
+      de: {
+        name: 'Original Plus²',
+        shortName: 'Plus²',
+        thesis: 'Sticky Scroll-Story direkt nach dem Hero, plus Maker-Kapitel (VS Code, PXL JAM, AI-Pipeline) aus echtem Material zusammengestellt.',
+        introEyebrow: 'Story-getriebenes Original',
+        introTitle: ['Zeit.', 'Design.', 'Ausdruck.'],
+        introLead: 'Gleicher Kern wie Plus, aber die sticky Pixel-Story sitzt direkt nach dem Hero — der Live-Moment kommt zuerst. Die Maker-Kapitel sind erweitert um echtes Material aus dem PXL-Ökosystem.',
+        bullets: ['Sticky Story direkt nach Hero', 'Maker-Triptychon: Code · Simulator · Uhr', 'VS Code Extension, PXL JAM, KI-Pipeline'],
+        note: 'Testet, ob der Show-and-Tell-Moment vorne plus mehr Open-Source-/Community-Kontext die Kaufbereitschaft hebt.',
+        quote: { line1: 'Erst zeigen.', line2: 'Dann ehrlich erzählen.' },
       },
     },
   },

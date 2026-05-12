@@ -1,0 +1,1230 @@
+---
+import type { Locale } from '../i18n/strings';
+import indexJson from '../../public/pixograms/index.json';
+
+interface Props {
+  locale: Locale;
+  /** Limit to the first N items (0 = all). */
+  limit?: number;
+}
+
+const { locale, limit = 0 } = Astro.props;
+
+const allItems = (indexJson?.items ?? []) as Array<{
+  slug: string;
+  file: string;
+  displayName: string;
+  author: string;
+  description: string;
+  appType: string;
+  type: string;
+}>;
+
+const items = limit > 0 ? allItems.slice(0, limit) : allItems;
+const initial = items[0]?.slug ?? '';
+
+const ui = locale === 'de'
+  ? {
+      eyebrow: 'Aus der Werkstatt',
+      title: 'Pixogramme, die schon auf der Uhr laufen.',
+      lead: 'Echte Clockfaces und Szenen aus dem offiziellen PXL-Clock-Repo. Klick eins an — du siehst es links auf der Uhr.',
+      author: 'von',
+    }
+  : {
+      eyebrow: 'From the workshop',
+      title: 'Pixograms that already run on the clock.',
+      lead: 'Real clockfaces and scenes from the official PXL Clock repo. Click one — it plays on the clock on the left.',
+      author: 'by',
+    };
+---
+
+<section class="pxlib">
+  <header class="pxlib__head">
+    <p class="pxlib__eyebrow">{ui.eyebrow}</p>
+    <h2 class="pxlib__title">{ui.title}</h2>
+    <p class="pxlib__lead">{ui.lead}</p>
+  </header>
+
+  <div class="pxlib__layout">
+    <!-- Big stage: sticky on desktop, animated photoreal canvas projected
+         onto a real product photo so the active pixogram looks like it's
+         running on the actual clock. -->
+    <aside class="pxlib__stage">
+      <div class="pxlib__stage-inner">
+        {/* 3D toggle + container intentionally disabled — the 3D approach
+            didn't match the studio photo well enough. The JS, CSS and the
+            src/lib/clock-3d.ts module stay in place so we can re-enable
+            later by un-commenting these elements; without them in the DOM
+            the JS lookups gracefully no-op and three.js isn't loaded.
+        <div class="pxlib__mode" data-pxlib-mode role="tablist" aria-label="Stage view">
+          <button type="button" data-pxlib-mode-btn="photo" class="is-active" aria-pressed="true">Photo</button>
+          <button type="button" data-pxlib-mode-btn="3d" aria-pressed="false">3D</button>
+        </div>
+        */}
+        <div class="pxlib__clock" data-pxlib-clock>
+          <img class="pxlib__clock-photo" src="/img/products/whatis-clock-tight.png" alt="" loading="lazy" />
+          <div class="pxlib__clock-display" data-pxlib-display>
+            <canvas class="pxlib__clock-canvas" data-pxlib-large-canvas width="540" height="540"></canvas>
+          </div>
+          <button type="button" class="pxlib__corner" data-corner="tl" aria-label="Top-left corner"></button>
+          <button type="button" class="pxlib__corner" data-corner="tr" aria-label="Top-right corner"></button>
+          <button type="button" class="pxlib__corner" data-corner="bl" aria-label="Bottom-left corner"></button>
+          <button type="button" class="pxlib__corner" data-corner="br" aria-label="Bottom-right corner"></button>
+        </div>
+        {/*
+        <div class="pxlib__clock-3d" data-pxlib-clock-3d hidden></div>
+        */}
+        <div class="pxlib__current">
+          <p class="pxlib__current-type" data-pxlib-large-type></p>
+          <h3 class="pxlib__current-name" data-pxlib-large-name></h3>
+          <p class="pxlib__current-author" data-pxlib-large-author></p>
+          <p class="pxlib__current-desc" data-pxlib-large-desc></p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Thumbnail grid: static freeze-frames, no animation. Click a thumb
+         to swap which pixogram plays on the stage. -->
+    <div class="pxlib__thumbs">
+      {items.map((item) => (
+        <button
+          class={item.slug === initial ? 'pxlib__thumb is-active' : 'pxlib__thumb'}
+          data-pxlib-thumb={item.slug}
+          data-pxlib-file={`/pixograms/${item.file}`}
+          data-pxlib-name={item.displayName}
+          data-pxlib-author={item.author}
+          data-pxlib-desc={item.description}
+          data-pxlib-type={item.type}
+          type="button"
+          aria-pressed={item.slug === initial}
+        >
+          <div class="pxlib__thumb-canvas-wrap">
+            <canvas class="pxlib__thumb-canvas" data-pxlib-thumb-canvas width="200" height="200"></canvas>
+          </div>
+          <div class="pxlib__thumb-meta">
+            <span class="pxlib__thumb-name">{item.displayName}</span>
+            {item.author && <span class="pxlib__thumb-author">{ui.author} {item.author}</span>}
+          </div>
+        </button>
+      ))}
+    </div>
+  </div>
+
+  <!-- Compact readout next to the corner-drag handles. Only visible with
+       ?tweak. Shows the four corner positions (in % of the photo) and a
+       Copy button that exports a ready-to-paste JS literal. -->
+  <aside class="pxlib-tweak" data-pxlib-tweak hidden>
+    <header>
+      <strong>Tweak panel</strong>
+      <button type="button" data-pxlib-tweak-close aria-label="Close">×</button>
+    </header>
+
+    <!-- Photo-mode controls: corner perspective + opacity + canvas crop.
+         Crop covers the top + right edges where the recessed LED matrix is
+         partly occluded by the frame's inner lip at the photo's 3/4 angle. -->
+    <section class="pxlib-tweak__section" data-pxlib-tweak-photo>
+      <h4>Photo · clock</h4>
+      <p class="pxlib-tweak__hint">Drag the four dots on the clock to fit the display area.</p>
+      <label class="pxlib-tweak__check">
+        <input type="checkbox" checked data-pxlib-tweak-handles>
+        <span>show handles</span>
+      </label>
+      <label class="pxlib-tweak__row">
+        <span>opacity <output data-pxlib-tweak-opacity-out>50</output>%</span>
+        <input type="range" min="0" max="100" step="1" value="50" data-pxlib-tweak-opacity>
+      </label>
+      <label class="pxlib-tweak__row">
+        <span>crop top <output data-pxlib-crop-out="top">0.4</output>%</span>
+        <input type="range" min="0" max="15" step="0.1" value="0.4" data-pxlib-crop="top">
+      </label>
+      <label class="pxlib-tweak__row">
+        <span>crop right <output data-pxlib-crop-out="right">1.1</output>%</span>
+        <input type="range" min="0" max="15" step="0.1" value="1.1" data-pxlib-crop="right">
+      </label>
+      <pre data-pxlib-tweak-output></pre>
+      <div class="pxlib-tweak__actions">
+        <button type="button" data-pxlib-tweak-copy>Copy</button>
+        <button type="button" data-pxlib-tweak-reset>Reset</button>
+      </div>
+    </section>
+
+    {/* 3D-mode controls — disabled with the 3D toggle above.
+    <section class="pxlib-tweak__section" data-pxlib-tweak-3d hidden>
+      <h4>3D · camera + recess</h4>
+      <label class="pxlib-tweak__row">
+        <span>cam X <output data-pxlib3d-out="camX"></output> cm</span>
+        <input type="range" min="-40" max="40" step="0.5" data-pxlib3d="camX">
+      </label>
+      <label class="pxlib-tweak__row">
+        <span>cam Y <output data-pxlib3d-out="camY"></output> cm</span>
+        <input type="range" min="-30" max="30" step="0.5" data-pxlib3d="camY">
+      </label>
+      <label class="pxlib-tweak__row">
+        <span>cam Z <output data-pxlib3d-out="camZ"></output> cm</span>
+        <input type="range" min="30" max="200" step="1" data-pxlib3d="camZ">
+      </label>
+      <label class="pxlib-tweak__row">
+        <span>FOV <output data-pxlib3d-out="fov"></output>°</span>
+        <input type="range" min="8" max="60" step="0.5" data-pxlib3d="fov">
+      </label>
+      <label class="pxlib-tweak__row">
+        <span>recess <output data-pxlib3d-out="recess"></output> cm</span>
+        <input type="range" min="0" max="3" step="0.05" data-pxlib3d="recess">
+      </label>
+      <pre data-pxlib3d-output></pre>
+      <div class="pxlib-tweak__actions">
+        <button type="button" data-pxlib3d-copy>Copy</button>
+        <button type="button" data-pxlib3d-reset>Reset</button>
+      </div>
+    </section>
+    */}
+  </aside>
+</section>
+
+<script>
+  import { parsePxl, type Pixogram } from '../lib/pxl-format';
+  import { renderRgbFast, renderRgbPhotoreal } from '../lib/pixel-canvas';
+
+  // === State ================================================================
+  const pixogramCache = new Map<string, Pixogram>();
+  const inflight = new Map<string, Promise<Pixogram | null>>();
+
+  // === Helpers ==============================================================
+  async function loadPixogram(url: string): Promise<Pixogram | null> {
+    if (inflight.has(url)) return inflight.get(url)!;
+    const p = (async () => {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return parsePxl(await res.text());
+      } catch (err) {
+        console.error('[pxlib] load failed', url, err);
+        return null;
+      }
+    })();
+    inflight.set(url, p);
+    return p;
+  }
+
+  // === Thumbnails ===========================================================
+  // Each thumbnail renders ONE freeze-frame (a middle frame) once and stays
+  // static after that. No interval, no worker — main thread sits idle while
+  // you scroll.
+  type Thumb = {
+    el: HTMLButtonElement;
+    slug: string;
+    url: string;
+    canvas: HTMLCanvasElement;
+    rendered: boolean;
+    meta: { displayName: string; author: string; description: string; type: string };
+  };
+
+  const thumbs: Thumb[] = [];
+  document.querySelectorAll<HTMLButtonElement>('.pxlib__thumb').forEach((el) => {
+    const slug = el.dataset.pxlibThumb ?? '';
+    const url = el.dataset.pxlibFile ?? '';
+    const canvas = el.querySelector<HTMLCanvasElement>('[data-pxlib-thumb-canvas]');
+    if (!canvas || !slug || !url) return;
+    thumbs.push({
+      el, slug, url, canvas,
+      rendered: false,
+      meta: {
+        displayName: el.dataset.pxlibName ?? '',
+        author: el.dataset.pxlibAuthor ?? '',
+        description: el.dataset.pxlibDesc ?? '',
+        type: el.dataset.pxlibType ?? '',
+      },
+    });
+  });
+
+  async function renderThumb(t: Thumb) {
+    if (t.rendered) return;
+    let pix = pixogramCache.get(t.slug);
+    if (!pix) {
+      pix = (await loadPixogram(t.url)) ?? undefined;
+      if (pix) pixogramCache.set(t.slug, pix);
+    }
+    if (!pix) return;
+    // Use the middle frame as a "characteristic" freeze — frame 0 is often
+    // an initial dark state which would make every thumbnail look identical.
+    const frame = pix.frames[Math.floor(pix.frames.length / 2)];
+    renderRgbFast(t.canvas, frame, pix.width, pix.height);
+    t.rendered = true;
+  }
+
+  const thumbIO = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      const t = thumbs.find((x) => x.el === entry.target);
+      if (t) renderThumb(t);
+    }
+  }, { rootMargin: '300px 0px', threshold: 0 });
+  thumbs.forEach((t) => thumbIO.observe(t.el));
+
+  // === Big stage ============================================================
+  const largeCanvas = document.querySelector<HTMLCanvasElement>('[data-pxlib-large-canvas]');
+  const largeType = document.querySelector<HTMLElement>('[data-pxlib-large-type]');
+  const largeName = document.querySelector<HTMLElement>('[data-pxlib-large-name]');
+  const largeAuthor = document.querySelector<HTMLElement>('[data-pxlib-large-author]');
+  const largeDesc = document.querySelector<HTMLElement>('[data-pxlib-large-desc]');
+
+  let activePix: Pixogram | null = null;
+  let activeFrame = 0;
+  let activeTimer: number | null = null;
+  let inView = true;
+
+  // 3D handle — populated lazily when the user first toggles to 3D mode so
+  // three.js only ships if requested. The 3D scene reuses the photo-mode
+  // canvas as a texture, so markDirty() is enough to refresh it.
+  type Clock3DConfig = { camX: number; camY: number; camZ: number; fov: number; recess: number };
+  type Clock3DHandle = {
+    markDirty: () => void;
+    setRunning: (on: boolean) => void;
+    setConfig: (p: Partial<Clock3DConfig>) => void;
+    getConfig: () => Clock3DConfig;
+    destroy: () => void;
+  };
+  let clock3d: Clock3DHandle | null = null;
+  let currentMode: 'photo' | '3d' = 'photo';
+
+  const CONFIG_3D_KEY = 'pxlib-3d-config';
+  const DEFAULT_3D: Clock3DConfig = { camX: 22, camY: 7, camZ: 102, fov: 18, recess: 0.7 };
+  function load3DConfig(): Clock3DConfig {
+    try {
+      const raw = localStorage.getItem(CONFIG_3D_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return { ...DEFAULT_3D, ...parsed };
+      }
+    } catch {}
+    return { ...DEFAULT_3D };
+  }
+  function save3DConfig(c: Clock3DConfig) {
+    try { localStorage.setItem(CONFIG_3D_KEY, JSON.stringify(c)); } catch {}
+  }
+
+  function paintLarge() {
+    if (!activePix || !largeCanvas) return;
+    const f = activePix.frames[activeFrame % activePix.frames.length];
+    renderRgbPhotoreal(largeCanvas, f, activePix.width, activePix.height);
+    // 3D scene uses the same canvas as a texture, so just flag it dirty.
+    clock3d?.markDirty();
+  }
+
+  function stopLarge() {
+    if (activeTimer != null) {
+      clearInterval(activeTimer);
+      activeTimer = null;
+    }
+  }
+
+  function startLarge() {
+    stopLarge();
+    if (!activePix) return;
+    paintLarge();
+    activeTimer = window.setInterval(() => {
+      activeFrame += 1;
+      paintLarge();
+    }, 200);
+  }
+
+  async function setActive(t: Thumb) {
+    // Visual highlight
+    thumbs.forEach((other) => {
+      const on = other === t;
+      other.el.classList.toggle('is-active', on);
+      other.el.setAttribute('aria-pressed', String(on));
+    });
+    // Meta
+    if (largeType) largeType.textContent = t.meta.type;
+    if (largeName) largeName.textContent = t.meta.displayName;
+    if (largeAuthor) largeAuthor.textContent = t.meta.author ? `by ${t.meta.author}` : '';
+    if (largeDesc) largeDesc.textContent = t.meta.description;
+    // Load + play
+    let pix = pixogramCache.get(t.slug);
+    if (!pix) {
+      pix = (await loadPixogram(t.url)) ?? undefined;
+      if (pix) pixogramCache.set(t.slug, pix);
+    }
+    if (!pix) return;
+    activePix = pix;
+    activeFrame = 0;
+    if (inView) startLarge();
+  }
+
+  thumbs.forEach((t) => {
+    t.el.addEventListener('click', () => setActive(t));
+  });
+
+  // Initialise with the first thumb. The thumbnail render hasn't necessarily
+  // happened yet, so we eagerly load the first pixogram for the stage.
+  if (thumbs.length > 0) setActive(thumbs[0]);
+
+  // Pause the stage when it's off-screen.
+  const stage = document.querySelector<HTMLElement>('.pxlib__stage');
+  if (stage) {
+    const stageIO = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        inView = entry.isIntersecting;
+        if (inView && activePix) startLarge();
+        else stopLarge();
+      }
+    }, { threshold: 0 });
+    stageIO.observe(stage);
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stopLarge();
+    else if (inView && activePix) startLarge();
+  });
+
+  // === Photo ↔ 3D toggle ====================================================
+  // Lazy-mount the 3D scene on first activation so three.js doesn't ship to
+  // visitors who never toggle. Photo + 3D containers swap visibility; the
+  // tweak/corner UI stays available only in photo mode.
+  const photoClockEl = document.querySelector<HTMLElement>('[data-pxlib-clock]');
+  const clock3dEl = document.querySelector<HTMLElement>('[data-pxlib-clock-3d]');
+  const modeBar = document.querySelector<HTMLElement>('[data-pxlib-mode]');
+
+  async function ensure3DMounted() {
+    if (clock3d || !clock3dEl || !largeCanvas) return;
+    const { mountClock3D } = await import('../lib/clock-3d');
+    clock3d = mountClock3D(clock3dEl, largeCanvas, load3DConfig());
+    clock3d.markDirty();
+    sync3DPanel();
+  }
+
+  // Tweak-panel sections that swap visibility with the active mode.
+  const tweakPhoto = document.querySelector<HTMLElement>('[data-pxlib-tweak-photo]');
+  const tweak3D = document.querySelector<HTMLElement>('[data-pxlib-tweak-3d]');
+
+  function setMode(mode: 'photo' | '3d') {
+    currentMode = mode;
+    if (modeBar) {
+      modeBar.querySelectorAll<HTMLButtonElement>('[data-pxlib-mode-btn]').forEach((btn) => {
+        const on = btn.dataset.pxlibModeBtn === mode;
+        btn.classList.toggle('is-active', on);
+        btn.setAttribute('aria-pressed', String(on));
+      });
+    }
+    if (tweakPhoto) tweakPhoto.hidden = mode !== 'photo';
+    if (tweak3D) tweak3D.hidden = mode !== '3d';
+    if (mode === '3d') {
+      if (photoClockEl) photoClockEl.hidden = true;
+      if (clock3dEl) clock3dEl.hidden = false;
+      ensure3DMounted().then(() => clock3d?.setRunning(true));
+    } else {
+      if (photoClockEl) photoClockEl.hidden = false;
+      if (clock3dEl) clock3dEl.hidden = true;
+      clock3d?.setRunning(false);
+    }
+  }
+
+  // Push current 3D config values back into the panel inputs + readouts.
+  // Called after mount, after reset, or after loading from localStorage.
+  function sync3DPanel() {
+    if (!clock3d) return;
+    const cfg = clock3d.getConfig();
+    document.querySelectorAll<HTMLInputElement>('[data-pxlib3d]').forEach((input) => {
+      const key = input.dataset.pxlib3d as keyof Clock3DConfig | undefined;
+      if (!key) return;
+      input.value = String(cfg[key]);
+    });
+    update3DReadout(cfg);
+  }
+  function update3DReadout(cfg: Clock3DConfig) {
+    document.querySelectorAll<HTMLElement>('[data-pxlib3d-out]').forEach((out) => {
+      const key = out.dataset.pxlib3dOut as keyof Clock3DConfig | undefined;
+      if (!key) return;
+      const v = cfg[key];
+      out.textContent = Number.isInteger(v) ? String(v) : v.toFixed(2);
+    });
+    const dump = document.querySelector<HTMLElement>('[data-pxlib3d-output]');
+    if (dump) {
+      dump.textContent =
+        `camX: ${cfg.camX}\n` +
+        `camY: ${cfg.camY}\n` +
+        `camZ: ${cfg.camZ}\n` +
+        `fov:  ${cfg.fov}\n` +
+        `recess: ${cfg.recess}`;
+    }
+  }
+
+  modeBar?.querySelectorAll<HTMLButtonElement>('[data-pxlib-mode-btn]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const m = btn.dataset.pxlibModeBtn as 'photo' | '3d';
+      if (m) setMode(m);
+    });
+  });
+
+  // === 4-corner perspective mapping ========================================
+  // The canvas wrapper is matrix3d-projected onto whatever quadrilateral the
+  // four corner % values describe. Resize-safe because positions stay in %
+  // and the matrix is recomputed each frame the layout changes.
+  type Corner = { x: number; y: number };
+  type Corners = { tl: Corner; tr: Corner; bl: Corner; br: Corner };
+
+  // Default corners — measured against whatis-clock-tight.png by dragging
+  // the four handles into the photo's display rectangle. Frame perspective
+  // is baked in (right + bottom are inset further than left + top because
+  // the clock's body has depth and the frame partly occludes the LEDs at
+  // those edges).
+  const DEFAULT_CORNERS: Corners = {
+    tl: { x: 11.4, y: 9.0 },
+    tr: { x: 83.2, y: 9.7 },
+    bl: { x: 11.4, y: 83.7 },
+    br: { x: 83.4, y: 90.0 },
+  };
+  const CORNERS_KEY = 'pxlib-corners';
+  const CROP_KEY = 'pxlib-crop';
+
+  type Crop = { top: number; right: number };
+  const DEFAULT_CROP: Crop = { top: 0.4, right: 1.1 };
+
+  function loadCorners(): Corners {
+    try {
+      const raw = localStorage.getItem(CORNERS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.tl && parsed?.tr && parsed?.bl && parsed?.br) return parsed;
+      }
+    } catch {}
+    return JSON.parse(JSON.stringify(DEFAULT_CORNERS));
+  }
+  function saveCorners(c: Corners) {
+    try { localStorage.setItem(CORNERS_KEY, JSON.stringify(c)); } catch {}
+  }
+  function loadCrop(): Crop {
+    try {
+      const raw = localStorage.getItem(CROP_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed?.top === 'number' && typeof parsed?.right === 'number') return parsed;
+      }
+    } catch {}
+    return { ...DEFAULT_CROP };
+  }
+  function saveCrop(c: Crop) {
+    try { localStorage.setItem(CROP_KEY, JSON.stringify(c)); } catch {}
+  }
+
+  // Standard quad→quad projection (Steven Wittens / Heckbert algorithm).
+  function adj(m: number[]): number[] {
+    return [
+      m[4]*m[8]-m[5]*m[7], m[2]*m[7]-m[1]*m[8], m[1]*m[5]-m[2]*m[4],
+      m[5]*m[6]-m[3]*m[8], m[0]*m[8]-m[2]*m[6], m[2]*m[3]-m[0]*m[5],
+      m[3]*m[7]-m[4]*m[6], m[1]*m[6]-m[0]*m[7], m[0]*m[4]-m[1]*m[3],
+    ];
+  }
+  function multmm(a: number[], b: number[]): number[] {
+    const c = new Array(9);
+    for (let i = 0; i < 3; i += 1) {
+      for (let j = 0; j < 3; j += 1) {
+        let cij = 0;
+        for (let k = 0; k < 3; k += 1) cij += a[3*i+k] * b[3*k+j];
+        c[3*i+j] = cij;
+      }
+    }
+    return c;
+  }
+  function multmv(m: number[], v: number[]): number[] {
+    return [
+      m[0]*v[0] + m[1]*v[1] + m[2]*v[2],
+      m[3]*v[0] + m[4]*v[1] + m[5]*v[2],
+      m[6]*v[0] + m[7]*v[1] + m[8]*v[2],
+    ];
+  }
+  function basisToPoints(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, x4: number, y4: number): number[] {
+    const m = [x1, x2, x3, y1, y2, y3, 1, 1, 1];
+    const v = multmv(adj(m), [x4, y4, 1]);
+    return multmm(m, [v[0], 0, 0, 0, v[1], 0, 0, 0, v[2]]);
+  }
+  function quadProjection(
+    x1s: number, y1s: number, x1d: number, y1d: number,
+    x2s: number, y2s: number, x2d: number, y2d: number,
+    x3s: number, y3s: number, x3d: number, y3d: number,
+    x4s: number, y4s: number, x4d: number, y4d: number,
+  ): number[] {
+    const s = basisToPoints(x1s, y1s, x2s, y2s, x3s, y3s, x4s, y4s);
+    const d = basisToPoints(x1d, y1d, x2d, y2d, x3d, y3d, x4d, y4d);
+    return multmm(d, adj(s));
+  }
+
+  const clockEl = document.querySelector<HTMLElement>('[data-pxlib-clock]');
+  const displayEl = document.querySelector<HTMLElement>('[data-pxlib-display]');
+  let corners = loadCorners();
+
+  function applyCorners() {
+    if (!clockEl || !displayEl) return;
+    const w = clockEl.offsetWidth;
+    const h = clockEl.offsetHeight;
+    if (w === 0 || h === 0) return;
+    const px = (c: Corner) => ({ x: (c.x / 100) * w, y: (c.y / 100) * h });
+    const tl = px(corners.tl), tr = px(corners.tr), bl = px(corners.bl), br = px(corners.br);
+    const t = quadProjection(
+      0, 0, tl.x, tl.y,
+      w, 0, tr.x, tr.y,
+      0, h, bl.x, bl.y,
+      w, h, br.x, br.y,
+    );
+    for (let i = 0; i < 9; i += 1) t[i] = t[i] / t[8];
+    displayEl.style.top = '0';
+    displayEl.style.left = '0';
+    displayEl.style.width = '100%';
+    displayEl.style.height = '100%';
+    displayEl.style.transformOrigin = '0 0';
+    displayEl.style.transform =
+      `matrix3d(${t[0]},${t[3]},0,${t[6]},${t[1]},${t[4]},0,${t[7]},0,0,1,0,${t[2]},${t[5]},0,${t[8]})`;
+    document.querySelectorAll<HTMLElement>('.pxlib__corner').forEach((handle) => {
+      const k = handle.dataset.corner as keyof Corners | undefined;
+      if (!k || !corners[k]) return;
+      handle.style.left = `${corners[k].x}%`;
+      handle.style.top = `${corners[k].y}%`;
+    });
+  }
+
+  function fmtCorners(c: Corners) {
+    const n = (v: number) => v.toFixed(1);
+    return (
+      `tl: { x: ${n(c.tl.x)}, y: ${n(c.tl.y)} },\n` +
+      `tr: { x: ${n(c.tr.x)}, y: ${n(c.tr.y)} },\n` +
+      `bl: { x: ${n(c.bl.x)}, y: ${n(c.bl.y)} },\n` +
+      `br: { x: ${n(c.br.x)}, y: ${n(c.br.y)} },`
+    );
+  }
+
+  applyCorners();
+  // ResizeObserver catches the clock element's size changing for any reason:
+  // viewport resize, browser zoom (which may or may not fire window.resize on
+  // each browser), responsive breakpoints, container layout shifts. Anchoring
+  // to the element itself instead of `window` is the only zoom-safe approach.
+  if (clockEl) {
+    const clockRO = new ResizeObserver(() => applyCorners());
+    clockRO.observe(clockEl);
+  }
+  // Keep the window.resize listener as a belt-and-braces fallback for the
+  // rare case where ResizeObserver isn't supported (very old browsers).
+  window.addEventListener('resize', applyCorners);
+
+  // Apply saved crop on load so it's visible even without ?tweak.
+  let crop = loadCrop();
+  function applyCrop() {
+    if (!displayEl) return;
+    displayEl.style.setProperty('--pxlib-crop-top', `${crop.top}%`);
+    displayEl.style.setProperty('--pxlib-crop-right', `${crop.right}%`);
+  }
+  applyCrop();
+
+  if (new URLSearchParams(location.search).has('tweak')) {
+    clockEl?.setAttribute('data-tweak', '');
+    const panel = document.querySelector<HTMLElement>('[data-pxlib-tweak]');
+    const out = panel?.querySelector<HTMLElement>('[data-pxlib-tweak-output]');
+    const copyBtn = panel?.querySelector<HTMLButtonElement>('[data-pxlib-tweak-copy]');
+    const resetBtn = panel?.querySelector<HTMLButtonElement>('[data-pxlib-tweak-reset]');
+    if (panel) panel.hidden = false;
+    if (out) out.textContent = fmtCorners(corners);
+
+    document.querySelectorAll<HTMLElement>('.pxlib__corner').forEach((handle) => {
+      handle.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        handle.setPointerCapture(e.pointerId);
+        handle.classList.add('is-dragging');
+        const key = handle.dataset.corner as keyof Corners;
+        function onMove(ev: PointerEvent) {
+          // Re-read the clock's bounding rect on every move — covers scroll,
+          // resize and zoom during drag (a cached rect would silently drift).
+          const rect = clockEl!.getBoundingClientRect();
+          const x = ((ev.clientX - rect.left) / rect.width) * 100;
+          const y = ((ev.clientY - rect.top) / rect.height) * 100;
+          corners[key] = {
+            x: Math.max(0, Math.min(100, x)),
+            y: Math.max(0, Math.min(100, y)),
+          };
+          applyCorners();
+          if (out) out.textContent = fmtCorners(corners);
+        }
+        function onUp() {
+          handle.classList.remove('is-dragging');
+          handle.removeEventListener('pointermove', onMove);
+          handle.removeEventListener('pointerup', onUp);
+          saveCorners(corners);
+        }
+        handle.addEventListener('pointermove', onMove);
+        handle.addEventListener('pointerup', onUp);
+      });
+    });
+
+    copyBtn?.addEventListener('click', async () => {
+      const text = fmtCorners(corners);
+      try {
+        await navigator.clipboard.writeText(text);
+        const orig = copyBtn.textContent;
+        copyBtn.textContent = 'Copied ✓';
+        setTimeout(() => { if (copyBtn) copyBtn.textContent = orig; }, 1200);
+      } catch {}
+    });
+
+    resetBtn?.addEventListener('click', () => {
+      corners = JSON.parse(JSON.stringify(DEFAULT_CORNERS));
+      saveCorners(corners);
+      applyCorners();
+      if (out) out.textContent = fmtCorners(corners);
+      // Also reset the crop sliders + applied crop.
+      crop = { ...DEFAULT_CROP };
+      saveCrop(crop);
+      applyCrop();
+      document.querySelectorAll<HTMLInputElement>('[data-pxlib-crop]').forEach((input) => {
+        const key = input.dataset.pxlibCrop as 'top' | 'right' | undefined;
+        if (!key) return;
+        input.value = String(crop[key]);
+        const o = document.querySelector<HTMLElement>(`[data-pxlib-crop-out="${key}"]`);
+        if (o) o.textContent = crop[key].toFixed(1);
+      });
+    });
+
+    // Opacity slider — makes the canvas semi-transparent so the underlying
+    // product photo shows through, letting you eyeball the corner positions
+    // against the real display rectangle.
+    const opacityInput = panel?.querySelector<HTMLInputElement>('[data-pxlib-tweak-opacity]');
+    const opacityOut = panel?.querySelector<HTMLElement>('[data-pxlib-tweak-opacity-out]');
+    function applyOpacity(v: number) {
+      if (displayEl) displayEl.style.opacity = String(v / 100);
+      if (opacityOut) opacityOut.textContent = String(v);
+    }
+    if (opacityInput) {
+      applyOpacity(Number(opacityInput.value));  // initial: 50%
+      opacityInput.addEventListener('input', () => applyOpacity(Number(opacityInput.value)));
+    }
+
+    // Handles checkbox — lets the user temporarily hide the orange drag dots
+    // (e.g. to take a clean screenshot) without leaving tweak mode.
+    const handlesInput = panel?.querySelector<HTMLInputElement>('[data-pxlib-tweak-handles]');
+    function applyHandlesVisible(on: boolean) {
+      if (!clockEl) return;
+      if (on) clockEl.removeAttribute('data-handles-hidden');
+      else clockEl.setAttribute('data-handles-hidden', '');
+    }
+    if (handlesInput) {
+      applyHandlesVisible(handlesInput.checked);
+      handlesInput.addEventListener('change', () => applyHandlesVisible(handlesInput.checked));
+    }
+
+    // Crop sliders — top + right inset on the rendered canvas. Persists to
+    // localStorage so the chosen crop survives a reload.
+    document.querySelectorAll<HTMLInputElement>('[data-pxlib-crop]').forEach((input) => {
+      const key = input.dataset.pxlibCrop as 'top' | 'right' | undefined;
+      if (!key) return;
+      input.value = String(crop[key]);
+      const out = document.querySelector<HTMLElement>(`[data-pxlib-crop-out="${key}"]`);
+      if (out) out.textContent = crop[key].toFixed(1);
+      input.addEventListener('input', () => {
+        const v = Number(input.value);
+        crop = { ...crop, [key]: v };
+        applyCrop();
+        if (out) out.textContent = v.toFixed(1);
+        saveCrop(crop);
+      });
+    });
+
+    panel?.querySelector('[data-pxlib-tweak-close]')?.addEventListener('click', () => {
+      if (panel) panel.hidden = true;
+      if (displayEl) displayEl.style.opacity = '';  // restore full opacity
+    });
+
+    // 3D camera + recess sliders. Each slider drives one Clock3DConfig key;
+    // changes are written through to the 3D scene and saved to localStorage
+    // so the look survives a reload.
+    document.querySelectorAll<HTMLInputElement>('[data-pxlib3d]').forEach((input) => {
+      input.addEventListener('input', () => {
+        if (!clock3d) return;
+        const key = input.dataset.pxlib3d as keyof Clock3DConfig | undefined;
+        if (!key) return;
+        const v = Number(input.value);
+        const partial = { [key]: v } as Partial<Clock3DConfig>;
+        clock3d.setConfig(partial);
+        const cfg = clock3d.getConfig();
+        update3DReadout(cfg);
+        save3DConfig(cfg);
+      });
+    });
+
+    panel?.querySelector<HTMLButtonElement>('[data-pxlib3d-copy]')?.addEventListener('click', async (e) => {
+      if (!clock3d) return;
+      const btn = e.currentTarget as HTMLButtonElement;
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(clock3d.getConfig(), null, 2));
+        const orig = btn.textContent;
+        btn.textContent = 'Copied ✓';
+        setTimeout(() => { btn.textContent = orig; }, 1200);
+      } catch {}
+    });
+
+    panel?.querySelector<HTMLButtonElement>('[data-pxlib3d-reset]')?.addEventListener('click', () => {
+      if (!clock3d) return;
+      clock3d.setConfig(DEFAULT_3D);
+      save3DConfig(DEFAULT_3D);
+      sync3DPanel();
+    });
+  }
+</script>
+
+<style>
+  .pxlib {
+    font-family: 'Inter Tight', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    font-feature-settings: 'tnum' 1;
+    color: #0a0a0a;
+  }
+  .pxlib__head {
+    max-width: 60ch;
+    margin: 0 0 clamp(2rem, 5vw, 3.5rem);
+  }
+  .pxlib__eyebrow {
+    margin: 0 0 0.85rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(10, 10, 10, 0.55);
+  }
+  .pxlib__title {
+    margin: 0 0 1rem;
+    font-family: 'Mona Sans', 'Inter Tight', sans-serif;
+    font-size: clamp(1.9rem, 3.6vw, 2.9rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+  }
+  .pxlib__lead {
+    margin: 0;
+    color: rgba(10, 10, 10, 0.7);
+    line-height: 1.6;
+    font-size: clamp(1rem, 1.3vw, 1.08rem);
+  }
+
+  /* === Master/detail layout =============================================== */
+  .pxlib__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: clamp(2rem, 4vw, 3.5rem);
+    align-items: start;
+  }
+
+  /* === Sticky stage with product photo + animated canvas =================== */
+  .pxlib__stage {
+    position: relative;
+  }
+  .pxlib__stage-inner {
+    position: sticky;
+    top: clamp(1rem, 3vw, 2rem);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .pxlib__clock {
+    position: relative;
+    aspect-ratio: 1;
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  .pxlib__clock[hidden] { display: none; }
+
+  /* 3D stage — same envelope as the photo clock; three.js fills it. */
+  .pxlib__clock-3d {
+    position: relative;
+    aspect-ratio: 1;
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  .pxlib__clock-3d[hidden] { display: none; }
+  .pxlib__clock-3d canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    /* Soft drop-shadow on the rendered frame — mirrors the diffuse floor
+       shadow under the real clock in the studio photo, without needing an
+       actual ground plane in the 3D scene. drop-shadow only shadows the
+       opaque pixels of the canvas (the frame), so the background stays
+       clean. */
+    filter: drop-shadow(0 30px 50px rgba(10, 10, 10, 0.22))
+            drop-shadow(0 8px 14px rgba(10, 10, 10, 0.12));
+  }
+
+  /* Mode toggle pill: pair of buttons that swap between photo + 3D views. */
+  .pxlib__mode {
+    display: inline-flex;
+    align-self: center;
+    padding: 3px;
+    border-radius: 999px;
+    background: rgba(10, 10, 10, 0.06);
+    border: 1px solid rgba(10, 10, 10, 0.08);
+    gap: 2px;
+  }
+  .pxlib__mode button {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    padding: 0.4rem 0.95rem;
+    border-radius: 999px;
+    font: inherit;
+    font-weight: 600;
+    font-size: 0.82rem;
+    letter-spacing: -0.005em;
+    color: rgba(10, 10, 10, 0.55);
+    cursor: pointer;
+    transition: background 160ms ease, color 160ms ease;
+  }
+  .pxlib__mode button:hover { color: #0a0a0a; }
+  .pxlib__mode button.is-active {
+    background: #0a0a0a;
+    color: #f4f4f4;
+  }
+  .pxlib__clock-photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 40px 80px rgba(10, 10, 10, 0.22));
+    pointer-events: none;
+  }
+  /* Display wrapper — JS computes matrix3d from four corner positions and
+     sets it inline. The element itself fills the photo container; the
+     matrix maps that unit quad onto whatever quadrilateral the corners
+     describe. Resize-safe: corners stay in %, matrix recomputed on resize. */
+  .pxlib__clock-display {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform-origin: 0 0;
+    border-radius: 4px;
+    /* Canvas crop — clips the top + right edges of the rendered pixogram
+       before the matrix3d transform, so the topmost + rightmost LEDs (which
+       would visually spill onto the bezel because of the photo's 3/4 angle
+       + recessed display) get hidden. Live-adjustable from the tweak panel.
+       Defaults baked here so the crop applies even without ?tweak. */
+    --pxlib-crop-top: 0.4%;
+    --pxlib-crop-right: 1.1%;
+    clip-path: inset(var(--pxlib-crop-top) var(--pxlib-crop-right) 0 0);
+    /* The LED matrix sits a couple of millimetres BEHIND the frame's inner
+       edge, so the frame casts a real shadow onto the outer pixels. Right
+       and bottom shadows are stronger because that's where perspective
+       reveals the frame depth most. */
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+      /* top: soft, frame-top inner edge */
+      inset 0 8px 18px rgba(0, 0, 0, 0.45),
+      /* right: stronger — perspective makes this the most visible recess */
+      inset -14px 0 28px -2px rgba(0, 0, 0, 0.6),
+      /* bottom: matches right */
+      inset 0 -12px 24px -2px rgba(0, 0, 0, 0.55),
+      /* left: subtle highlight (closest to viewer) */
+      inset 2px 0 4px rgba(255, 255, 255, 0.04),
+      /* outer glow under the clock */
+      0 0 80px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+  }
+  .pxlib__clock-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  /* Glass-on-LEDs sheen: diagonal highlight + subtle vignette so the
+     pixogram reads as something glowing UNDER glass rather than a sticker
+     glued on top. */
+  .pxlib__clock-display::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0) 32%, rgba(255, 255, 255, 0) 70%, rgba(255, 255, 255, 0.06) 100%),
+      radial-gradient(ellipse 90% 110% at 50% 50%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.35) 100%);
+    border-radius: inherit;
+    mix-blend-mode: screen;
+  }
+
+  .pxlib__current {
+    text-align: center;
+    max-width: 50ch;
+    margin: 0 auto;
+  }
+  .pxlib__current-type {
+    margin: 0 0 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #485dbd;
+  }
+  .pxlib__current-name {
+    margin: 0 0 0.4rem;
+    font-family: 'Mona Sans', 'Inter Tight', sans-serif;
+    font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .pxlib__current-author {
+    margin: 0 0 0.8rem;
+    color: rgba(10, 10, 10, 0.55);
+    font-size: 0.92rem;
+  }
+  .pxlib__current-author:empty { display: none; }
+  .pxlib__current-desc {
+    margin: 0;
+    color: rgba(10, 10, 10, 0.7);
+    line-height: 1.55;
+    font-size: 0.96rem;
+  }
+  .pxlib__current-desc:empty { display: none; }
+
+  /* === Thumbnail grid ====================================================== */
+  .pxlib__thumbs {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: clamp(0.6rem, 1.3vw, 1rem);
+  }
+  .pxlib__thumb {
+    appearance: none;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(10, 10, 10, 0.08);
+    border-radius: 10px;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    backdrop-filter: blur(4px);
+    transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+  }
+  .pxlib__thumb:hover {
+    transform: translateY(-2px);
+    border-color: rgba(10, 10, 10, 0.22);
+    background: rgba(255, 255, 255, 0.92);
+  }
+  .pxlib__thumb:focus-visible {
+    outline: 2px solid #485dbd;
+    outline-offset: 2px;
+  }
+  .pxlib__thumb.is-active {
+    background: #0a0a0a;
+    border-color: #0a0a0a;
+    color: #f4f4f4;
+  }
+  .pxlib__thumb.is-active .pxlib__thumb-name { color: #f4f4f4; }
+  .pxlib__thumb.is-active .pxlib__thumb-author { color: rgba(244, 244, 244, 0.6); }
+  .pxlib__thumb-canvas-wrap {
+    aspect-ratio: 1;
+    width: 100%;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #050608;
+  }
+  .pxlib__thumb-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .pxlib__thumb-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0 0.15rem 0.15rem;
+  }
+  .pxlib__thumb-name {
+    font-family: 'Mona Sans', 'Inter Tight', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    color: #0a0a0a;
+  }
+  .pxlib__thumb-author {
+    font-size: 0.7rem;
+    color: rgba(10, 10, 10, 0.5);
+    line-height: 1.2;
+  }
+
+  @media (max-width: 900px) {
+    .pxlib__layout { grid-template-columns: 1fr; }
+    .pxlib__stage-inner { position: static; }
+    .pxlib__clock { max-width: 420px; }
+  }
+
+  /* In tweak mode we strip the decorative inset shadows + glass sheen so
+     the raw canvas rectangle is visible and the corner handles can be
+     placed exactly on its edges. Decorations come back outside tweak mode. */
+  .pxlib__clock[data-tweak] .pxlib__clock-display {
+    box-shadow: none;
+  }
+  .pxlib__clock[data-tweak] .pxlib__clock-display::after {
+    display: none;
+  }
+
+  /* === Corner drag handles (only visible with ?tweak) ===================== */
+  .pxlib__corner {
+    display: none;  /* hidden by default */
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    margin: -11px 0 0 -11px;  /* center on the corner point */
+    padding: 0;
+    border: 2px solid #fbb238;
+    background: rgba(251, 178, 56, 0.35);
+    border-radius: 50%;
+    cursor: grab;
+    z-index: 50;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.4);
+    touch-action: none;
+    transition: transform 120ms ease, background 120ms ease;
+  }
+  .pxlib__corner:hover { transform: scale(1.2); background: rgba(251, 178, 56, 0.6); }
+  .pxlib__corner.is-dragging { cursor: grabbing; transform: scale(1.4); background: #fbb238; }
+  .pxlib__clock[data-tweak] .pxlib__corner { display: block; }
+  /* Toggle from the tweak panel "show handles" checkbox — lets you hide the
+     dots for a clean screenshot without leaving tweak mode. */
+  .pxlib__clock[data-tweak][data-handles-hidden] .pxlib__corner { display: none; }
+
+  /* === Tweak readout panel (only visible with ?tweak in URL) ============== */
+  .pxlib-tweak {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 300;
+    width: 280px;
+    padding: 0.9rem 1rem;
+    background: rgba(15, 16, 22, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: #ece6da;
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.78rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+  .pxlib-tweak[hidden] { display: none !important; }
+  .pxlib-tweak header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0;
+  }
+  .pxlib-tweak header strong {
+    font-size: 0.74rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #fbb238;
+  }
+  .pxlib-tweak header button {
+    width: 24px; height: 24px;
+    border: 0;
+    background: rgba(255, 255, 255, 0.06);
+    color: #ece6da;
+    border-radius: 999px;
+    font-size: 1.1rem;
+    line-height: 0;
+    cursor: pointer;
+  }
+  .pxlib-tweak header button:hover { background: rgba(255, 255, 255, 0.16); }
+  .pxlib-tweak__hint {
+    margin: 0;
+    color: rgba(236, 230, 218, 0.55);
+    font-size: 0.72rem;
+    line-height: 1.4;
+  }
+  .pxlib-tweak__check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: rgba(236, 230, 218, 0.78);
+    cursor: pointer;
+    user-select: none;
+  }
+  .pxlib-tweak__check input[type="checkbox"] {
+    accent-color: #fbb238;
+    margin: 0;
+    cursor: pointer;
+  }
+  .pxlib-tweak__section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .pxlib-tweak__section:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .pxlib-tweak__section[hidden] { display: none; }
+  .pxlib-tweak__section h4 {
+    margin: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #fbb238;
+  }
+  .pxlib-tweak__row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    color: rgba(236, 230, 218, 0.78);
+  }
+  .pxlib-tweak__row output {
+    color: #fbb238;
+    font-weight: 600;
+  }
+  .pxlib-tweak__row input[type="range"] {
+    width: 100%;
+    accent-color: #fbb238;
+    margin: 0;
+  }
+  .pxlib-tweak__actions {
+    display: flex;
+    gap: 0.4rem;
+  }
+  .pxlib-tweak__actions button {
+    flex: 1;
+  }
+  .pxlib-tweak pre {
+    margin: 0;
+    padding: 0.5rem 0.6rem;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+    color: rgba(236, 230, 218, 0.78);
+    font-size: 0.72rem;
+    line-height: 1.5;
+    white-space: pre;
+  }
+  .pxlib-tweak__actions button {
+    padding: 0.45rem;
+    border: 0;
+    border-radius: 6px;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .pxlib-tweak__actions button[data-pxlib-tweak-copy],
+  .pxlib-tweak__actions button[data-pxlib3d-copy] {
+    background: #fbb238;
+    color: #0a0a0a;
+  }
+  .pxlib-tweak__actions button[data-pxlib-tweak-copy]:hover,
+  .pxlib-tweak__actions button[data-pxlib3d-copy]:hover { background: #f4ae3b; }
+  .pxlib-tweak__actions button[data-pxlib-tweak-reset],
+  .pxlib-tweak__actions button[data-pxlib3d-reset] {
+    background: rgba(255, 255, 255, 0.06);
+    color: #ece6da;
+  }
+  .pxlib-tweak__actions button[data-pxlib-tweak-reset]:hover,
+  .pxlib-tweak__actions button[data-pxlib3d-reset]:hover { background: rgba(255, 255, 255, 0.14); }
+</style>
