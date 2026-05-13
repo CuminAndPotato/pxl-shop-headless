@@ -56,6 +56,10 @@ const ui = locale === 'de'
     <aside class="pxlib__stage">
       <div class="pxlib__stage-inner">
         <div class="pxlib__clock" data-pxlib-clock>
+          <!-- Pre-baked soft shadow halo sits behind the photo so the clock
+               blends into the background from the very first paint (no CSS
+               drop-shadow runtime computation). See scripts/bake-shadows.mjs. -->
+          <img class="pxlib__clock-shadow" src={url("/img/products/whatis-clock-tight-shadow.png")} alt="" aria-hidden="true" />
           <img class="pxlib__clock-photo" src={url("/img/products/whatis-clock-tight.png")} alt="" loading="lazy" />
           <div class="pxlib__clock-display" data-pxlib-display>
             <canvas class="pxlib__clock-canvas" data-pxlib-large-canvas width="540" height="540"></canvas>
@@ -596,15 +600,27 @@ const ui = locale === 'de'
     width: 100%;
     max-width: 560px;
     margin: 0 auto;
+    /* Allow the baked shadow halo (sized 124% × 124%) to bleed outside the
+       photo bounds. The wrapper has no background of its own so the bleed
+       is purely additive. */
+    overflow: visible;
   }
   .pxlib__clock[hidden] { display: none; }
+  .pxlib__clock-shadow {
+    position: absolute;
+    inset: -12%;
+    width: 124%;
+    height: 124%;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+  }
   .pxlib__clock-photo {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     object-fit: contain;
-    filter: drop-shadow(0 40px 80px rgba(10, 10, 10, 0.22));
     pointer-events: none;
   }
   /* Display wrapper — JS computes matrix3d from four corner positions and

@@ -113,7 +113,10 @@ const productHasVariants = !!product?.hasVariants && (product?.variants.length ?
       </script>
     </div>
     <div class="product__media">
-      <img src={productImage} alt={product?.name ?? 'PXL Clock'} loading="lazy" />
+      <!-- Pre-baked shadow halo so the photo blends into the background on
+           first paint (no CSS drop-shadow flicker). -->
+      <img class="product__media-shadow" src={url('/img/products/whatis-clock-tight-shadow.png')} alt="" aria-hidden="true" />
+      <img class="product__media-photo" src={productImage} alt={product?.name ?? 'PXL Clock'} loading="lazy" />
     </div>
   </div>
 
@@ -135,14 +138,24 @@ const productHasVariants = !!product?.hasVariants && (product?.variants.length ?
   .product__copy { max-width: 460px; }
   .product__copy .lead { margin-bottom: 22px; }
   .lead--bold { font-weight: 700; }
-  .product__media img {
+  .product__media {
+    position: relative;
+  }
+  .product__media-shadow {
+    position: absolute;
+    inset: -12%;
+    width: 124%;
+    height: 124%;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+  }
+  .product__media-photo {
+    position: relative;
     width: 100%;
     height: auto;
     object-fit: contain;
     background: transparent;
-    /* Drop-shadow only renders on the visible (non-transparent) pixels of the
-       PNG, so the section's gradient flows around the clock — no white box. */
-    filter: drop-shadow(0 30px 50px rgba(0,0,0,0.18));
   }
   .product__price {
     display: flex; align-items: baseline; gap: 0.75rem;
