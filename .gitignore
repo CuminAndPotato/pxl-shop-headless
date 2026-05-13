@@ -25,3 +25,5 @@ pnpm-debug.log*
 
 # large reference screenshots (kept locally; regenerate via /tmp/pxl-crawler/crawl.mjs)
 reference/screenshots/*.png
+
+.fake

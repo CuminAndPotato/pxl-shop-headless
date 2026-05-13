@@ -60,6 +60,14 @@ const ui = locale === 'de'
           <div class="pxlib__clock-display" data-pxlib-display>
             <canvas class="pxlib__clock-canvas" data-pxlib-large-canvas width="540" height="540"></canvas>
           </div>
+          <!-- Reflection: simulates light from the LED matrix's leftmost
+               column spilling onto the clock frame's inner-left bezel edge.
+               Native PXL Clock photos show this warm spill in the original
+               product shot; we re-create it dynamically so it tracks
+               whatever pixogram is currently playing. -->
+          <div class="pxlib__clock-reflection" data-pxlib-reflection>
+            <canvas data-pxlib-reflection-canvas width="1" height="24"></canvas>
+          </div>
           <button type="button" class="pxlib__corner" data-corner="tl" aria-label="Top-left corner"></button>
           <button type="button" class="pxlib__corner" data-corner="tr" aria-label="Top-right corner"></button>
           <button type="button" class="pxlib__corner" data-corner="bl" aria-label="Bottom-left corner"></button>
@@ -131,6 +139,22 @@ const ui = locale === 'de'
       <label class="pxlib-tweak__row">
         <span>crop right <output data-pxlib-crop-out="right">1.1</output>%</span>
         <input type="range" min="0" max="15" step="0.1" value="1.1" data-pxlib-crop="right">
+      </label>
+      <label class="pxlib-tweak__row">
+        <span>refl width <output data-pxlib-refl-out="width">3.0</output>%</span>
+        <input type="range" min="0" max="10" step="0.1" value="3.0" data-pxlib-refl="width">
+      </label>
+      <label class="pxlib-tweak__row">
+        <span>refl offset <output data-pxlib-refl-out="offset">0.0</output>%</span>
+        <input type="range" min="-5" max="5" step="0.1" value="0.0" data-pxlib-refl="offset">
+      </label>
+      <label class="pxlib-tweak__row">
+        <span>refl opacity <output data-pxlib-refl-out="opacity">85</output>%</span>
+        <input type="range" min="0" max="100" step="1" value="85" data-pxlib-refl="opacity">
+      </label>
+      <label class="pxlib-tweak__row">
+        <span>refl blur <output data-pxlib-refl-out="blur">2.5</output>px</span>
+        <input type="range" min="0" max="20" step="0.1" value="2.5" data-pxlib-refl="blur">
       </label>
       <pre data-pxlib-tweak-output></pre>
       <div class="pxlib-tweak__actions">
@@ -230,6 +254,7 @@ const ui = locale === 'de'
   const largeName = document.querySelector<HTMLElement>('[data-pxlib-large-name]');
   const largeAuthor = document.querySelector<HTMLElement>('[data-pxlib-large-author]');
   const largeDesc = document.querySelector<HTMLElement>('[data-pxlib-large-desc]');
+  const reflectionCanvas = document.querySelector<HTMLCanvasElement>('[data-pxlib-reflection-canvas]');
 
   let activePix: Pixogram | null = null;
   let activeFrame = 0;
@@ -241,6 +266,30 @@ const ui = locale === 'de'
     if (!activePix || !largeCanvas) return;
     const f = activePix.frames[activeFrame % activePix.frames.length];
     renderRgbPhotoreal(largeCanvas, f, activePix.width, activePix.height);
+    paintReflection(f, activePix.width, activePix.height);
+  }
+
+  // Renders just the LEFTMOST column of the active frame into a 1×N canvas.
+  // CSS + matrix3d stretches it horizontally across the reflection strip so
+  // the colour-per-row tracks the LED matrix's left edge in real time.
+  function paintReflection(frame: Uint8Array, width: number, height: number) {
+    if (!reflectionCanvas) return;
+    if (reflectionCanvas.width !== 1 || reflectionCanvas.height !== height) {
+      reflectionCanvas.width = 1;
+      reflectionCanvas.height = height;
+    }
+    const ctx = reflectionCanvas.getContext('2d');
+    if (!ctx) return;
+    const img = ctx.createImageData(1, height);
+    for (let y = 0; y < height; y += 1) {
+      const src = (y * width + 0) * 3;   // column 0 of row y
+      const dst = y * 4;
+      img.data[dst    ] = frame[src    ];
+      img.data[dst + 1] = frame[src + 1];
+      img.data[dst + 2] = frame[src + 2];
+      img.data[dst + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
   }
 
   function stopLarge() {
@@ -327,10 +376,10 @@ const ui = locale === 'de'
   // the clock's body has depth and the frame partly occludes the LEDs at
   // those edges).
   const DEFAULT_CORNERS: Corners = {
-    tl: { x: 11.4, y: 9.0 },
-    tr: { x: 83.2, y: 9.7 },
-    bl: { x: 11.4, y: 83.7 },
-    br: { x: 83.4, y: 90.0 },
+    tl: { x: 12.2, y: 8.9 },
+    tr: { x: 83.0, y: 9.6 },
+    bl: { x: 12.0, y: 83.7 },
+    br: { x: 83.3, y: 90.0 },
   };
   const CORNERS_KEY = 'pxlib-corners';
   const CROP_KEY = 'pxlib-crop';
@@ -367,7 +416,32 @@ const ui = locale === 'de'
 
   const clockEl = document.querySelector<HTMLElement>('[data-pxlib-clock]');
   const displayEl = document.querySelector<HTMLElement>('[data-pxlib-display]');
+  const reflectionEl = document.querySelector<HTMLElement>('[data-pxlib-reflection]');
   let corners = loadCorners();
+
+  // Reflection config — live-tunable from the tweak panel. Persisted to
+  // localStorage so visitors don't lose their tuning across reloads.
+  type ReflConfig = { width: number; offset: number; opacity: number; blur: number };
+  const DEFAULT_REFL: ReflConfig = { width: 3.0, offset: 0.0, opacity: 85, blur: 2.5 };
+  const REFL_KEY = 'pxlib-reflection';
+  function loadRefl(): ReflConfig {
+    try {
+      const raw = localStorage.getItem(REFL_KEY);
+      if (raw) return { ...DEFAULT_REFL, ...JSON.parse(raw) };
+    } catch {}
+    return { ...DEFAULT_REFL };
+  }
+  function saveRefl(c: ReflConfig) {
+    try { localStorage.setItem(REFL_KEY, JSON.stringify(c)); } catch {}
+  }
+  let refl = loadRefl();
+
+  function applyReflStyle() {
+    if (!reflectionEl) return;
+    reflectionEl.style.opacity = String(refl.opacity / 100);
+    reflectionEl.style.filter = `blur(${refl.blur}px)`;
+  }
+  applyReflStyle();
 
   function applyCorners() {
     if (!clockEl || !displayEl) return;
@@ -380,6 +454,20 @@ const ui = locale === 'de'
     displayEl.style.height = '100%';
     displayEl.style.transformOrigin = '0 0';
     displayEl.style.transform = cornersToMatrix3d(corners, w, h);
+    // Reflection strip — slim quad attached to the LEFT edge of the LED
+    // matrix, tracking the same perspective tilt so it sits flush on the
+    // bezel instead of floating. Width + offset come from the tweak config.
+    if (reflectionEl) {
+      const rightX_top = corners.tl.x + refl.offset;
+      const rightX_bot = corners.bl.x + refl.offset;
+      const reflCorners: Corners = {
+        tl: { x: rightX_top - refl.width, y: corners.tl.y },
+        tr: { x: rightX_top,               y: corners.tl.y },
+        bl: { x: rightX_bot - refl.width, y: corners.bl.y },
+        br: { x: rightX_bot,               y: corners.bl.y },
+      };
+      reflectionEl.style.transform = cornersToMatrix3d(reflCorners, w, h);
+    }
     document.querySelectorAll<HTMLElement>('.pxlib__corner').forEach((handle) => {
       const k = handle.dataset.corner as keyof Corners | undefined;
       if (!k || !corners[k]) return;
@@ -485,6 +573,18 @@ const ui = locale === 'de'
         const o = document.querySelector<HTMLElement>(`[data-pxlib-crop-out="${key}"]`);
         if (o) o.textContent = crop[key].toFixed(1);
       });
+      // Also reset reflection sliders.
+      refl = { ...DEFAULT_REFL };
+      saveRefl(refl);
+      applyReflStyle();
+      applyCorners();
+      document.querySelectorAll<HTMLInputElement>('[data-pxlib-refl]').forEach((input) => {
+        const key = input.dataset.pxlibRefl as keyof ReflConfig | undefined;
+        if (!key) return;
+        input.value = String(refl[key]);
+        const o = document.querySelector<HTMLElement>(`[data-pxlib-refl-out="${key}"]`);
+        if (o) o.textContent = key === 'opacity' ? String(refl[key]) : refl[key].toFixed(1);
+      });
     });
 
     // Opacity slider — makes the canvas semi-transparent so the underlying
@@ -528,6 +628,23 @@ const ui = locale === 'de'
         applyCrop();
         if (out) out.textContent = v.toFixed(1);
         saveCrop(crop);
+      });
+    });
+
+    // Reflection sliders — width, offset, opacity, blur. Persisted likewise.
+    document.querySelectorAll<HTMLInputElement>('[data-pxlib-refl]').forEach((input) => {
+      const key = input.dataset.pxlibRefl as keyof ReflConfig | undefined;
+      if (!key) return;
+      input.value = String(refl[key]);
+      const out = document.querySelector<HTMLElement>(`[data-pxlib-refl-out="${key}"]`);
+      if (out) out.textContent = key === 'opacity' ? String(refl[key]) : refl[key].toFixed(1);
+      input.addEventListener('input', () => {
+        const v = Number(input.value);
+        refl = { ...refl, [key]: v };
+        applyReflStyle();
+        applyCorners();  // recompute reflection quad
+        if (out) out.textContent = key === 'opacity' ? String(v) : v.toFixed(1);
+        saveRefl(refl);
       });
     });
 
@@ -649,6 +766,29 @@ const ui = locale === 'de'
     width: 100%;
     height: 100%;
     display: block;
+  }
+  /* Reflection strip — narrow band sitting just LEFT of the LED matrix, on
+     the clock's inner bezel. Its matrix3d transform comes from JS (derived
+     from the four LED corners). Blur + reduced opacity makes the spill feel
+     like soft light reflecting off the matte black frame, not a hard copy
+     of the leftmost LED column. */
+  .pxlib__clock-reflection {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform-origin: 0 0;
+    pointer-events: none;
+    filter: blur(3px);
+    opacity: 0.55;
+    mix-blend-mode: screen;
+  }
+  .pxlib__clock-reflection canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    image-rendering: auto;
   }
   /* Glass-on-LEDs sheen: diagonal highlight + subtle vignette so the
      pixogram reads as something glowing UNDER glass rather than a sticker
