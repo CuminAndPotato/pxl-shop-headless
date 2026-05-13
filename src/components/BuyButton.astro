@@ -1,0 +1,54 @@
+---
+// Shared "add to cart" button + click handler. Replaces the duplicated
+// data-op2-buy / data-op3-buy scripts that lived in every fresh-layout page.
+// The hydration script runs once per page and finds every BuyButton via the
+// shared `data-buy-button` attribute.
+
+interface Props {
+  productId: string | undefined;
+  variantId: string | undefined;
+  cartHref: string;
+  /** Visible button label (already includes price if you want it). */
+  label: string;
+  /** Optional class so individual pages can theme the button (op2-btn, op3-btn, …). */
+  class?: string;
+}
+
+const { productId = '', variantId = '', cartHref, label, class: className } = Astro.props;
+---
+
+<button
+  type="button"
+  class={className}
+  data-buy-button
+  data-product-id={productId}
+  data-variant-id={variantId}
+  data-cart-href={cartHref}
+>
+  {label}
+</button>
+
+<script>
+  // One delegated handler per page — finds every BuyButton in the DOM. The
+  // `data-buy-bound` flag prevents double-binding if multiple BuyButton
+  // components on the same page each render this script (Astro hoists it
+  // once, but the flag is cheap insurance).
+  if (!(window as any).__pxlBuyBound) {
+    (window as any).__pxlBuyBound = true;
+    document.querySelectorAll<HTMLButtonElement>('[data-buy-button]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const productId = btn.dataset.productId;
+        if (!productId) return;
+        btn.disabled = true;
+        try {
+          const { addToCart } = await import('../lib/shop-browser');
+          await addToCart({ productId, variantId: btn.dataset.variantId || undefined, quantity: 1 });
+          window.location.href = btn.dataset.cartHref || import.meta.env.BASE_URL + 'cart';
+        } catch (err) {
+          console.error('[BuyButton] addToCart failed:', err);
+          btn.disabled = false;
+        }
+      });
+    });
+  }
+</script>

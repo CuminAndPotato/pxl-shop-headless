@@ -4,6 +4,7 @@ import { t } from '../i18n/strings';
 import type { Product } from '../lib/shop';
 import type { PageVariant } from '../lib/page-variants';
 import { lifestyleGallery, workshopGallery } from '../lib/assets';
+import { url } from '../lib/url';
 import Hero from './Hero.astro';
 import ProductPanel from './ProductPanel.astro';
 import Gallery from './Gallery.astro';
@@ -17,6 +18,13 @@ import PixogramLibrary from './PixogramLibrary.astro';
 import TrustStrip from './TrustStrip.astro';
 import FAQ from './FAQ.astro';
 import type { StickyChapter } from './StickyPixelStory.astro';
+import {
+  stickyChapters as buildStickyChapters,
+  makerSteps as buildMakerSteps,
+  vscodeCopy as buildVscodeCopy,
+  jamCopy as buildJamCopy,
+} from '../lib/pxl-page-content';
+import BuyButton from './BuyButton.astro';
 
 interface Props {
   locale: Locale;
@@ -27,151 +35,18 @@ interface Props {
 const { locale, product } = Astro.props;
 const s = t(locale);
 
-// === Real code snippet from the PXL Clock NuGet README =====================
-const stickyCode = `Color GetColor(int minute, int second, int x, int y, int step)
-{
-    var hue = (x + y + step) * 5.0 / 360.0;
-    return Color.FromHsv(hue, 1, 1);
-}`;
+// All shared with Plus² via src/lib/pxl-page-content.ts — single source for
+// sticky chapters, maker steps, VS Code copy, and JAM copy. Edit there.
+const stickyChapters: StickyChapter[] = buildStickyChapters(locale);
+const makerSteps = buildMakerSteps(locale);
+const vscodeCopy = buildVscodeCopy(locale);
+const jamCopy = buildJamCopy(locale);
 
-// === Sticky chapters (same content as plus2) ===============================
-const stickyChapters: StickyChapter[] = locale === 'de'
-  ? [
-      {
-        shape: 'lede',
-        title: 'Eine Uhr, die zeigt, was du ihr sagst.',
-        body: 'PXL Clock ist eine 24 × 24 Pixel-Matrix hinter echtem Glas. Tags zeigt sie die Zeit, abends eine Animation, wenn du willst auch deinen Build-Status oder das Wetter. 576 LEDs sind nicht viel — und genau das ist die Idee.',
-        inlineSpecs: '576 LEDs · 24 × 24 RGB · WLAN · OTA · iOS und Android · 27 × 27 × 6 cm · 2 kg',
-      },
-      {
-        shape: 'quote',
-        quote: 'Sie hängt da und atmet. Das ist eigentlich alles, was ein Objekt im Raum tun muss.',
-        byline: 'Aus einem ersten Test mit einer Beta-Uhr.',
-      },
-      {
-        shape: 'code',
-        title: 'In C# programmierbar.',
-        body: 'Ein Pixogramm ist eine C#-Funktion: für jeden Pixel an Position (x, y) und für jeden Animationsschritt step gibst du eine Farbe zurück. Mehr braucht es nicht — die NuGet-Library Pxl erledigt den Rest.',
-        code: stickyCode,
-      },
-      {
-        shape: 'still',
-        img: workshopGallery[2],
-        caption: 'Aus einer Werkstatt in Köln. Software, Rahmen, Glas und Versand alles aus Deutschland — Cumin & Potato GmbH, Kleinserie, hundert Stück.',
-      },
-      {
-        shape: 'lede',
-        title: 'Eine Community, die mitprogrammiert.',
-        body: 'PXL JAM 2024 war Teil des F# Advent Calendar — die Community hat geforkt, Pixogramme gebaut, Pull Requests submitted. Drei Gewinner haben jeweils eine PXL Clock Mk1 bekommen. Die Werkzeuge bleiben: Browser-Simulator, VS Code Extension, alle Beispiele auf GitHub.',
-        inlineSpecs: 'github.com/SchlenkR/pxl-clock · discord.gg/KDbVdKQh5j · marketplace.visualstudio.com',
-      },
-    ]
-  : [
-      {
-        shape: 'lede',
-        title: 'A clock that shows what you tell it.',
-        body: 'PXL Clock is a 24 × 24 pixel matrix behind real glass. By day it shows time, in the evening an animation, and a build status or the weather if that is what you want. 576 LEDs is not much — that is the point.',
-        inlineSpecs: '576 LEDs · 24 × 24 RGB · WiFi · OTA · iOS and Android · 27 × 27 × 6 cm · 2 kg',
-      },
-      {
-        shape: 'quote',
-        quote: 'It hangs there and breathes. That is really all an object in a room has to do.',
-        byline: 'From an early test with a beta unit.',
-      },
-      {
-        shape: 'code',
-        title: 'Programmable in C#.',
-        body: 'A pixogram is a C# function: for every pixel at (x, y) and every animation step, return a colour. That is the whole API — the Pxl NuGet library takes it from there.',
-        code: stickyCode,
-      },
-      {
-        shape: 'still',
-        img: workshopGallery[2],
-        caption: 'From a workshop in Cologne. Software, frame, glass, and shipping — all from Germany. Cumin & Potato GmbH, small run, one hundred pieces.',
-      },
-      {
-        shape: 'lede',
-        title: 'A community that codes along.',
-        body: 'PXL JAM 2024 was part of the F# Advent Calendar — the community forked, built pixograms, submitted pull requests. Three winners each got a PXL Clock Mk1. The tooling stays: browser simulator, VS Code extension, every example open on GitHub.',
-        inlineSpecs: 'github.com/SchlenkR/pxl-clock · discord.gg/KDbVdKQh5j · marketplace.visualstudio.com',
-      },
-    ];
-
-// === Combined Maker triptych — same data, now folds into Handmade visually
-const makerSteps = locale === 'de'
-  ? [
-      { tag: 'Schritt 01', title: 'Schreibe Code.', body: 'Ein Pixogramm ist eine C#-Datei. Die Pxl-NuGet-Library liefert das Pixel-API — du brauchst keine Build-Pipeline und kein Framework drumherum.' },
-      { tag: 'Schritt 02', title: 'Sieh es im Simulator.', body: 'Der eingebaute Simulator startet automatisch — Live-Preview in VS Code, Hot Reload bei jedem Speichern, keine Hardware nötig.' },
-      { tag: 'Schritt 03', title: 'Push auf die Uhr.', body: 'Über das lokale Netzwerk findet die Extension deine PXL Clock und überträgt das Pixogramm direkt — ein Klick reicht.' },
-    ]
-  : [
-      { tag: 'Step 01', title: 'Write code.', body: 'A pixogram is a C# file. The Pxl NuGet library brings the pixel API — no build pipeline, no framework around it.' },
-      { tag: 'Step 02', title: 'See it in the simulator.', body: 'The built-in simulator starts automatically — live preview in VS Code, hot reload on every save, no hardware needed.' },
-      { tag: 'Step 03', title: 'Push to the clock.', body: 'The extension finds your PXL Clock on the local network and pushes the pixogram with one click.' },
-    ];
-
-// === VS Code Extension — folds in a one-line teaser for the AI pipeline
-//     (the full AI Pipeline section is cut in plus3 for focus).
-const vscodeCopy = locale === 'de'
-  ? {
-      kicker: 'Werkzeug',
-      title: 'Develop, preview, publish — alles im VS Code.',
-      lede: 'Die offizielle PXL Clock Extension für VS Code bringt den ganzen Workflow in den Editor. Erschienen als v1 im Februar 2026, kostenlos im Marketplace.',
-      bullets: [
-        'Eingebauter Simulator — startet automatisch, keine Konfiguration nötig.',
-        'Live-Preview in der Sidebar oder als eigenes Panel, Hot Reload bei jedem Speichern.',
-        'Datei-Explorer für alle Pixogramme als Sidebar-Tree.',
-        'Run, Stop, Restart per Click direkt in der Editor-Toolbar.',
-        'Publish-to-Device über das lokale Netzwerk — ein Klick auf das Wolken-Symbol.',
-        'C#-IntelliSense, Diagnostics und Signature-Help via Roslyn.',
-      ],
-      cta: 'Im Marketplace öffnen',
-      meta: 'pxlclock.pxl-clock · v1 · Februar 2026',
-      pipelineTeaser: 'Bonus: unsere Multi-Agent-AI-Pipeline (Claude, Sonnet, Gemini, GPT-OSS) generiert aus GitHub-Issues neue Pixogramme — Live-Gallery auf schlenkr.github.io/pxl-clock.',
-    }
-  : {
-      kicker: 'Tooling',
-      title: 'Develop, preview, publish — all inside VS Code.',
-      lede: 'The official PXL Clock extension for VS Code brings the whole workflow into the editor. Shipped as v1 in February 2026, free on the Marketplace.',
-      bullets: [
-        'Built-in simulator — starts automatically, zero config.',
-        'Live preview in the sidebar or a full panel, hot reload on every save.',
-        'File explorer for all pixograms as a sidebar tree.',
-        'Run, Stop, Restart from the editor toolbar with one click.',
-        'Publish to device over the local network — one click on the cloud icon.',
-        'C# IntelliSense, diagnostics, and signature help via Roslyn.',
-      ],
-      cta: 'Open in Marketplace',
-      meta: 'pxlclock.pxl-clock · v1 · February 2026',
-      pipelineTeaser: 'Bonus: our multi-agent AI pipeline (Claude, Sonnet, Gemini, GPT-OSS) turns GitHub issues into new pixograms — live gallery at schlenkr.github.io/pxl-clock.',
-    };
-
-// === PXL JAM (same as plus2) ===============================================
-const jamCopy = locale === 'de'
-  ? {
-      kicker: 'Community',
-      title: 'PXL JAM 2024 — die Community programmierte mit.',
-      paragraphs: [
-        'Dezember 2024. Teil des F# Advent Calendars, hosted von Sergey Tihon. Repository forken, eigene Pixogramme bauen, per Pull Request einreichen — drei Gewinner bekamen jeweils eine PXL Clock Mk1.',
-        'Der Hackathon war für Anfänger und erfahrene Devs offen. Die Werkzeuge — Browser-Simulator, NuGet-Library, GitHub-Workflow — sind bis heute Open Source.',
-      ],
-      links: [
-        { label: 'Repository ansehen', href: 'https://github.com/SchlenkR/PXL-JAM' },
-        { label: 'YouTube-Ankündigung', href: 'https://youtu.be/q5-QTpEMGdU' },
-      ],
-    }
-  : {
-      kicker: 'Community',
-      title: 'PXL JAM 2024 — the community coded along.',
-      paragraphs: [
-        'December 2024. Part of the F# Advent Calendar hosted by Sergey Tihon. Fork the repo, build your own pixograms, submit a pull request — three winners each got a PXL Clock Mk1.',
-        'The jam was open to beginners and experienced devs alike. The tooling — browser simulator, NuGet library, GitHub workflow — is still open source today.',
-      ],
-      links: [
-        { label: 'See the repository', href: 'https://github.com/SchlenkR/PXL-JAM' },
-        { label: 'YouTube announcement', href: 'https://youtu.be/q5-QTpEMGdU' },
-      ],
-    };
+// Plus³-only: a one-line teaser for the cut-out AI pipeline section that
+// gets folded into the VS Code block.
+const pipelineTeaser = locale === 'de'
+  ? 'Bonus: unsere Multi-Agent-AI-Pipeline (Claude, Sonnet, Gemini, GPT-OSS) generiert aus GitHub-Issues neue Pixogramme — Live-Gallery auf schlenkr.github.io/pxl-clock.'
+  : 'Bonus: our multi-agent AI pipeline (Claude, Sonnet, Gemini, GPT-OSS) turns GitHub issues into new pixograms — live gallery at schlenkr.github.io/pxl-clock.';
 
 // === Final CTA with reassurance =============================================
 const closing = locale === 'de'
@@ -189,11 +64,11 @@ const closing = locale === 'de'
     };
 
 const price = product?.discountedPrice?.formatted ?? product?.price?.formatted ?? '229,00€';
-const cartHref = locale === 'de' ? '/de/cart' : '/cart';
+const cartHref = locale === 'de' ? url('/de/cart') : url('/cart');
 const defaultVariantId = product?.variants[0]?.id ?? '';
 ---
 
-<div class="op3-page">
+<div class="op3-page brand-gradient">
 
   {/* 1. Hero — same as plus2 */}
   <Hero locale={locale} />
@@ -267,7 +142,7 @@ const defaultVariantId = product?.variants[0]?.id ?? '';
         {vscodeCopy.bullets.map((b) => <li>{b}</li>)}
       </ul>
       <p class="op3-vscode__teaser">
-        {vscodeCopy.pipelineTeaser}
+        {pipelineTeaser}
         {' '}
         <a href="https://schlenkr.github.io/pxl-clock/" target="_blank" rel="noopener">
           {locale === 'de' ? 'Gallery ansehen' : 'See the gallery'} →
@@ -321,9 +196,13 @@ const defaultVariantId = product?.variants[0]?.id ?? '';
     <div class="op3-final__inner">
       <h2 class="op3-h">{closing.headline}</h2>
       <p>{closing.body}</p>
-      <button class="op3-btn" type="button" data-op3-buy data-product-id={product?.id ?? ''} data-variant-id={defaultVariantId} data-cart-href={cartHref}>
-        {closing.cta} · {price}
-      </button>
+      <BuyButton
+        productId={product?.id}
+        variantId={defaultVariantId}
+        cartHref={cartHref}
+        label={`${closing.cta} · ${price}`}
+        class="op3-btn"
+      />
       <ul class="op3-final__reassurance">
         {closing.reassurance.map((r) => <li>{r}</li>)}
       </ul>
@@ -336,35 +215,11 @@ const defaultVariantId = product?.variants[0]?.id ?? '';
   @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Mona+Sans:wght@500;600;700&display=swap');
 </style>
 
-<script>
-  document.querySelectorAll<HTMLButtonElement>('[data-op3-buy]').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const productId = btn.dataset.productId;
-      if (!productId) return;
-      btn.disabled = true;
-      try {
-        const { addToCart } = await import('../lib/shop-browser');
-        await addToCart({ productId, variantId: btn.dataset.variantId || undefined, quantity: 1 });
-        window.location.href = btn.dataset.cartHref || '/cart';
-      } catch (err) {
-        console.error('[OriginalPlus3] addToCart failed:', err);
-        btn.disabled = false;
-      }
-    });
-  });
-</script>
-
 <style>
-  /* ===== Page wrapper + brand gradient (same family as plus2) ===== */
+  @import '../styles/brand-gradient.css';
+  /* Page wrapper — brand gradient comes from the imported stylesheet via the
+     `.brand-gradient` class on the page wrapper element. */
   .op3-page {
-    background:
-      radial-gradient(ellipse 60% 50% at 88% 8%, rgba(192, 209, 218, 1) 0%, rgba(192, 209, 218, 0) 60%),
-      radial-gradient(ellipse 70% 40% at 64% 35%, rgba(251, 182, 56, 0.32) 0%, rgba(251, 182, 56, 0) 60%),
-      radial-gradient(ellipse 80% 50% at 2% 70%, rgba(192, 209, 218, 0.7) 0%, rgba(192, 209, 218, 0) 60%),
-      radial-gradient(ellipse 70% 40% at 94% 60%, rgba(72, 93, 189, 0.42) 0%, rgba(72, 93, 189, 0) 65%),
-      radial-gradient(ellipse 80% 60% at 50% 90%, rgba(231, 250, 152, 0.28) 0%, rgba(231, 250, 152, 0) 65%),
-      #ffffff;
-    background-attachment: fixed;
     color: #0a0a0a;
     font-family: 'Inter Tight', -apple-system, system-ui, Helvetica, Arial, sans-serif;
     font-feature-settings: 'tnum' 1;

@@ -1,4 +1,5 @@
 ---
+import { url } from '../lib/url';
 import type { Locale } from '../i18n/strings';
 import { t } from '../i18n/strings';
 import WaveOverlay from './WaveOverlay.astro';
@@ -21,11 +22,11 @@ const s = t(locale);
   </div>
   <div class="variants__grid">
     <figure>
-      <img src="/img/products/clock-black-900.png" alt={s.variants.black} loading="lazy" />
+      <img src={url("/img/products/clock-black-900.png")} alt={s.variants.black} loading="lazy" />
       <figcaption>{s.variants.black}</figcaption>
     </figure>
     <figure>
-      <img src="/img/products/clock-white-900.png" alt={s.variants.white} loading="lazy" />
+      <img src={url("/img/products/clock-white-900.png")} alt={s.variants.white} loading="lazy" />
       <figcaption>{s.variants.white}</figcaption>
     </figure>
   </div>

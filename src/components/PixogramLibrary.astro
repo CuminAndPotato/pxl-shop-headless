@@ -1,4 +1,5 @@
 ---
+import { url } from '../lib/url';
 import type { Locale } from '../i18n/strings';
 import indexJson from '../../public/pixograms/index.json';
 
@@ -54,18 +55,8 @@ const ui = locale === 'de'
          running on the actual clock. -->
     <aside class="pxlib__stage">
       <div class="pxlib__stage-inner">
-        {/* 3D toggle + container intentionally disabled — the 3D approach
-            didn't match the studio photo well enough. The JS, CSS and the
-            src/lib/clock-3d.ts module stay in place so we can re-enable
-            later by un-commenting these elements; without them in the DOM
-            the JS lookups gracefully no-op and three.js isn't loaded.
-        <div class="pxlib__mode" data-pxlib-mode role="tablist" aria-label="Stage view">
-          <button type="button" data-pxlib-mode-btn="photo" class="is-active" aria-pressed="true">Photo</button>
-          <button type="button" data-pxlib-mode-btn="3d" aria-pressed="false">3D</button>
-        </div>
-        */}
         <div class="pxlib__clock" data-pxlib-clock>
-          <img class="pxlib__clock-photo" src="/img/products/whatis-clock-tight.png" alt="" loading="lazy" />
+          <img class="pxlib__clock-photo" src={url("/img/products/whatis-clock-tight.png")} alt="" loading="lazy" />
           <div class="pxlib__clock-display" data-pxlib-display>
             <canvas class="pxlib__clock-canvas" data-pxlib-large-canvas width="540" height="540"></canvas>
           </div>
@@ -74,9 +65,6 @@ const ui = locale === 'de'
           <button type="button" class="pxlib__corner" data-corner="bl" aria-label="Bottom-left corner"></button>
           <button type="button" class="pxlib__corner" data-corner="br" aria-label="Bottom-right corner"></button>
         </div>
-        {/*
-        <div class="pxlib__clock-3d" data-pxlib-clock-3d hidden></div>
-        */}
         <div class="pxlib__current">
           <p class="pxlib__current-type" data-pxlib-large-type></p>
           <h3 class="pxlib__current-name" data-pxlib-large-name></h3>
@@ -93,7 +81,7 @@ const ui = locale === 'de'
         <button
           class={item.slug === initial ? 'pxlib__thumb is-active' : 'pxlib__thumb'}
           data-pxlib-thumb={item.slug}
-          data-pxlib-file={`/pixograms/${item.file}`}
+          data-pxlib-file={url(`/pixograms/${item.file}`)}
           data-pxlib-name={item.displayName}
           data-pxlib-author={item.author}
           data-pxlib-desc={item.description}
@@ -123,11 +111,10 @@ const ui = locale === 'de'
       <button type="button" data-pxlib-tweak-close aria-label="Close">×</button>
     </header>
 
-    <!-- Photo-mode controls: corner perspective + opacity + canvas crop.
-         Crop covers the top + right edges where the recessed LED matrix is
-         partly occluded by the frame's inner lip at the photo's 3/4 angle. -->
-    <section class="pxlib-tweak__section" data-pxlib-tweak-photo>
-      <h4>Photo · clock</h4>
+    <!-- Corner perspective + opacity + canvas crop. Crop covers the top +
+         right edges where the recessed LED matrix is partly occluded by the
+         frame's inner lip at the photo's 3/4 angle. -->
+    <section class="pxlib-tweak__section">
       <p class="pxlib-tweak__hint">Drag the four dots on the clock to fit the display area.</p>
       <label class="pxlib-tweak__check">
         <input type="checkbox" checked data-pxlib-tweak-handles>
@@ -151,43 +138,13 @@ const ui = locale === 'de'
         <button type="button" data-pxlib-tweak-reset>Reset</button>
       </div>
     </section>
-
-    {/* 3D-mode controls — disabled with the 3D toggle above.
-    <section class="pxlib-tweak__section" data-pxlib-tweak-3d hidden>
-      <h4>3D · camera + recess</h4>
-      <label class="pxlib-tweak__row">
-        <span>cam X <output data-pxlib3d-out="camX"></output> cm</span>
-        <input type="range" min="-40" max="40" step="0.5" data-pxlib3d="camX">
-      </label>
-      <label class="pxlib-tweak__row">
-        <span>cam Y <output data-pxlib3d-out="camY"></output> cm</span>
-        <input type="range" min="-30" max="30" step="0.5" data-pxlib3d="camY">
-      </label>
-      <label class="pxlib-tweak__row">
-        <span>cam Z <output data-pxlib3d-out="camZ"></output> cm</span>
-        <input type="range" min="30" max="200" step="1" data-pxlib3d="camZ">
-      </label>
-      <label class="pxlib-tweak__row">
-        <span>FOV <output data-pxlib3d-out="fov"></output>°</span>
-        <input type="range" min="8" max="60" step="0.5" data-pxlib3d="fov">
-      </label>
-      <label class="pxlib-tweak__row">
-        <span>recess <output data-pxlib3d-out="recess"></output> cm</span>
-        <input type="range" min="0" max="3" step="0.05" data-pxlib3d="recess">
-      </label>
-      <pre data-pxlib3d-output></pre>
-      <div class="pxlib-tweak__actions">
-        <button type="button" data-pxlib3d-copy>Copy</button>
-        <button type="button" data-pxlib3d-reset>Reset</button>
-      </div>
-    </section>
-    */}
   </aside>
 </section>
 
 <script>
   import { parsePxl, type Pixogram } from '../lib/pxl-format';
   import { renderRgbFast, renderRgbPhotoreal } from '../lib/pixel-canvas';
+  import { cornersToMatrix3d, type Corners as PerspectiveCorners } from '../lib/pxlib-perspective';
 
   // === State ================================================================
   const pixogramCache = new Map<string, Pixogram>();
@@ -280,42 +237,10 @@ const ui = locale === 'de'
   let activeFps = 5;
   let inView = true;
 
-  // 3D handle — populated lazily when the user first toggles to 3D mode so
-  // three.js only ships if requested. The 3D scene reuses the photo-mode
-  // canvas as a texture, so markDirty() is enough to refresh it.
-  type Clock3DConfig = { camX: number; camY: number; camZ: number; fov: number; recess: number };
-  type Clock3DHandle = {
-    markDirty: () => void;
-    setRunning: (on: boolean) => void;
-    setConfig: (p: Partial<Clock3DConfig>) => void;
-    getConfig: () => Clock3DConfig;
-    destroy: () => void;
-  };
-  let clock3d: Clock3DHandle | null = null;
-  let currentMode: 'photo' | '3d' = 'photo';
-
-  const CONFIG_3D_KEY = 'pxlib-3d-config';
-  const DEFAULT_3D: Clock3DConfig = { camX: 22, camY: 7, camZ: 102, fov: 18, recess: 0.7 };
-  function load3DConfig(): Clock3DConfig {
-    try {
-      const raw = localStorage.getItem(CONFIG_3D_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        return { ...DEFAULT_3D, ...parsed };
-      }
-    } catch {}
-    return { ...DEFAULT_3D };
-  }
-  function save3DConfig(c: Clock3DConfig) {
-    try { localStorage.setItem(CONFIG_3D_KEY, JSON.stringify(c)); } catch {}
-  }
-
   function paintLarge() {
     if (!activePix || !largeCanvas) return;
     const f = activePix.frames[activeFrame % activePix.frames.length];
     renderRgbPhotoreal(largeCanvas, f, activePix.width, activePix.height);
-    // 3D scene uses the same canvas as a texture, so just flag it dirty.
-    clock3d?.markDirty();
   }
 
   function stopLarge() {
@@ -389,91 +314,12 @@ const ui = locale === 'de'
     else if (inView && activePix) startLarge();
   });
 
-  // === Photo ↔ 3D toggle ====================================================
-  // Lazy-mount the 3D scene on first activation so three.js doesn't ship to
-  // visitors who never toggle. Photo + 3D containers swap visibility; the
-  // tweak/corner UI stays available only in photo mode.
-  const photoClockEl = document.querySelector<HTMLElement>('[data-pxlib-clock]');
-  const clock3dEl = document.querySelector<HTMLElement>('[data-pxlib-clock-3d]');
-  const modeBar = document.querySelector<HTMLElement>('[data-pxlib-mode]');
-
-  async function ensure3DMounted() {
-    if (clock3d || !clock3dEl || !largeCanvas) return;
-    const { mountClock3D } = await import('../lib/clock-3d');
-    clock3d = mountClock3D(clock3dEl, largeCanvas, load3DConfig());
-    clock3d.markDirty();
-    sync3DPanel();
-  }
-
-  // Tweak-panel sections that swap visibility with the active mode.
-  const tweakPhoto = document.querySelector<HTMLElement>('[data-pxlib-tweak-photo]');
-  const tweak3D = document.querySelector<HTMLElement>('[data-pxlib-tweak-3d]');
-
-  function setMode(mode: 'photo' | '3d') {
-    currentMode = mode;
-    if (modeBar) {
-      modeBar.querySelectorAll<HTMLButtonElement>('[data-pxlib-mode-btn]').forEach((btn) => {
-        const on = btn.dataset.pxlibModeBtn === mode;
-        btn.classList.toggle('is-active', on);
-        btn.setAttribute('aria-pressed', String(on));
-      });
-    }
-    if (tweakPhoto) tweakPhoto.hidden = mode !== 'photo';
-    if (tweak3D) tweak3D.hidden = mode !== '3d';
-    if (mode === '3d') {
-      if (photoClockEl) photoClockEl.hidden = true;
-      if (clock3dEl) clock3dEl.hidden = false;
-      ensure3DMounted().then(() => clock3d?.setRunning(true));
-    } else {
-      if (photoClockEl) photoClockEl.hidden = false;
-      if (clock3dEl) clock3dEl.hidden = true;
-      clock3d?.setRunning(false);
-    }
-  }
-
-  // Push current 3D config values back into the panel inputs + readouts.
-  // Called after mount, after reset, or after loading from localStorage.
-  function sync3DPanel() {
-    if (!clock3d) return;
-    const cfg = clock3d.getConfig();
-    document.querySelectorAll<HTMLInputElement>('[data-pxlib3d]').forEach((input) => {
-      const key = input.dataset.pxlib3d as keyof Clock3DConfig | undefined;
-      if (!key) return;
-      input.value = String(cfg[key]);
-    });
-    update3DReadout(cfg);
-  }
-  function update3DReadout(cfg: Clock3DConfig) {
-    document.querySelectorAll<HTMLElement>('[data-pxlib3d-out]').forEach((out) => {
-      const key = out.dataset.pxlib3dOut as keyof Clock3DConfig | undefined;
-      if (!key) return;
-      const v = cfg[key];
-      out.textContent = Number.isInteger(v) ? String(v) : v.toFixed(2);
-    });
-    const dump = document.querySelector<HTMLElement>('[data-pxlib3d-output]');
-    if (dump) {
-      dump.textContent =
-        `camX: ${cfg.camX}\n` +
-        `camY: ${cfg.camY}\n` +
-        `camZ: ${cfg.camZ}\n` +
-        `fov:  ${cfg.fov}\n` +
-        `recess: ${cfg.recess}`;
-    }
-  }
-
-  modeBar?.querySelectorAll<HTMLButtonElement>('[data-pxlib-mode-btn]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const m = btn.dataset.pxlibModeBtn as 'photo' | '3d';
-      if (m) setMode(m);
-    });
-  });
-
   // === 4-corner perspective mapping ========================================
   // The canvas wrapper is matrix3d-projected onto whatever quadrilateral the
-  // four corner % values describe. Resize-safe because positions stay in %
-  // and the matrix is recomputed each frame the layout changes.
+  // four corner % values describe. Pure math lives in lib/pxlib-perspective.ts;
+  // we only deal with DOM + persistence here.
   type Corner = { x: number; y: number };
-  type Corners = { tl: Corner; tr: Corner; bl: Corner; br: Corner };
+  type Corners = PerspectiveCorners;
 
   // Default corners — measured against whatis-clock-tight.png by dragging
   // the four handles into the photo's display rectangle. Frame perspective
@@ -519,48 +365,6 @@ const ui = locale === 'de'
     try { localStorage.setItem(CROP_KEY, JSON.stringify(c)); } catch {}
   }
 
-  // Standard quad→quad projection (Steven Wittens / Heckbert algorithm).
-  function adj(m: number[]): number[] {
-    return [
-      m[4]*m[8]-m[5]*m[7], m[2]*m[7]-m[1]*m[8], m[1]*m[5]-m[2]*m[4],
-      m[5]*m[6]-m[3]*m[8], m[0]*m[8]-m[2]*m[6], m[2]*m[3]-m[0]*m[5],
-      m[3]*m[7]-m[4]*m[6], m[1]*m[6]-m[0]*m[7], m[0]*m[4]-m[1]*m[3],
-    ];
-  }
-  function multmm(a: number[], b: number[]): number[] {
-    const c = new Array(9);
-    for (let i = 0; i < 3; i += 1) {
-      for (let j = 0; j < 3; j += 1) {
-        let cij = 0;
-        for (let k = 0; k < 3; k += 1) cij += a[3*i+k] * b[3*k+j];
-        c[3*i+j] = cij;
-      }
-    }
-    return c;
-  }
-  function multmv(m: number[], v: number[]): number[] {
-    return [
-      m[0]*v[0] + m[1]*v[1] + m[2]*v[2],
-      m[3]*v[0] + m[4]*v[1] + m[5]*v[2],
-      m[6]*v[0] + m[7]*v[1] + m[8]*v[2],
-    ];
-  }
-  function basisToPoints(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, x4: number, y4: number): number[] {
-    const m = [x1, x2, x3, y1, y2, y3, 1, 1, 1];
-    const v = multmv(adj(m), [x4, y4, 1]);
-    return multmm(m, [v[0], 0, 0, 0, v[1], 0, 0, 0, v[2]]);
-  }
-  function quadProjection(
-    x1s: number, y1s: number, x1d: number, y1d: number,
-    x2s: number, y2s: number, x2d: number, y2d: number,
-    x3s: number, y3s: number, x3d: number, y3d: number,
-    x4s: number, y4s: number, x4d: number, y4d: number,
-  ): number[] {
-    const s = basisToPoints(x1s, y1s, x2s, y2s, x3s, y3s, x4s, y4s);
-    const d = basisToPoints(x1d, y1d, x2d, y2d, x3d, y3d, x4d, y4d);
-    return multmm(d, adj(s));
-  }
-
   const clockEl = document.querySelector<HTMLElement>('[data-pxlib-clock]');
   const displayEl = document.querySelector<HTMLElement>('[data-pxlib-display]');
   let corners = loadCorners();
@@ -570,22 +374,12 @@ const ui = locale === 'de'
     const w = clockEl.offsetWidth;
     const h = clockEl.offsetHeight;
     if (w === 0 || h === 0) return;
-    const px = (c: Corner) => ({ x: (c.x / 100) * w, y: (c.y / 100) * h });
-    const tl = px(corners.tl), tr = px(corners.tr), bl = px(corners.bl), br = px(corners.br);
-    const t = quadProjection(
-      0, 0, tl.x, tl.y,
-      w, 0, tr.x, tr.y,
-      0, h, bl.x, bl.y,
-      w, h, br.x, br.y,
-    );
-    for (let i = 0; i < 9; i += 1) t[i] = t[i] / t[8];
     displayEl.style.top = '0';
     displayEl.style.left = '0';
     displayEl.style.width = '100%';
     displayEl.style.height = '100%';
     displayEl.style.transformOrigin = '0 0';
-    displayEl.style.transform =
-      `matrix3d(${t[0]},${t[3]},0,${t[6]},${t[1]},${t[4]},0,${t[7]},0,0,1,0,${t[2]},${t[5]},0,${t[8]})`;
+    displayEl.style.transform = cornersToMatrix3d(corners, w, h);
     document.querySelectorAll<HTMLElement>('.pxlib__corner').forEach((handle) => {
       const k = handle.dataset.corner as keyof Corners | undefined;
       if (!k || !corners[k]) return;
@@ -741,41 +535,6 @@ const ui = locale === 'de'
       if (panel) panel.hidden = true;
       if (displayEl) displayEl.style.opacity = '';  // restore full opacity
     });
-
-    // 3D camera + recess sliders. Each slider drives one Clock3DConfig key;
-    // changes are written through to the 3D scene and saved to localStorage
-    // so the look survives a reload.
-    document.querySelectorAll<HTMLInputElement>('[data-pxlib3d]').forEach((input) => {
-      input.addEventListener('input', () => {
-        if (!clock3d) return;
-        const key = input.dataset.pxlib3d as keyof Clock3DConfig | undefined;
-        if (!key) return;
-        const v = Number(input.value);
-        const partial = { [key]: v } as Partial<Clock3DConfig>;
-        clock3d.setConfig(partial);
-        const cfg = clock3d.getConfig();
-        update3DReadout(cfg);
-        save3DConfig(cfg);
-      });
-    });
-
-    panel?.querySelector<HTMLButtonElement>('[data-pxlib3d-copy]')?.addEventListener('click', async (e) => {
-      if (!clock3d) return;
-      const btn = e.currentTarget as HTMLButtonElement;
-      try {
-        await navigator.clipboard.writeText(JSON.stringify(clock3d.getConfig(), null, 2));
-        const orig = btn.textContent;
-        btn.textContent = 'Copied ✓';
-        setTimeout(() => { btn.textContent = orig; }, 1200);
-      } catch {}
-    });
-
-    panel?.querySelector<HTMLButtonElement>('[data-pxlib3d-reset]')?.addEventListener('click', () => {
-      if (!clock3d) return;
-      clock3d.setConfig(DEFAULT_3D);
-      save3DConfig(DEFAULT_3D);
-      sync3DPanel();
-    });
   }
 </script>
 
@@ -839,58 +598,6 @@ const ui = locale === 'de'
     margin: 0 auto;
   }
   .pxlib__clock[hidden] { display: none; }
-
-  /* 3D stage — same envelope as the photo clock; three.js fills it. */
-  .pxlib__clock-3d {
-    position: relative;
-    aspect-ratio: 1;
-    width: 100%;
-    max-width: 560px;
-    margin: 0 auto;
-  }
-  .pxlib__clock-3d[hidden] { display: none; }
-  .pxlib__clock-3d canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-    /* Soft drop-shadow on the rendered frame — mirrors the diffuse floor
-       shadow under the real clock in the studio photo, without needing an
-       actual ground plane in the 3D scene. drop-shadow only shadows the
-       opaque pixels of the canvas (the frame), so the background stays
-       clean. */
-    filter: drop-shadow(0 30px 50px rgba(10, 10, 10, 0.22))
-            drop-shadow(0 8px 14px rgba(10, 10, 10, 0.12));
-  }
-
-  /* Mode toggle pill: pair of buttons that swap between photo + 3D views. */
-  .pxlib__mode {
-    display: inline-flex;
-    align-self: center;
-    padding: 3px;
-    border-radius: 999px;
-    background: rgba(10, 10, 10, 0.06);
-    border: 1px solid rgba(10, 10, 10, 0.08);
-    gap: 2px;
-  }
-  .pxlib__mode button {
-    appearance: none;
-    border: 0;
-    background: transparent;
-    padding: 0.4rem 0.95rem;
-    border-radius: 999px;
-    font: inherit;
-    font-weight: 600;
-    font-size: 0.82rem;
-    letter-spacing: -0.005em;
-    color: rgba(10, 10, 10, 0.55);
-    cursor: pointer;
-    transition: background 160ms ease, color 160ms ease;
-  }
-  .pxlib__mode button:hover { color: #0a0a0a; }
-  .pxlib__mode button.is-active {
-    background: #0a0a0a;
-    color: #f4f4f4;
-  }
   .pxlib__clock-photo {
     position: absolute;
     inset: 0;
@@ -1225,18 +932,14 @@ const ui = locale === 'de'
     font-weight: 700;
     cursor: pointer;
   }
-  .pxlib-tweak__actions button[data-pxlib-tweak-copy],
-  .pxlib-tweak__actions button[data-pxlib3d-copy] {
+  .pxlib-tweak__actions button[data-pxlib-tweak-copy] {
     background: #fbb238;
     color: #0a0a0a;
   }
-  .pxlib-tweak__actions button[data-pxlib-tweak-copy]:hover,
-  .pxlib-tweak__actions button[data-pxlib3d-copy]:hover { background: #f4ae3b; }
-  .pxlib-tweak__actions button[data-pxlib-tweak-reset],
-  .pxlib-tweak__actions button[data-pxlib3d-reset] {
+  .pxlib-tweak__actions button[data-pxlib-tweak-copy]:hover { background: #f4ae3b; }
+  .pxlib-tweak__actions button[data-pxlib-tweak-reset] {
     background: rgba(255, 255, 255, 0.06);
     color: #ece6da;
   }
-  .pxlib-tweak__actions button[data-pxlib-tweak-reset]:hover,
-  .pxlib-tweak__actions button[data-pxlib3d-reset]:hover { background: rgba(255, 255, 255, 0.14); }
+  .pxlib-tweak__actions button[data-pxlib-tweak-reset]:hover { background: rgba(255, 255, 255, 0.14); }
 </style>

@@ -1,0 +1,41 @@
+---
+import type { Locale } from '../i18n/strings';
+import type { Product } from '../lib/shop';
+import type { PageVariant } from '../lib/page-variants';
+import { lifestyleGallery, workshopGallery, shapeSpacesBg } from '../lib/assets';
+import Hero from './Hero.astro';
+import ProductPanel from './ProductPanel.astro';
+import Gallery from './Gallery.astro';
+import Variants from './Variants.astro';
+import Statement from './Statement.astro';
+import Handmade from './Handmade.astro';
+import OurStory from './OurStory.astro';
+import VariantIntro from './VariantIntro.astro';
+
+interface Props {
+  locale: Locale;
+  variant: PageVariant;
+  product: Product | null;
+}
+
+const { locale, variant, product } = Astro.props;
+const copy = variant.copy[locale];
+---
+
+<Hero locale={locale} />
+<VariantIntro
+  eyebrow={copy.introEyebrow}
+  title={copy.introTitle}
+  lead={copy.introLead}
+  bullets={copy.bullets}
+  note={copy.note}
+  thesis={copy.thesis}
+  theme={variant.theme}
+/>
+<Gallery images={lifestyleGallery} ariaLabel={locale === 'de' ? 'Lifestyle-Galerie' : 'Lifestyle gallery'} />
+<Handmade locale={locale} productId={product?.id} />
+<Statement line1={copy.quote.line1} line2={copy.quote.line2} bgImage={shapeSpacesBg} />
+<ProductPanel locale={locale} product={product} />
+<Gallery images={workshopGallery} ariaLabel={locale === 'de' ? 'Werkstatt-Galerie' : 'Workshop gallery'} />
+<Variants locale={locale} />
+<OurStory locale={locale} />

@@ -1,4 +1,5 @@
 ---
+import { url } from '../lib/url';
 import type { Locale } from '../i18n/strings';
 import { t, homeHref } from '../i18n/strings';
 
@@ -208,8 +209,8 @@ const homeUrl = homeHref(locale);
       if (target.matches('[data-checkout]')) {
         const origin = window.location.origin;
         const locale = root!.dataset.locale === 'de' ? 'de' : 'en';
-        const successUrl = `${origin}${locale === 'de' ? '/de/thank-you' : '/thank-you'}`;
-        const cancelUrl = `${origin}${locale === 'de' ? '/de/' : '/'}`;
+        const successUrl = `${origin}${url(locale === 'de' ? '/de/thank-you' : '/thank-you')}`;
+        const cancelUrl = `${origin}${url(locale === 'de' ? '/de/' : '/')}`;
         await withBusy(target as HTMLButtonElement, async () => {
           const { url } = await createCheckoutRedirect({ successUrl, cancelUrl });
           window.location.href = url;

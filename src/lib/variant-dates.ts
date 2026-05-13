@@ -2,44 +2,36 @@ import { execSync } from 'node:child_process';
 import { statSync } from 'node:fs';
 import path from 'node:path';
 import type { PageVariantSlug } from './page-variants';
+import { pageVariants } from './page-variants';
 
-// Files that determine the "last updated" timestamp for each variant. When a
-// variant lives in its own dedicated file, we use only that file. When several
-// variants share a layout component (the legacy original/tweak/experiment
-// layouts), we combine the layout component with the per-variant data file so
-// edits to either count.
-const VARIANT_FILES: Record<PageVariantSlug, string[]> = {
-  // Fresh layouts (own file each)
-  plus3:     ['src/components/OriginalPlus3Page.astro'],
-  plus2:     ['src/components/OriginalPlus2Page.astro'],
-  plus:      ['src/components/OriginalPlusPage.astro'],
-  ribbon:    ['src/components/StoryRibbonPage.astro'],
-  sidebar:   ['src/components/LivingSidebarPage.astro'],
-  native:    ['src/components/PixelNativePage.astro'],
-  editorial: ['src/components/EditorialObjectPage.astro'],
-  drop:      ['src/components/QuietDropPage.astro'],
-
-  // Legacy layouts that share components
-  default:   ['src/pages/index.astro', 'src/components/VariantPage.astro'],
-  dev:       ['src/components/VariantPage.astro', 'src/lib/page-variants.ts'],
-  maker:     ['src/components/VariantPage.astro', 'src/lib/page-variants.ts'],
-
-  noir:      ['src/components/OriginalDraftPage.astro', 'src/lib/original-drafts.ts'],
-  prism:     ['src/components/OriginalDraftPage.astro', 'src/lib/original-drafts.ts'],
-  stack:     ['src/components/OriginalDraftPage.astro', 'src/lib/original-drafts.ts'],
-  grid:      ['src/components/OriginalDraftPage.astro', 'src/lib/original-drafts.ts'],
-  atelier:   ['src/components/OriginalDraftPage.astro', 'src/lib/original-drafts.ts'],
-
-  spatial:   ['src/components/OriginalTweakPage.astro', 'src/lib/page-variants.ts'],
-  live:      ['src/components/OriginalTweakPage.astro', 'src/lib/page-variants.ts'],
-  proof:     ['src/components/OriginalTweakPage.astro', 'src/lib/page-variants.ts'],
-
-  poster:    ['src/components/ExperimentPage.astro'],
-  console:   ['src/components/ExperimentPage.astro'],
-  catalog:   ['src/components/ExperimentPage.astro'],
-  interior:  ['src/components/ExperimentPage.astro'],
-  buildbook: ['src/components/ExperimentPage.astro'],
+// Layout slug → component file. Mirrors LAYOUT_COMPONENTS in
+// src/components/VariantPage.astro. The variant's `layout` field picks the
+// component file whose mtime is the variant's "updated at" timestamp.
+//
+// Some variants share a component (original/tweak/experiment + their data
+// files), so a layout maps to one OR MORE files; we take the newest mtime.
+const LAYOUT_FILES: Record<string, string[]> = {
+  default:    ['src/components/DefaultLayout.astro'],
+  dev:        ['src/components/DevLayout.astro', 'src/lib/page-variants.ts'],
+  maker:      ['src/components/MakerLayout.astro', 'src/lib/page-variants.ts'],
+  original:   ['src/components/OriginalDraftPage.astro', 'src/lib/original-drafts.ts'],
+  tweak:      ['src/components/OriginalTweakPage.astro', 'src/lib/page-variants.ts'],
+  experiment: ['src/components/ExperimentPage.astro'],
+  ribbon:     ['src/components/StoryRibbonPage.astro'],
+  sidebar:    ['src/components/LivingSidebarPage.astro'],
+  native:     ['src/components/PixelNativePage.astro'],
+  editorial:  ['src/components/EditorialObjectPage.astro'],
+  drop:       ['src/components/QuietDropPage.astro'],
+  plus:       ['src/components/OriginalPlusPage.astro'],
+  plus2:      ['src/components/OriginalPlus2Page.astro'],
+  plus3:      ['src/components/OriginalPlus3Page.astro'],
 };
+
+function filesFor(slug: PageVariantSlug): string[] {
+  const v = pageVariants.find((x) => x.slug === slug);
+  if (!v) return [];
+  return LAYOUT_FILES[v.layout] ?? [];
+}
 
 function gitMtime(file: string): Date | null {
   try {
@@ -70,8 +62,8 @@ const cache = new Map<PageVariantSlug, Date | null>();
 export function getVariantUpdate(slug: PageVariantSlug): Date | null {
   if (cache.has(slug)) return cache.get(slug) ?? null;
 
-  const files = VARIANT_FILES[slug];
-  if (!files) {
+  const files = filesFor(slug);
+  if (files.length === 0) {
     cache.set(slug, null);
     return null;
   }

@@ -1,0 +1,37 @@
+---
+import type { Locale } from '../i18n/strings';
+import { t } from '../i18n/strings';
+import type { Product } from '../lib/shop';
+import type { PageVariant } from '../lib/page-variants';
+import { lifestyleGallery, workshopGallery, shapeSpacesBg, startedBg } from '../lib/assets';
+import Hero from './Hero.astro';
+import ProductPanel from './ProductPanel.astro';
+import Gallery from './Gallery.astro';
+import Variants from './Variants.astro';
+import Statement from './Statement.astro';
+import Handmade from './Handmade.astro';
+import CreateItYourself from './CreateItYourself.astro';
+import Setup from './Setup.astro';
+import OurStory from './OurStory.astro';
+
+interface Props {
+  locale: Locale;
+  variant: PageVariant;
+  product: Product | null;
+}
+
+const { locale, product } = Astro.props;
+const s = t(locale);
+---
+
+<Hero locale={locale} />
+<ProductPanel locale={locale} product={product} />
+<Gallery images={lifestyleGallery} ariaLabel={locale === 'de' ? 'Lifestyle-Galerie' : 'Lifestyle gallery'} />
+<Variants locale={locale} />
+<Statement line1={s.shapeSpaces.line1} line2={s.shapeSpaces.line2} bgImage={shapeSpacesBg} />
+<Handmade locale={locale} productId={product?.id} />
+<Gallery images={workshopGallery} ariaLabel={locale === 'de' ? 'Werkstatt-Galerie' : 'Workshop gallery'} />
+<Statement line1={s.started.line1} line2={s.started.line2} bgImage={startedBg} />
+<CreateItYourself locale={locale} />
+<Setup locale={locale} />
+<OurStory locale={locale} />

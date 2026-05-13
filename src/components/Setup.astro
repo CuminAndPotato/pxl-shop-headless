@@ -1,5 +1,6 @@
 ---
 import type { Locale } from '../i18n/strings';
+import { url } from '../lib/url';
 import { t } from '../i18n/strings';
 interface Props { locale: Locale }
 const { locale } = Astro.props;
@@ -8,7 +9,7 @@ const s = t(locale);
 const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=0&color=ffffff&bgcolor=000000&data=' + encodeURIComponent('https://pxlclock.com/setup');
 ---
 
-<section class="setup section--dark">
+<section class="setup section--dark" style={`--setup-bg-image: url('${url('/img/sections/setup-bg.avif')}')`}>
   <div class="container setup__inner">
     <a class="setup__h" href="https://pxlclock.com/setup" target="_blank" rel="noopener">
       {s.setup.title}
@@ -25,7 +26,7 @@ const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=0
     background-color: var(--dark-bg);
     background-image:
       linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.78) 100%),
-      url('/img/sections/setup-bg.avif');
+      var(--setup-bg-image);
     background-size: cover, cover;
     background-position: center, center;
     background-attachment: scroll, fixed;

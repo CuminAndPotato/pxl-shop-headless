@@ -1,7 +1,9 @@
 ---
 import type { Locale } from '../i18n/strings';
 import type { PageVariantSlug } from '../lib/page-variants';
-import { getCompareHref, getVariantHref, pageVariants } from '../lib/page-variants';
+import { url } from '../lib/url';
+import { getCompareHref, getVariantHref, pageVariants, FRESH_LAYOUT_SLUGS } from '../lib/page-variants';
+import { url } from '../lib/url';
 import { getVariantUpdate, formatVariantDate, formatVariantDateLong } from '../lib/variant-dates';
 
 interface Props {
@@ -14,7 +16,9 @@ const currentIndex = pageVariants.findIndex((variant) => variant.slug === curren
 const comparePeer = pageVariants[(currentIndex + 1) % pageVariants.length]?.slug ?? 'default';
 
 const ORIGINAL_SLUG: PageVariantSlug = 'default';
-const FRESH_SLUGS: PageVariantSlug[] = ['plus3', 'plus2', 'plus', 'ribbon', 'sidebar', 'native', 'editorial'];
+// "Fresh" slugs come from page-variants.ts so adding a new fresh layout is
+// a single-file change. Order in FRESH_LAYOUT_SLUGS = display order here.
+const FRESH_SLUGS = FRESH_LAYOUT_SLUGS as readonly PageVariantSlug[];
 const original = pageVariants.find((v) => v.slug === ORIGINAL_SLUG);
 const fresh = FRESH_SLUGS
   .map((slug) => pageVariants.find((v) => v.slug === slug))
@@ -145,7 +149,7 @@ const labels = locale === 'de'
 
   <div class="variant-dock__actions">
     <a class="variant-dock__link" href={getCompareHref(locale, currentSlug, comparePeer)}>{labels.compare}</a>
-    <a class="variant-dock__link" href={locale === 'de' ? '/de/' : '/'}>{labels.home}</a>
+    <a class="variant-dock__link" href={url(locale === 'de' ? '/de/' : '/')}>{labels.home}</a>
   </div>
   </div>
 

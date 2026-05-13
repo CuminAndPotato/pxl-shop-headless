@@ -4,6 +4,7 @@ import { t } from '../i18n/strings';
 import type { Product } from '../lib/shop';
 import type { OriginalTweakSlug, PageVariant } from '../lib/page-variants';
 import { lifestyleGallery, workshopGallery } from '../lib/assets';
+import { url } from '../lib/url';
 import Hero from './Hero.astro';
 import PixogramShowcase from './PixogramShowcase.astro';
 
@@ -20,11 +21,11 @@ const { locale, variant, product } = Astro.props;
 const s = t(locale);
 const tweakSlug = variant.slug as OriginalTweakSlug;
 
-const productImage = '/img/products/whatis-clock-tight.png';
+const productImage = url('/img/products/whatis-clock-tight.png');
 const price = product?.discountedPrice?.formatted ?? product?.price?.formatted ?? '229,00 EUR';
 const oldPrice = product?.discountedPrice ? product.price?.formatted : '';
 const defaultVariantId = product?.variants[0]?.id ?? '';
-const cartHref = locale === 'de' ? '/de/cart' : '/cart';
+const cartHref = locale === 'de' ? url('/de/cart') : url('/cart');
 const stock = product?.inStock
   ? locale === 'de' ? 'Auf Lager, Versand aus Deutschland' : 'In stock, ships from Germany'
   : locale === 'de' ? 'Aktuell nicht verfuegbar' : 'Currently out of stock';

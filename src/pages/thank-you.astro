@@ -1,4 +1,5 @@
 ---
+import { url } from '../lib/url';
 import Base from '../layouts/Base.astro';
 const locale = 'en';
 ---
@@ -12,7 +13,7 @@ const locale = 'en';
         We'll send you an email with order confirmation and shipping details. Your PXL Clock is being prepared in Germany.
       </p>
       <p>
-        <a href="/" class="btn btn--ghost">Back to shop</a>
+        <a href={url("/")} class="btn btn--ghost">Back to shop</a>
       </p>
     </div>
   </section>

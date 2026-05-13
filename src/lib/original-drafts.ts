@@ -1,4 +1,5 @@
 import type { Locale } from '../i18n/strings';
+import { url } from './url';
 import { lifestyleGallery, workshopGallery, shapeSpacesBg, startedBg } from './assets';
 
 export type OriginalDraftSlug = 'noir' | 'prism' | 'stack' | 'grid' | 'atelier';
@@ -15,7 +16,7 @@ export interface OriginalDraftConfig {
   galleryNote: Record<Locale, string>;
 }
 
-const productStage = '/img/products/whatis-clock-tight.png';
+const productStage = url('/img/products/whatis-clock-tight.png');
 
 export const originalDrafts: Record<OriginalDraftSlug, OriginalDraftConfig> = {
   noir: {

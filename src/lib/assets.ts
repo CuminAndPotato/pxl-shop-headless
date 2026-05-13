@@ -1,7 +1,10 @@
 // Self-hosted asset paths. All images live in public/img and are served from
-// the same origin as the site — no third-party CDN dependency.
+// the same origin as the site — no third-party CDN dependency. URLs go
+// through `url()` so they pick up Astro's `base` path on sub-path deploys.
 
-const portrait = (id: string) => `/img/gallery/${id}.avif`;
+import { url } from './url';
+
+const portrait = (id: string) => url(`/img/gallery/${id}.avif`);
 
 const portraits = [
   '5d430b_5842ea6774ad46b790df3ea307cad0e3',
@@ -30,5 +33,5 @@ const portraits = [
 export const lifestyleGallery: string[] = portraits.slice(0, 14).map(portrait);
 export const workshopGallery: string[] = portraits.slice(7, 21).map(portrait);
 
-export const shapeSpacesBg = '/img/sections/shape-spaces.avif';
-export const startedBg = '/img/sections/started.avif';
+export const shapeSpacesBg = url('/img/sections/shape-spaces.avif');
+export const startedBg = url('/img/sections/started.avif');

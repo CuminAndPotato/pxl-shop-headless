@@ -4,6 +4,7 @@ import { t } from '../i18n/strings';
 import type { Product } from '../lib/shop';
 import type { PageVariant } from '../lib/page-variants';
 import { getOriginalDraft } from '../lib/original-drafts';
+import { url } from '../lib/url';
 import Hero from './Hero.astro';
 import PixogramShowcase from './PixogramShowcase.astro';
 
@@ -34,7 +35,7 @@ const hasDiscount = !!product?.discountedPrice;
 const priceLabel = product?.price?.formatted ?? '';
 const discountedLabel = product?.discountedPrice?.formatted ?? '';
 const defaultVariantId = product?.variants[0]?.id ?? '';
-const cartHref = locale === 'de' ? '/de/cart' : '/cart';
+const cartHref = locale === 'de' ? url('/de/cart') : url('/cart');
 
 const isLightDraft = draft.slug === 'prism';
 const buyLabel = s.whatIs.cta;

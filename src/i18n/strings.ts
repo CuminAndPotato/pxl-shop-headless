@@ -1,4 +1,5 @@
 export type Locale = 'en' | 'de';
+import { url } from '../lib/url';
 
 export const strings = {
   en: {
@@ -180,4 +181,4 @@ export const strings = {
 
 export function t(locale: Locale) { return strings[locale]; }
 export function altLocale(locale: Locale): Locale { return locale === 'en' ? 'de' : 'en'; }
-export function homeHref(locale: Locale): string { return locale === 'en' ? '/' : '/de/'; }
+export function homeHref(locale: Locale): string { return locale === 'en' ? url('/') : url('/de/'); }

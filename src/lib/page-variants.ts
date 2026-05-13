@@ -1,9 +1,19 @@
 import type { Locale } from '../i18n/strings';
+import { url } from './url';
 import type { OriginalDraftSlug } from './original-drafts';
 
 export type OriginalTweakSlug = 'spatial' | 'live' | 'proof';
 export type ExperimentVariantSlug = 'poster' | 'console' | 'catalog' | 'interior' | 'buildbook';
-export type FreshLayoutSlug = 'ribbon' | 'sidebar' | 'native' | 'editorial' | 'drop' | 'plus' | 'plus2' | 'plus3';
+
+// Fresh-layout slug array is the single source for both the union type AND
+// the runtime dock ordering. Order here = display order in the "Neu" section
+// of the Landing Lab dock. Adding a new fresh layout: append the slug here.
+export const FRESH_LAYOUT_SLUGS = [
+  'plus3', 'plus2', 'plus',
+  'ribbon', 'sidebar', 'native', 'editorial', 'drop',
+] as const;
+export type FreshLayoutSlug = typeof FRESH_LAYOUT_SLUGS[number];
+
 export type PageVariantSlug = 'default' | 'dev' | 'maker' | OriginalDraftSlug | OriginalTweakSlug | ExperimentVariantSlug | FreshLayoutSlug;
 
 interface VariantLocaleCopy {
@@ -21,11 +31,16 @@ interface VariantLocaleCopy {
   };
 }
 
+// Layout slugs are the keys of LAYOUT_COMPONENTS in VariantPage.astro. The
+// "shared" layouts (`original`, `tweak`, `experiment`) are layouts that more
+// than one variant can use; everything else is 1:1 with a variant slug.
+export type PageLayout =
+  | 'default' | 'dev' | 'maker' | 'original' | 'tweak' | 'experiment'
+  | FreshLayoutSlug;
+
 export interface PageVariant {
   slug: PageVariantSlug;
-  layout:
-    | 'default' | 'dev' | 'maker' | 'original' | 'tweak' | 'experiment'
-    | 'ribbon' | 'sidebar' | 'native' | 'editorial' | 'drop' | 'plus' | 'plus2' | 'plus3';
+  layout: PageLayout;
   theme: 'graphite' | 'amber' | 'mist';
   headerVariant?: 'dark' | 'light';
   copy: Record<Locale, VariantLocaleCopy>;
@@ -780,10 +795,10 @@ export function getPageVariant(slug: string): PageVariant | undefined {
 }
 
 export function getVariantHref(locale: Locale, slug: PageVariantSlug): string {
-  return locale === 'de' ? `/de/v/${slug}` : `/v/${slug}`;
+  return url(locale === 'de' ? `/de/v/${slug}` : `/v/${slug}`);
 }
 
 export function getCompareHref(locale: Locale, left: PageVariantSlug, right: PageVariantSlug): string {
-  const base = locale === 'de' ? '/de/compare' : '/compare';
+  const base = locale === 'de' ? url('/de/compare') : url('/compare');
   return `${base}?left=${left}&right=${right}`;
 }

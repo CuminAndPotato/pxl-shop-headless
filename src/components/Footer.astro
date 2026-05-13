@@ -1,4 +1,5 @@
 ---
+import { url } from '../lib/url';
 import type { Locale } from '../i18n/strings';
 import { t } from '../i18n/strings';
 
@@ -9,7 +10,7 @@ const s = t(locale);
 
 <footer class="site-footer">
   <div class="footer__logo-wrap">
-    <img class="footer__logo" src="/logos/pxl.svg" alt="PXL" />
+    <img class="footer__logo" src={url("/logos/pxl.svg")} alt="PXL" />
   </div>
   <div class="footer__grid">
     <div>

@@ -1,4 +1,5 @@
 ---
+import { url } from '../../lib/url';
 import Base from '../../layouts/Base.astro';
 const locale = 'de';
 ---
@@ -12,7 +13,7 @@ const locale = 'de';
         Du bekommst gleich eine Bestätigungs-E-Mail mit allen Details. Deine PXL Clock wird in Deutschland für dich vorbereitet.
       </p>
       <p>
-        <a href="/de/" class="btn btn--ghost">Zurück zum Shop</a>
+        <a href={url("/de/")} class="btn btn--ghost">Zurück zum Shop</a>
       </p>
     </div>
   </section>

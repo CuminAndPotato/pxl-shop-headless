@@ -1,5 +1,6 @@
 ---
 import type { Locale } from '../i18n/strings';
+import { url } from '../lib/url';
 import { t, homeHref } from '../i18n/strings';
 
 interface Props {
@@ -14,8 +15,8 @@ interface Props {
 const { locale, variant = 'dark', languageHrefs } = Astro.props;
 const s = t(locale);
 
-const cartHref = locale === 'de' ? '/de/cart' : '/cart';
-const deHref = languageHrefs?.de ?? '/de/';
+const cartHref = locale === 'de' ? url('/de/cart') : url('/cart');
+const deHref = languageHrefs?.de ?? url('/de/');
 const enHref = languageHrefs?.en ?? '/';
 ---
 
@@ -27,7 +28,7 @@ const enHref = languageHrefs?.en ?? '/';
       <a href={homeHref(locale) + '#story'}>{s.nav.about}</a>
     </nav>
     <a class="header__logo" href={homeHref(locale)} aria-label="PXL Clock home">
-      <img src="/logos/pxl.svg" alt="PXL" width="120" height="42" />
+      <img src={url("/logos/pxl.svg")} alt="PXL" width="120" height="42" />
     </a>
     <div class="header__right">
       <div class="lang" role="group" aria-label="Language">

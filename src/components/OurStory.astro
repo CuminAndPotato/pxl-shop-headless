@@ -1,4 +1,5 @@
 ---
+import { url } from '../lib/url';
 import type { Locale } from '../i18n/strings';
 import { t } from '../i18n/strings';
 
@@ -10,7 +11,7 @@ const s = t(locale);
 <section class="section story section--white" id="story">
   <div class="container story__grid">
     <div class="story__media">
-      <img src="/img/team/sefa-ronald.avif" alt="Sefa und Ronald, the team behind PXL Clock" loading="lazy" />
+      <img src={url("/img/team/sefa-ronald.avif")} alt="Sefa und Ronald, the team behind PXL Clock" loading="lazy" />
     </div>
     <div class="story__copy">
       <h3 class="h-sub story__h">{s.story.title}</h3>
