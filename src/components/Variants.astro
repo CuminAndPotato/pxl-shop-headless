@@ -22,17 +22,11 @@ const s = t(locale);
   </div>
   <div class="variants__grid">
     <figure>
-      <div class="variants__photo">
-        <img class="variants__shadow" src={url("/img/products/clock-black-900-shadow.png")} alt="" aria-hidden="true" />
-        <img class="variants__img" src={url("/img/products/clock-black-900.png")} alt={s.variants.black} loading="lazy" />
-      </div>
+      <img src={url("/img/products/clock-black-900.png")} alt={s.variants.black} loading="lazy" />
       <figcaption>{s.variants.black}</figcaption>
     </figure>
     <figure>
-      <div class="variants__photo">
-        <img class="variants__shadow" src={url("/img/products/clock-white-900-shadow.png")} alt="" aria-hidden="true" />
-        <img class="variants__img" src={url("/img/products/clock-white-900.png")} alt={s.variants.white} loading="lazy" />
-      </div>
+      <img src={url("/img/products/clock-white-900.png")} alt={s.variants.white} loading="lazy" />
       <figcaption>{s.variants.white}</figcaption>
     </figure>
   </div>
@@ -69,25 +63,12 @@ const s = t(locale);
     z-index: 1;
   }
   figure { margin: 0; text-align: center; }
-  .variants__photo {
-    position: relative;
-    aspect-ratio: 1 / 1;
-  }
-  .variants__shadow {
-    position: absolute;
-    inset: -12%;
-    width: 124%;
-    height: 124%;
-    object-fit: contain;
-    pointer-events: none;
-    user-select: none;
-  }
-  .variants__img {
-    position: relative;
+  figure img {
     width: 100%;
     height: auto;
     aspect-ratio: 1 / 1;
     object-fit: contain;
+    filter: drop-shadow(0 30px 50px rgba(0,0,0,0.18));
   }
   figcaption {
     margin-top: 1.5rem;

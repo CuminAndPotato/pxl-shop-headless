@@ -9,7 +9,6 @@
     "dev": "astro dev",
     "build": "astro build",
     "build:pages": "BASE_PATH=/pxl-shop-headless astro build",
-    "bake-shadows": "node scripts/bake-shadows.mjs",
     "preview": "astro preview",
     "astro": "astro"
   },
@@ -19,8 +18,5 @@
     "@wix/sdk": "^1.21.9",
     "@wix/stores": "^1.0.763",
     "astro": "^6.2.2"
-  },
-  "devDependencies": {
-    "sharp": "^0.34.5"
   }
 }
