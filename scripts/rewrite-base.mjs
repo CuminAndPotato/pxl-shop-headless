@@ -51,8 +51,10 @@ const rules = [
   [/(\bsrcset=["'])([^"']*)(["'])/gi, (_m, pre, list, post) =>
     pre + list.replace(/(^|,\s*)\/(?!\/)/g, `$1${BASE}/`) + post,
   ],
-  // Inline data-* path attributes the codebase emits (data-cart-href etc.)
-  [/(\bdata-[a-z-]*-?(?:href|src|url|to|home)=["'])\/(?!\/|pxl-shop-headless)/gi, `$1${BASE}/`],
+  // Inline data-* path attributes the codebase emits (data-cart-href,
+  // data-pxlib-file, …). Keep this group in sync with anything the front-end
+  // reads from a data-* attribute and treats as a URL.
+  [/(\bdata-[a-z-]*-?(?:href|src|url|to|home|file)=["'])\/(?!\/|pxl-shop-headless)/gi, `$1${BASE}/`],
   // CSS url(/foo)
   [/url\(\s*["']?\/(?!\/|pxl-shop-headless)/gi, `url(${BASE}/`],
   // JS string literals like "/img/…" or '/cart' inside hydration scripts.
