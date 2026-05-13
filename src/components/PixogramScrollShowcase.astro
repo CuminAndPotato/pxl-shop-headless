@@ -366,7 +366,15 @@ const ui = locale === 'de'
   }
 
   /* === Sticky stage (photo + projected canvas + reflection) =============== */
-  .pscs__stage { position: relative; }
+  /* align-self: stretch overrides the grid container's `align-items: start`
+     so the stage column fills the full row height. Without this, the stage
+     is only as tall as its content and `position: sticky` has zero scroll
+     range — the clock just scrolls away with everything else. */
+  .pscs__stage {
+    position: relative;
+    align-self: stretch;
+    height: 100%;
+  }
   .pscs__stage-inner {
     position: sticky;
     top: clamp(1rem, 6vh, 4rem);
