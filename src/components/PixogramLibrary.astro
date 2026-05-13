@@ -56,7 +56,7 @@ const ui = locale === 'de'
     <aside class="pxlib__stage">
       <div class="pxlib__stage-inner">
         <div class="pxlib__clock" data-pxlib-clock>
-          <img class="pxlib__clock-photo" src={url("/img/products/whatis-clock-tight.png")} alt="" loading="lazy" />
+          <img class="pxlib__clock-photo" src={url("/img/products/whatis-clock-tight.png")} alt="" loading="lazy" width="997" height="1045" />
           <div class="pxlib__clock-display" data-pxlib-display>
             <canvas class="pxlib__clock-canvas" data-pxlib-large-canvas width="540" height="540"></canvas>
           </div>
@@ -66,7 +66,7 @@ const ui = locale === 'de'
                product shot; we re-create it dynamically so it tracks
                whatever pixogram is currently playing. -->
           <div class="pxlib__clock-reflection" data-pxlib-reflection>
-            <canvas data-pxlib-reflection-canvas width="1" height="24"></canvas>
+            <canvas data-pxlib-reflection-canvas></canvas>
           </div>
           <button type="button" class="pxlib__corner" data-corner="tl" aria-label="Top-left corner"></button>
           <button type="button" class="pxlib__corner" data-corner="tr" aria-label="Top-right corner"></button>
@@ -133,28 +133,28 @@ const ui = locale === 'de'
         <input type="range" min="0" max="100" step="1" value="50" data-pxlib-tweak-opacity>
       </label>
       <label class="pxlib-tweak__row">
-        <span>crop top <output data-pxlib-crop-out="top">0.4</output>%</span>
-        <input type="range" min="0" max="15" step="0.1" value="0.4" data-pxlib-crop="top">
+        <span>crop top <output data-pxlib-crop-out="top">0.9</output>%</span>
+        <input type="range" min="0" max="15" step="0.1" value="0.9" data-pxlib-crop="top">
       </label>
       <label class="pxlib-tweak__row">
-        <span>crop right <output data-pxlib-crop-out="right">1.1</output>%</span>
-        <input type="range" min="0" max="15" step="0.1" value="1.1" data-pxlib-crop="right">
+        <span>crop right <output data-pxlib-crop-out="right">1.3</output>%</span>
+        <input type="range" min="0" max="15" step="0.1" value="1.3" data-pxlib-crop="right">
       </label>
       <label class="pxlib-tweak__row">
-        <span>refl width <output data-pxlib-refl-out="width">3.0</output>%</span>
-        <input type="range" min="0" max="10" step="0.1" value="3.0" data-pxlib-refl="width">
+        <span>refl width <output data-pxlib-refl-out="width">0.9</output>%</span>
+        <input type="range" min="0" max="10" step="0.1" value="0.9" data-pxlib-refl="width">
       </label>
       <label class="pxlib-tweak__row">
-        <span>refl offset <output data-pxlib-refl-out="offset">0.0</output>%</span>
-        <input type="range" min="-5" max="5" step="0.1" value="0.0" data-pxlib-refl="offset">
+        <span>refl offset <output data-pxlib-refl-out="offset">0.1</output>%</span>
+        <input type="range" min="-5" max="5" step="0.1" value="0.1" data-pxlib-refl="offset">
       </label>
       <label class="pxlib-tweak__row">
-        <span>refl opacity <output data-pxlib-refl-out="opacity">85</output>%</span>
-        <input type="range" min="0" max="100" step="1" value="85" data-pxlib-refl="opacity">
+        <span>refl opacity <output data-pxlib-refl-out="opacity">66</output>%</span>
+        <input type="range" min="0" max="100" step="1" value="66" data-pxlib-refl="opacity">
       </label>
       <label class="pxlib-tweak__row">
-        <span>refl blur <output data-pxlib-refl-out="blur">2.5</output>px</span>
-        <input type="range" min="0" max="20" step="0.1" value="2.5" data-pxlib-refl="blur">
+        <span>refl blur <output data-pxlib-refl-out="blur">1.5</output>px</span>
+        <input type="range" min="0" max="20" step="0.1" value="1.5" data-pxlib-refl="blur">
       </label>
       <pre data-pxlib-tweak-output></pre>
       <div class="pxlib-tweak__actions">
@@ -266,30 +266,34 @@ const ui = locale === 'de'
     if (!activePix || !largeCanvas) return;
     const f = activePix.frames[activeFrame % activePix.frames.length];
     renderRgbPhotoreal(largeCanvas, f, activePix.width, activePix.height);
-    paintReflection(f, activePix.width, activePix.height);
+    paintReflection(activePix.width);
   }
 
-  // Renders just the LEFTMOST column of the active frame into a 1×N canvas.
-  // CSS + matrix3d stretches it horizontally across the reflection strip so
-  // the colour-per-row tracks the LED matrix's left edge in real time.
-  function paintReflection(frame: Uint8Array, width: number, height: number) {
-    if (!reflectionCanvas) return;
-    if (reflectionCanvas.width !== 1 || reflectionCanvas.height !== height) {
-      reflectionCanvas.width = 1;
-      reflectionCanvas.height = height;
-    }
+  // Reflection = a horizontal slice of the leftmost LED column from the
+  // already-rendered main canvas, copied into the reflection canvas via
+  // drawImage. Reusing the main canvas pixels guarantees the bezel light
+  // matches the photoreal LED look exactly (same gradients, same bloom);
+  // matrix3d on the parent stretches the slice down to the slim strip.
+  function paintReflection(matrixWidth: number) {
+    if (!reflectionCanvas || !largeCanvas) return;
     const ctx = reflectionCanvas.getContext('2d');
     if (!ctx) return;
-    const img = ctx.createImageData(1, height);
-    for (let y = 0; y < height; y += 1) {
-      const src = (y * width + 0) * 3;   // column 0 of row y
-      const dst = y * 4;
-      img.data[dst    ] = frame[src    ];
-      img.data[dst + 1] = frame[src + 1];
-      img.data[dst + 2] = frame[src + 2];
-      img.data[dst + 3] = 255;
+    const cssW = reflectionCanvas.clientWidth;
+    const cssH = reflectionCanvas.clientHeight;
+    if (cssW === 0 || cssH === 0) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const targetW = Math.round(cssW * dpr);
+    const targetH = Math.round(cssH * dpr);
+    if (reflectionCanvas.width !== targetW || reflectionCanvas.height !== targetH) {
+      reflectionCanvas.width = targetW;
+      reflectionCanvas.height = targetH;
     }
-    ctx.putImageData(img, 0, 0);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+    // ~1 LED column wide — slice includes one cell's hotspot + bloom. Reading
+    // from the device-pixel buffer of largeCanvas keeps the source crisp.
+    const sliceW = Math.max(1, Math.round(largeCanvas.width / matrixWidth));
+    ctx.drawImage(largeCanvas, 0, 0, sliceW, largeCanvas.height, 0, 0, cssW, cssH);
   }
 
   function stopLarge() {
@@ -376,16 +380,16 @@ const ui = locale === 'de'
   // the clock's body has depth and the frame partly occludes the LEDs at
   // those edges).
   const DEFAULT_CORNERS: Corners = {
-    tl: { x: 12.2, y: 8.9 },
-    tr: { x: 83.0, y: 9.6 },
-    bl: { x: 12.0, y: 83.7 },
-    br: { x: 83.3, y: 90.0 },
+    tl: { x: 10.4, y: 8.1 },
+    tr: { x: 85.0, y: 9.3 },
+    bl: { x: 10.4, y: 83.6 },
+    br: { x: 84.8, y: 90.0 },
   };
   const CORNERS_KEY = 'pxlib-corners';
   const CROP_KEY = 'pxlib-crop';
 
   type Crop = { top: number; right: number };
-  const DEFAULT_CROP: Crop = { top: 0.4, right: 1.1 };
+  const DEFAULT_CROP: Crop = { top: 0.9, right: 1.3 };
 
   function loadCorners(): Corners {
     try {
@@ -422,7 +426,7 @@ const ui = locale === 'de'
   // Reflection config — live-tunable from the tweak panel. Persisted to
   // localStorage so visitors don't lose their tuning across reloads.
   type ReflConfig = { width: number; offset: number; opacity: number; blur: number };
-  const DEFAULT_REFL: ReflConfig = { width: 3.0, offset: 0.0, opacity: 85, blur: 2.5 };
+  const DEFAULT_REFL: ReflConfig = { width: 0.9, offset: 0.1, opacity: 66, blur: 1.5 };
   const REFL_KEY = 'pxlib-reflection';
   function loadRefl(): ReflConfig {
     try {
@@ -436,17 +440,25 @@ const ui = locale === 'de'
   }
   let refl = loadRefl();
 
+  // Opacity + blur live on the canvas, not on the wrapping reflection div —
+  // the div carries the opaque black backdrop that covers the photo's bezel,
+  // and that must stay at 100% regardless of how transparent the LED column
+  // copy on top is. Otherwise lowering refl.opacity would also fade the
+  // backdrop, letting the photo bleed through.
   function applyReflStyle() {
-    if (!reflectionEl) return;
-    reflectionEl.style.opacity = String(refl.opacity / 100);
-    reflectionEl.style.filter = `blur(${refl.blur}px)`;
+    if (!reflectionCanvas) return;
+    reflectionCanvas.style.opacity = String(refl.opacity / 100);
+    reflectionCanvas.style.filter = `blur(${refl.blur}px)`;
   }
   applyReflStyle();
 
   function applyCorners() {
     if (!clockEl || !displayEl) return;
-    const w = clockEl.offsetWidth;
-    const h = clockEl.offsetHeight;
+    // getBoundingClientRect gives fractional pixels; offsetWidth/Height round
+    // to integers and accumulate visible drift at higher browser zoom levels.
+    const rect = clockEl.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
     if (w === 0 || h === 0) return;
     displayEl.style.top = '0';
     displayEl.style.left = '0';
@@ -499,12 +511,13 @@ const ui = locale === 'de'
   // rare case where ResizeObserver isn't supported (very old browsers).
   window.addEventListener('resize', applyCorners);
 
-  // Apply saved crop on load so it's visible even without ?tweak.
+  // Apply saved crop on load so it's visible even without ?tweak. Variables
+  // live on clockEl so both the display and the reflection can read them.
   let crop = loadCrop();
   function applyCrop() {
-    if (!displayEl) return;
-    displayEl.style.setProperty('--pxlib-crop-top', `${crop.top}%`);
-    displayEl.style.setProperty('--pxlib-crop-right', `${crop.right}%`);
+    if (!clockEl) return;
+    clockEl.style.setProperty('--pxlib-crop-top', `${crop.top}%`);
+    clockEl.style.setProperty('--pxlib-crop-right', `${crop.right}%`);
   }
   applyCrop();
 
@@ -709,18 +722,25 @@ const ui = locale === 'de'
   }
   .pxlib__clock {
     position: relative;
-    aspect-ratio: 1;
+    /* No aspect-ratio + no object-fit — the photo itself flows normally and
+       its rendered height drives the container height. This keeps the
+       container's bounding rect identical to the photo's bounding rect at
+       ALL zoom levels (aspect-ratio + object-fit:contain accumulate sub-pixel
+       letterboxing that becomes a visible vertical stretch at high zoom). */
     width: 100%;
     max-width: 560px;
     margin: 0 auto;
+    /* Default crop — JS may override these via inline style from the saved
+       tweak config. Both the LED display and the bezel reflection read these
+       variables, so they stay in sync. */
+    --pxlib-crop-top: 0.9%;
+    --pxlib-crop-right: 1.3%;
   }
   .pxlib__clock[hidden] { display: none; }
   .pxlib__clock-photo {
-    position: absolute;
-    inset: 0;
+    display: block;
     width: 100%;
-    height: 100%;
-    object-fit: contain;
+    height: auto;
     filter: drop-shadow(0 40px 80px rgba(10, 10, 10, 0.22));
     pointer-events: none;
   }
@@ -736,13 +756,11 @@ const ui = locale === 'de'
     height: 100%;
     transform-origin: 0 0;
     border-radius: 4px;
-    /* Canvas crop — clips the top + right edges of the rendered pixogram
-       before the matrix3d transform, so the topmost + rightmost LEDs (which
-       would visually spill onto the bezel because of the photo's 3/4 angle
-       + recessed display) get hidden. Live-adjustable from the tweak panel.
-       Defaults baked here so the crop applies even without ?tweak. */
-    --pxlib-crop-top: 0.4%;
-    --pxlib-crop-right: 1.1%;
+    /* Crop — clips the top + right edges of the rendered pixogram before
+       the matrix3d transform, so the topmost + rightmost LEDs (which would
+       visually spill onto the bezel because of the photo's 3/4 angle and
+       recessed display) get hidden. Defaults live on .pxlib__clock so the
+       bezel reflection can read them too; JS may override via inline style. */
     clip-path: inset(var(--pxlib-crop-top) var(--pxlib-crop-right) 0 0);
     /* The LED matrix sits a couple of millimetres BEHIND the frame's inner
        edge, so the frame casts a real shadow onto the outer pixels. Right
@@ -769,9 +787,11 @@ const ui = locale === 'de'
   }
   /* Reflection strip — narrow band sitting just LEFT of the LED matrix, on
      the clock's inner bezel. Its matrix3d transform comes from JS (derived
-     from the four LED corners). Blur + reduced opacity makes the spill feel
-     like soft light reflecting off the matte black frame, not a hard copy
-     of the leftmost LED column. */
+     from the four LED corners). The canvas is rendered as a photoreal column
+     (per-LED hotspot + bloom) so the bezel spill reads as discrete LEDs;
+     mix-blend-mode lets the light merge into the matte black frame. The
+     top crop matches the main display so the topmost LEDs that are
+     occluded by the frame's inner lip are also hidden in the reflection. */
   .pxlib__clock-reflection {
     position: absolute;
     top: 0;
@@ -780,15 +800,22 @@ const ui = locale === 'de'
     height: 100%;
     transform-origin: 0 0;
     pointer-events: none;
-    filter: blur(3px);
-    opacity: 0.55;
-    mix-blend-mode: screen;
+    /* No blend mode + opaque black backdrop so the original photo's bezel
+       doesn't bleed through the dark voids between LEDs in the projected
+       strip. Crop tracks the main display via the shared CSS variable. */
+    background: #000;
+    clip-path: inset(var(--pxlib-crop-top) 0 0 0);
   }
   .pxlib__clock-reflection canvas {
     width: 100%;
     height: 100%;
     display: block;
     image-rendering: auto;
+    /* Trapezoid clip on the LED slice only (the parent's black backdrop
+       stays rectangular). Top-left vertex pulled 30% to the right in source
+       space — which maps linearly to a 30%-of-strip-width inset at the top
+       on the projected bezel strip, giving a subtle taper from top to bottom. */
+    clip-path: polygon(30% 0%, 100% 0%, 100% 100%, 0% 100%);
   }
   /* Glass-on-LEDs sheen: diagonal highlight + subtle vignette so the
      pixogram reads as something glowing UNDER glass rather than a sticker

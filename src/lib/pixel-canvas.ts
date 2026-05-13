@@ -367,6 +367,13 @@ export function renderPixogram(
 // === RGB-direct render =====================================================
 // Same photoreal pipeline as drawPhotoreal, but takes an RGB byte buffer
 // (3 bytes per pixel, row-major). Used for replaying .pxl pixogram files.
+//
+// The matrix is STRETCHED to fill the full canvas (cells can be non-square).
+// A matrix3d perspective transform on the parent element then maps the
+// canvas into whatever quadrilateral it's overlaid onto, so canvas-local cell
+// aspect ratio is irrelevant — what matters is that the canvas contains no
+// void margins, otherwise those void bands get projected as visible bars at
+// the top/bottom (or left/right) of the target quad.
 export function renderRgbPhotoreal(
   canvas: HTMLCanvasElement,
   frame: Uint8Array,
@@ -387,23 +394,16 @@ export function renderRgbPhotoreal(
     canvas.height = targetH;
   }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  if (opts.frameColor) {
-    ctx.fillStyle = opts.frameColor;
-    ctx.fillRect(0, 0, cssW, cssH);
-  } else {
-    ctx.clearRect(0, 0, cssW, cssH);
-  }
-  const pad = Math.min(cssW, cssH) * (opts.framePadding ?? 0);
-  const matSize = Math.min(cssW - pad * 2, cssH - pad * 2);
-  const cellSize = matSize / width;
-  const offsetX = (cssW - matSize) / 2;
-  const offsetY = (cssH - matSize) / 2;
   ctx.fillStyle = opts.voidColor ?? '#050608';
-  ctx.fillRect(offsetX, offsetY, matSize, matSize);
+  ctx.fillRect(0, 0, cssW, cssH);
 
+  const cellW = cssW / width;
+  const cellH = cssH / height;
+  const cellSize = Math.min(cellW, cellH);  // drives bloom + corner radius
   const gap = cellSize * 0.03;
   const radius = cellSize * 0.05;
-  const cellSz = cellSize - gap;
+  const cellSzW = cellW - gap;
+  const cellSzH = cellH - gap;
 
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
@@ -411,18 +411,18 @@ export function renderRgbPhotoreal(
       const r = frame[off];
       const g = frame[off + 1];
       const b = frame[off + 2];
-      const sx = offsetX + x * cellSize + gap / 2;
-      const sy = offsetY + y * cellSize + gap / 2;
+      const sx = x * cellW + gap / 2;
+      const sy = y * cellH + gap / 2;
       ctx.beginPath();
-      ctx.roundRect(sx, sy, cellSz, cellSz, radius);
+      ctx.roundRect(sx, sy, cellSzW, cellSzH, radius);
       if (r + g + b < 12) {
         ctx.fillStyle = '#0c0d10';
         ctx.fill();
         continue;
       }
-      const cx = sx + cellSz / 2;
-      const cy = sy + cellSz / 2;
-      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, cellSz * 0.7);
+      const cx = sx + cellSzW / 2;
+      const cy = sy + cellSzH / 2;
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, cellSize * 0.7);
       grad.addColorStop(0, `rgb(${Math.min(255, r + 30)},${Math.min(255, g + 30)},${Math.min(255, b + 30)})`);
       grad.addColorStop(0.5, `rgb(${r},${g},${b})`);
       grad.addColorStop(1, `rgb(${Math.round(r * 0.35)},${Math.round(g * 0.35)},${Math.round(b * 0.35)})`);
@@ -441,8 +441,8 @@ export function renderRgbPhotoreal(
       const b = frame[off + 2];
       const brightness = (r + g + b) / 765;
       if (brightness < 0.28) continue;
-      const cx = offsetX + (x + 0.5) * cellSize;
-      const cy = offsetY + (y + 0.5) * cellSize;
+      const cx = (x + 0.5) * cellW;
+      const cy = (y + 0.5) * cellH;
       const bloomR = cellSize * (0.75 + brightness * 0.5);
       const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, bloomR);
       grad.addColorStop(0, `rgba(${r},${g},${b},${(brightness * 0.16).toFixed(3)})`);
