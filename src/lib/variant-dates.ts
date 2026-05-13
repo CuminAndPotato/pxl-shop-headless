@@ -25,6 +25,7 @@ const LAYOUT_FILES: Record<string, string[]> = {
   plus:       ['src/components/OriginalPlusPage.astro'],
   plus2:      ['src/components/OriginalPlus2Page.astro'],
   plus3:      ['src/components/OriginalPlus3Page.astro'],
+  plus4:      ['src/components/OriginalPlus4Page.astro'],
 };
 
 function filesFor(slug: PageVariantSlug): string[] {

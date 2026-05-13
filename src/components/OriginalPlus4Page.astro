@@ -1,0 +1,587 @@
+---
+import type { Locale } from '../i18n/strings';
+import type { Product } from '../lib/shop';
+import type { PageVariant } from '../lib/page-variants';
+import { lifestyleGallery, workshopGallery } from '../lib/assets';
+import { url } from '../lib/url';
+import Hero from './Hero.astro';
+import ProductPanel from './ProductPanel.astro';
+import Gallery from './Gallery.astro';
+import Handmade from './Handmade.astro';
+import Setup from './Setup.astro';
+import OurStory from './OurStory.astro';
+import AISandbox from './AISandbox.astro';
+import SectionDivider from './SectionDivider.astro';
+import PixogramScrollShowcase from './PixogramScrollShowcase.astro';
+import type { ShowcaseChapter } from './PixogramScrollShowcase.astro';
+import TrustStrip from './TrustStrip.astro';
+import FAQ from './FAQ.astro';
+import {
+  makerSteps as buildMakerSteps,
+  vscodeCopy as buildVscodeCopy,
+  jamCopy as buildJamCopy,
+} from '../lib/pxl-page-content';
+import BuyButton from './BuyButton.astro';
+
+interface Props {
+  locale: Locale;
+  variant: PageVariant;
+  product: Product | null;
+}
+
+const { locale, product } = Astro.props;
+
+// Plus⁴ keeps Plus³'s maker triptych, VS Code copy and JAM copy from the
+// shared fixtures, but drops the StickyPixelStory chapters (their content is
+// merged into the new PixogramScrollShowcase) and the standalone
+// PixogramLibrary (also merged into the showcase).
+const makerSteps = buildMakerSteps(locale);
+const vscodeCopy = buildVscodeCopy(locale);
+const jamCopy = buildJamCopy(locale);
+
+// Four pixograms walk past the sticky clock. Picked for visual variety:
+// 1) a literal scene (sailboat), 2) a pure colour study (wheel dynamic),
+// 3) a place-of-origin reference (Mythen — Swiss alps silhouette),
+// 4) a "the clock is computing" moment (Game of Life).
+const showcaseChapters: ShowcaseChapter[] = locale === 'de'
+  ? [
+      {
+        slug: 'ourtinysailboat',
+        file: 'ourtinysailboat.pxl',
+        fps: 5,
+        eyebrow: 'Pixogramm 01',
+        title: 'Our Tiny Sailboat',
+        author: 'Urs Enzler',
+        body: 'Eine kleine Szene, die einfach passiert: ein Segelboot, eine Welle, ein Horizont. Pixogramme müssen nicht "smart" sein — manchmal reicht ein Bild, das atmet.',
+      },
+      {
+        slug: 'colourwheeldynamic',
+        file: 'colourwheeldynamic.pxl',
+        fps: 5,
+        eyebrow: 'Pixogramm 02',
+        title: 'Colour Wheel Dynamic',
+        author: 'Urs Enzler',
+        body: 'Reine Farbe, kein Inhalt. Ein HSV-Rad, das sich permanent neu sortiert — die Uhr wird zur Farbpalette an der Wand und zeigt nebenbei die Sekunde.',
+      },
+      {
+        slug: 'mythen',
+        file: 'mythen.pxl',
+        fps: 5,
+        eyebrow: 'Pixogramm 03',
+        title: 'Mythen',
+        body: 'Die Silhouette der Schweizer Mythen über einem zerfließenden Sonnenuntergang. Ein Pixogramm ist 24 × 24 — und kann trotzdem eine Landschaft sein.',
+      },
+      {
+        slug: 'gameoflife',
+        file: 'gameoflife.pxl',
+        fps: 5,
+        eyebrow: 'Pixogramm 04',
+        title: 'Game of Life',
+        author: 'Urs Enzler',
+        body: 'Conways Game of Life, live auf 576 Zellen. Jede Generation rechnet die Uhr selbst — kein Loop, kein Cheat. Ein Bildschirm darf auch einfach denken.',
+      },
+      {
+        slug: '',
+        eyebrow: 'Und in C# selbst gebaut',
+        title: 'Du schreibst eine Funktion. Die Uhr macht den Rest.',
+        body: 'Jedes der vier Pixogramme oben ist eine kurze C#-Datei. Für jeden Pixel (x, y) und jeden Animationsschritt gibst du eine Farbe zurück — mehr ist die API nicht. Browser-Simulator, VS-Code-Extension und Push auf die Uhr sind alle Teil des Workflows.\nDie Werkstatt sitzt in Köln, die Software ist Open Source, die Library heißt Pxl auf NuGet. Hundert Stück pro Serie, Glas und Rahmen aus Deutschland.',
+      },
+    ]
+  : [
+      {
+        slug: 'ourtinysailboat',
+        file: 'ourtinysailboat.pxl',
+        fps: 5,
+        eyebrow: 'Pixogram 01',
+        title: 'Our Tiny Sailboat',
+        author: 'Urs Enzler',
+        body: 'A small scene that simply happens — a boat, a wave, a horizon. Pixograms do not have to be "smart". Sometimes a quiet picture that breathes is enough.',
+      },
+      {
+        slug: 'colourwheeldynamic',
+        file: 'colourwheeldynamic.pxl',
+        fps: 5,
+        eyebrow: 'Pixogram 02',
+        title: 'Colour Wheel Dynamic',
+        author: 'Urs Enzler',
+        body: 'Pure colour, no subject. An HSV wheel that keeps reshuffling itself — the clock turns into a colour palette on the wall and still tells you the second.',
+      },
+      {
+        slug: 'mythen',
+        file: 'mythen.pxl',
+        fps: 5,
+        eyebrow: 'Pixogram 03',
+        title: 'Mythen',
+        body: 'The silhouette of the Swiss Mythen mountains over a slow sunset gradient. 24 × 24 pixels are still enough room for a landscape.',
+      },
+      {
+        slug: 'gameoflife',
+        file: 'gameoflife.pxl',
+        fps: 5,
+        eyebrow: 'Pixogram 04',
+        title: 'Game of Life',
+        author: 'Urs Enzler',
+        body: 'Conway\'s Game of Life, running live across 576 cells. Every generation is computed on the device — no loop, no cheat. A screen is allowed to just think.',
+      },
+      {
+        slug: '',
+        eyebrow: 'And written in C# yourself',
+        title: 'You write a function. The clock does the rest.',
+        body: 'Each of the four pixograms above is a short C# file. For every pixel (x, y) at every animation step you return a colour — that is the whole API. The browser simulator, the VS Code extension and the push-to-device step are part of the same workflow.\nThe workshop sits in Cologne, the software is open source, the library is called Pxl on NuGet. One hundred units per run, glass and frame made in Germany.',
+      },
+    ];
+
+// Plus⁴-only: a one-line teaser for the cut-out AI pipeline section that
+// gets folded into the VS Code block.
+const pipelineTeaser = locale === 'de'
+  ? 'Bonus: unsere Multi-Agent-AI-Pipeline (Claude, Sonnet, Gemini, GPT-OSS) generiert aus GitHub-Issues neue Pixogramme — Live-Gallery auf schlenkr.github.io/pxl-clock.'
+  : 'Bonus: our multi-agent AI pipeline (Claude, Sonnet, Gemini, GPT-OSS) turns GitHub issues into new pixograms — live gallery at schlenkr.github.io/pxl-clock.';
+
+// === Final CTA with reassurance =============================================
+const closing = locale === 'de'
+  ? {
+      headline: 'Eine Beta-Serie. Eine ehrliche Entscheidung.',
+      body: 'Versand in zwei bis vier Werktagen mit DHL. Mit Promo-Code RONALD sparst du 25 €.',
+      cta: 'Jetzt bestellen',
+      reassurance: ['Kostenloser Versand in Deutschland', '30 Tage Rückgaberecht', '2 Jahre Garantie'],
+    }
+  : {
+      headline: 'A beta run. An honest decision.',
+      body: 'Ships in two to four business days with DHL. Promo code RONALD takes 25 € off.',
+      cta: 'Order now',
+      reassurance: ['Free shipping in Germany', '30-day returns', '2-year warranty'],
+    };
+
+const price = product?.discountedPrice?.formatted ?? product?.price?.formatted ?? '229,00€';
+const cartHref = locale === 'de' ? url('/de/cart') : url('/cart');
+const defaultVariantId = product?.variants[0]?.id ?? '';
+---
+
+<div class="op4-page brand-gradient">
+
+  {/* 1. Hero — unchanged */}
+  <Hero locale={locale} />
+
+  {/* 2. Trust strip with maker credentials. */}
+  <TrustStrip locale={locale} />
+
+  {/* 3. Merged showcase — replaces the standalone PixogramLibrary AND the
+       StickyPixelStory from Plus³. One sticky clock on the left; four
+       pixogram chapters scroll past on the right; a fifth closing chapter
+       carries the workshop / C#-API context that StickyPixelStory used to
+       carry on its own. */}
+  <section class="op4-showcase">
+    <PixogramScrollShowcase locale={locale} chapters={showcaseChapters} />
+  </section>
+
+  {/* 4. Specs ribbon — single line, scannable. */}
+  <section class="op4-ribbon">
+    <p>
+      {locale === 'de'
+        ? '24 × 24 RGB-LEDs · 576 Pixel · echtes Glas · handgefertigt · 27 × 27 × 6 cm · 2 kg · WLAN · OTA · iOS + Android · C# / .NET · 229 €'
+        : '24 × 24 RGB LEDs · 576 pixels · real glass · handmade · 27 × 27 × 6 cm · 2 kg · WiFi · OTA · iOS + Android · C# / .NET · 229 €'}
+    </p>
+  </section>
+
+  {/* 5. Buy moment — after the proof + specs. */}
+  <ProductPanel locale={locale} product={product} />
+
+  {/* 6. Lifestyle gallery — static, sells the "in a real room" feeling. */}
+  <Gallery images={lifestyleGallery} ariaLabel={locale === 'de' ? 'Lifestyle-Galerie' : 'Lifestyle gallery'} />
+
+  {/* 7. Founder story — buyers should know who they're buying from BEFORE
+       the deep-tech sections. */}
+  <OurStory locale={locale} />
+
+  {/* 8. Maker triptych + Handmade — visually one cluster: how it's made
+       (3 software steps + 1 hardware section). Static cards, no animation. */}
+  <section class="op4-maker">
+    <header class="op4-maker__head">
+      <p class="op4-kicker">{locale === 'de' ? 'Werkstatt' : 'Workshop'}</p>
+      <h2 class="op4-h">{locale === 'de' ? 'Von der Idee zum Pixogramm — drei Schritte.' : 'From idea to pixogram — three steps.'}</h2>
+    </header>
+    <ol class="op4-maker__steps">
+      {makerSteps.map((step) => (
+        <li>
+          <p class="op4-maker__tag">{step.tag}</p>
+          <h3 class="op4-maker__title">{step.title}</h3>
+          <p class="op4-maker__body">{step.body}</p>
+        </li>
+      ))}
+    </ol>
+  </section>
+  <Handmade locale={locale} productId={product?.id} />
+
+  {/* 9. VS Code Extension — with the 1-line AI-pipeline teaser folded in. */}
+  <section class="op4-vscode">
+    <SectionDivider side="top" pattern="scallop" fill="#0d1014" height="110px" />
+    <div class="op4-vscode__inner">
+      <p class="op4-kicker op4-kicker--inv">{vscodeCopy.kicker}</p>
+      <h2 class="op4-h op4-h--inv">{vscodeCopy.title}</h2>
+      <p class="op4-vscode__lede">{vscodeCopy.lede}</p>
+      <ul class="op4-vscode__list">
+        {vscodeCopy.bullets.map((b) => <li>{b}</li>)}
+      </ul>
+      <p class="op4-vscode__teaser">
+        {pipelineTeaser}
+        {' '}
+        <a href="https://schlenkr.github.io/pxl-clock/" target="_blank" rel="noopener">
+          {locale === 'de' ? 'Gallery ansehen' : 'See the gallery'} →
+        </a>
+      </p>
+      <p class="op4-vscode__meta">
+        <a href="https://marketplace.visualstudio.com/items?itemName=pxlclock.pxl-clock" target="_blank" rel="noopener">{vscodeCopy.cta}</a>
+        <span>·</span>
+        <span class="op4-vscode__metainfo">{vscodeCopy.meta}</span>
+      </p>
+    </div>
+    <SectionDivider side="bottom" pattern="wave-asym" fill="#ffffff" height="120px" />
+  </section>
+
+  {/* 10. PXL JAM — community proof, static layout. */}
+  <section class="op4-jam">
+    <div class="op4-jam__inner">
+      <div class="op4-jam__copy">
+        <p class="op4-kicker">{jamCopy.kicker}</p>
+        <h2 class="op4-h">{jamCopy.title}</h2>
+        {jamCopy.paragraphs.map((p) => <p class="op4-jam__body">{p}</p>)}
+        <p class="op4-jam__links">
+          {jamCopy.links.map((l, i) => (
+            <>
+              {i > 0 && <span class="op4-jam__sep">·</span>}
+              <a href={l.href} target="_blank" rel="noopener">{l.label}</a>
+            </>
+          ))}
+        </p>
+      </div>
+      <figure class="op4-jam__figure">
+        <img src={workshopGallery[5]} alt="" loading="lazy" />
+        <figcaption>{locale === 'de' ? 'PXL JAM 2024 — Hackathon-Edition, drei Gewinner-Pixogramme aus der Community.' : 'PXL JAM 2024 — hackathon edition, three winning pixograms from the community.'}</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  {/* 11. AI Sandbox — interactive "build your own" */}
+  <section class="op4-sandbox">
+    <AISandbox locale={locale} variant="card" tone="light" />
+  </section>
+
+  {/* 12. FAQ — handle objections right before the final close. */}
+  <FAQ locale={locale} />
+
+  {/* 13. Setup */}
+  <Setup locale={locale} />
+
+  {/* 14. Final CTA with reassurance line. */}
+  <section class="op4-final">
+    <div class="op4-final__inner">
+      <h2 class="op4-h">{closing.headline}</h2>
+      <p>{closing.body}</p>
+      <BuyButton
+        productId={product?.id}
+        variantId={defaultVariantId}
+        cartHref={cartHref}
+        label={`${closing.cta} · ${price}`}
+        class="op4-btn"
+      />
+      <ul class="op4-final__reassurance">
+        {closing.reassurance.map((r) => <li>{r}</li>)}
+      </ul>
+    </div>
+  </section>
+
+</div>
+
+<style is:global>
+  @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Mona+Sans:wght@500;600;700&display=swap');
+</style>
+
+<style>
+  @import '../styles/brand-gradient.css';
+  .op4-page {
+    color: #0a0a0a;
+    font-family: 'Inter Tight', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  .op4-kicker {
+    margin: 0 0 0.85rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(10, 10, 10, 0.55);
+  }
+  .op4-kicker--inv { color: rgba(236, 230, 218, 0.7); }
+  .op4-h {
+    margin: 0 0 1rem;
+    font-family: 'Mona Sans', 'Inter Tight', sans-serif;
+    font-size: clamp(1.9rem, 3.6vw, 2.9rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    color: #0a0a0a;
+  }
+  .op4-h--inv { color: #ece6da; }
+
+  /* Showcase wrapper — the inner component handles its own internal padding,
+     so we only add a top breathing room here so the section doesn't bump
+     into the trust strip. */
+  .op4-showcase { padding-top: clamp(2rem, 5vw, 3rem); }
+
+  /* Specs ribbon */
+  .op4-ribbon {
+    padding: clamp(2rem, 4vw, 3rem) clamp(1rem, 4vw, 3rem);
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(6px);
+    border-top: 1px solid rgba(10, 10, 10, 0.08);
+    border-bottom: 1px solid rgba(10, 10, 10, 0.08);
+  }
+  .op4-ribbon p {
+    margin: 0 auto;
+    max-width: 1080px;
+    font-size: clamp(0.92rem, 1.2vw, 1.02rem);
+    color: rgba(10, 10, 10, 0.78);
+    text-align: center;
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+  }
+
+  /* Maker triptych */
+  .op4-maker {
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem) clamp(2rem, 5vw, 3rem);
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  .op4-maker__head { max-width: 56ch; margin-bottom: clamp(2.5rem, 5vw, 4rem); }
+  .op4-maker__steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(1.5rem, 3vw, 2.5rem);
+  }
+  .op4-maker__steps li {
+    padding: clamp(1.5rem, 3vw, 2.2rem);
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(10, 10, 10, 0.10);
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+  }
+  .op4-maker__tag {
+    margin: 0 0 1rem;
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #485dbd;
+    letter-spacing: 0.04em;
+  }
+  .op4-maker__title {
+    margin: 0 0 0.6rem;
+    font-family: 'Mona Sans', 'Inter Tight', sans-serif;
+    font-size: clamp(1.2rem, 1.8vw, 1.5rem);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+  }
+  .op4-maker__body {
+    margin: 0;
+    color: rgba(10, 10, 10, 0.65);
+    line-height: 1.6;
+    font-size: 0.96rem;
+  }
+  @media (max-width: 860px) {
+    .op4-maker__steps { grid-template-columns: 1fr; }
+  }
+
+  /* VS Code section */
+  .op4-vscode {
+    position: relative;
+    background: #0d1014;
+    color: #ece6da;
+    padding: clamp(5rem, 10vw, 8rem) 0;
+  }
+  .op4-vscode__inner {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 clamp(1rem, 4vw, 3rem);
+    position: relative;
+    z-index: 2;
+  }
+  .op4-vscode__lede {
+    margin: 0 0 1.8rem;
+    color: rgba(236, 230, 218, 0.78);
+    line-height: 1.6;
+    font-size: clamp(1rem, 1.3vw, 1.1rem);
+  }
+  .op4-vscode__list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem;
+    display: grid;
+    gap: 0.85rem;
+  }
+  .op4-vscode__list li {
+    padding-left: 1.4rem;
+    position: relative;
+    color: rgba(236, 230, 218, 0.85);
+    line-height: 1.55;
+    font-size: 0.98rem;
+  }
+  .op4-vscode__list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.6rem;
+    width: 7px;
+    height: 7px;
+    border-radius: 1px;
+    background: #fbb238;
+  }
+  .op4-vscode__teaser {
+    margin: 0 0 2rem;
+    padding: 1.2rem 1.4rem;
+    background: rgba(72, 93, 189, 0.12);
+    border-left: 3px solid #485dbd;
+    border-radius: 0 6px 6px 0;
+    color: rgba(236, 230, 218, 0.9);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+  .op4-vscode__teaser a {
+    color: #fbb238;
+    font-weight: 700;
+    text-decoration: none;
+    margin-left: 0.4rem;
+    white-space: nowrap;
+  }
+  .op4-vscode__teaser a:hover { text-decoration: underline; }
+  .op4-vscode__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+    margin: 0;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(236, 230, 218, 0.15);
+    font-size: 0.9rem;
+  }
+  .op4-vscode__meta a {
+    color: #fbb238;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .op4-vscode__meta a:hover { text-decoration: underline; }
+  .op4-vscode__metainfo {
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.82rem;
+    color: rgba(236, 230, 218, 0.55);
+  }
+
+  /* PXL JAM */
+  .op4-jam {
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem);
+  }
+  .op4-jam__inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+  }
+  .op4-jam__copy { max-width: 56ch; }
+  .op4-jam__body {
+    margin: 0 0 1rem;
+    color: rgba(10, 10, 10, 0.7);
+    line-height: 1.65;
+    font-size: clamp(1rem, 1.3vw, 1.08rem);
+  }
+  .op4-jam__links {
+    margin: 1.4rem 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  .op4-jam__links a {
+    color: #485dbd;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  .op4-jam__sep { color: rgba(10, 10, 10, 0.3); }
+  .op4-jam__figure {
+    margin: 0;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border-radius: 8px;
+  }
+  .op4-jam__figure img {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+  .op4-jam__figure figcaption {
+    margin-top: 0.9rem;
+    color: rgba(10, 10, 10, 0.55);
+    font-size: 0.86rem;
+    line-height: 1.55;
+  }
+  @media (max-width: 860px) {
+    .op4-jam__inner { grid-template-columns: 1fr; }
+  }
+
+  /* Sandbox */
+  .op4-sandbox {
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem);
+  }
+  .op4-sandbox > :global(.ais) { max-width: 1180px; margin: 0 auto; }
+
+  /* Final CTA */
+  .op4-final {
+    padding: clamp(6rem, 12vw, 10rem) clamp(1rem, 4vw, 3rem);
+    text-align: center;
+  }
+  .op4-final__inner { max-width: 760px; margin: 0 auto; }
+  .op4-final p {
+    margin: 0 auto 1.6rem;
+    color: rgba(10, 10, 10, 0.7);
+    line-height: 1.6;
+    max-width: 50ch;
+  }
+  .op4-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 1.1rem 1.8rem;
+    border: 0;
+    border-radius: 999px;
+    background: #0a0a0a;
+    color: #ffffff;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 1.05rem;
+    cursor: pointer;
+    transition: background 160ms ease, transform 160ms ease;
+  }
+  .op4-btn:hover { background: #000; transform: translateY(-1px); }
+  .op4-final__reassurance {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.8rem 2rem;
+    font-size: 0.85rem;
+    color: rgba(10, 10, 10, 0.55);
+  }
+  .op4-final__reassurance li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .op4-final__reassurance li::before {
+    content: '✓';
+    color: #485dbd;
+    font-weight: 700;
+  }
+</style>

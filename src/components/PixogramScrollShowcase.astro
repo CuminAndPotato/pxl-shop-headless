@@ -1,0 +1,508 @@
+---
+import { url } from '../lib/url';
+import type { Locale } from '../i18n/strings';
+
+// Merged showcase: combines the PixogramLibrary's photoreal clock-on-photo
+// rendering with the StickyPixelStory's scroll-driven chapter flow. The clock
+// stays sticky on the left while four pixogram chapters cross-fade through it
+// as their copy enters the viewport on the right. A fifth, non-pixogram
+// chapter closes the section with workshop/community context.
+
+export interface ShowcaseChapter {
+  /** Pixogram slug (matches index.json) — empty string for the closing chapter. */
+  slug: string;
+  /** Public path to the .pxl file. Empty for the closing chapter. */
+  file?: string;
+  /** Source framerate of the .pxl, drives playback interval. */
+  fps?: number;
+  /** Eyebrow text shown above the chapter title. */
+  eyebrow: string;
+  /** Headline (also used as the pixogram display name). */
+  title: string;
+  /** Optional author byline. */
+  author?: string;
+  /** Body paragraph(s). Newlines split into separate <p> tags. */
+  body: string;
+}
+
+interface Props {
+  locale: Locale;
+  chapters: ShowcaseChapter[];
+}
+
+const { locale, chapters } = Astro.props;
+const ui = locale === 'de'
+  ? {
+      eyebrow: 'Aus der Werkstatt',
+      title: 'Vier Pixogramme, eine sticky Uhr.',
+      lead: 'Scroll dich durch — die Uhr links zeigt jeweils das Pixogramm, das du gerade liest.',
+      authorPrefix: 'von',
+    }
+  : {
+      eyebrow: 'From the workshop',
+      title: 'Four pixograms, one sticky clock.',
+      lead: 'Scroll through — the clock on the left plays whichever pixogram you are currently reading about.',
+      authorPrefix: 'by',
+    };
+
+---
+
+<section class="pscs" data-pscs>
+  <header class="pscs__head">
+    <p class="pscs__eyebrow">{ui.eyebrow}</p>
+    <h2 class="pscs__title">{ui.title}</h2>
+    <p class="pscs__lead">{ui.lead}</p>
+  </header>
+
+  <div class="pscs__layout">
+    {/* Sticky stage — photoreal clock with matrix3d-projected canvas. The
+        photo, perspective corners, reflection strip and crop variables are
+        carried over 1:1 from PixogramLibrary so the clock looks identical. */}
+    <aside class="pscs__stage">
+      <div class="pscs__stage-inner">
+        <div class="pscs__clock" data-pscs-clock>
+          <img
+            class="pscs__clock-photo"
+            src={url('/img/products/whatis-clock-tight.png')}
+            alt=""
+            loading="lazy"
+            width="997"
+            height="1045"
+          />
+          <div class="pscs__clock-display" data-pscs-display>
+            <canvas class="pscs__clock-canvas" data-pscs-canvas width="540" height="540"></canvas>
+          </div>
+          <div class="pscs__clock-reflection" data-pscs-reflection>
+            <canvas data-pscs-reflection-canvas></canvas>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    {/* Scroll-driven right column. Each article is a chapter; an
+        IntersectionObserver triggers a cross-fade on the left canvas when
+        a chapter enters the viewport's vertical centre band. */}
+    <div class="pscs__flow">
+      {chapters.map((ch, i) => (
+        <article
+          class={ch.slug ? 'pscs__chap' : 'pscs__chap pscs__chap--closing'}
+          data-pscs-chapter={ch.slug || `closing-${i}`}
+          data-pscs-file={ch.file ? url(`/pixograms/${ch.file}`) : ''}
+          data-pscs-name={ch.title}
+          data-pscs-fps={ch.fps ?? 5}
+        >
+          <p class="pscs__chap-eyebrow">{ch.eyebrow}</p>
+          <h3 class="pscs__chap-title">{ch.title}</h3>
+          {ch.author && (
+            <p class="pscs__chap-author">{ui.authorPrefix} {ch.author}</p>
+          )}
+          {ch.body.split('\n').filter(Boolean).map((para) => (
+            <p class="pscs__chap-body">{para}</p>
+          ))}
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script>
+  import { parsePxl, type Pixogram } from '../lib/pxl-format';
+  import { renderRgbPhotoreal } from '../lib/pixel-canvas';
+  import { cornersToMatrix3d, type Corners as PerspectiveCorners } from '../lib/pxlib-perspective';
+
+  // === Pixogram loader ======================================================
+  const cache = new Map<string, Pixogram>();
+  const inflight = new Map<string, Promise<Pixogram | null>>();
+  async function loadPixogram(url: string): Promise<Pixogram | null> {
+    if (!url) return null;
+    if (cache.has(url)) return cache.get(url) ?? null;
+    if (inflight.has(url)) return inflight.get(url)!;
+    const p = (async () => {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        const pix = parsePxl(await res.text());
+        cache.set(url, pix);
+        return pix;
+      } catch { return null; }
+    })();
+    inflight.set(url, p);
+    return p;
+  }
+
+  // === Playback state =======================================================
+  const canvas = document.querySelector<HTMLCanvasElement>('[data-pscs-canvas]');
+  const display = document.querySelector<HTMLElement>('[data-pscs-display]');
+  const reflCanvas = document.querySelector<HTMLCanvasElement>('[data-pscs-reflection-canvas]');
+  const reflEl = document.querySelector<HTMLElement>('[data-pscs-reflection]');
+  const clockEl = document.querySelector<HTMLElement>('[data-pscs-clock]');
+  const stage = document.querySelector<HTMLElement>('.pscs__stage');
+
+  let activePix: Pixogram | null = null;
+  let activeFrame = 0;
+  let activeTimer: number | null = null;
+  let activeFps = 5;
+  let inView = true;
+
+  function paint() {
+    if (!activePix || !canvas) return;
+    const f = activePix.frames[activeFrame % activePix.frames.length];
+    renderRgbPhotoreal(canvas, f, activePix.width, activePix.height);
+    paintReflection(activePix.width);
+  }
+  function paintReflection(matrixWidth: number) {
+    if (!reflCanvas || !canvas) return;
+    const ctx = reflCanvas.getContext('2d');
+    if (!ctx) return;
+    const cssW = reflCanvas.clientWidth;
+    const cssH = reflCanvas.clientHeight;
+    if (cssW === 0 || cssH === 0) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const targetW = Math.round(cssW * dpr);
+    const targetH = Math.round(cssH * dpr);
+    if (reflCanvas.width !== targetW || reflCanvas.height !== targetH) {
+      reflCanvas.width = targetW;
+      reflCanvas.height = targetH;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+    const sliceW = Math.max(1, Math.round(canvas.width / matrixWidth));
+    ctx.drawImage(canvas, 0, 0, sliceW, canvas.height, 0, 0, cssW, cssH);
+  }
+  function startPlayback() {
+    stopPlayback();
+    if (!activePix) return;
+    paint();
+    const intervalMs = Math.max(16, Math.round(1000 / activeFps));
+    activeTimer = window.setInterval(() => { activeFrame += 1; paint(); }, intervalMs);
+  }
+  function stopPlayback() {
+    if (activeTimer != null) { clearInterval(activeTimer); activeTimer = null; }
+  }
+
+  // === Cross-fade swap ======================================================
+  // CSS transitions the canvas opacity. We fade out, swap the source, fade
+  // back in. Reflection follows the canvas because it draws from the same
+  // pixel buffer on every paint().
+  const FADE_MS = 420;
+  let activeSlug = '';
+  let pendingSwapToken = 0;
+  async function swapTo(slug: string, file: string, fps: number) {
+    if (slug === activeSlug) return;
+    const isInitial = !activePix; // first paint — no fade-out of empty canvas
+    activeSlug = slug;
+    const myToken = ++pendingSwapToken;
+    // Closing chapter has no file — keep showing the previous pixogram but
+    // dim the clock a little to signal "the showcase is winding down".
+    if (!file) {
+      if (clockEl) clockEl.classList.add('is-closing');
+      return;
+    }
+    if (clockEl) clockEl.classList.remove('is-closing');
+    if (!isInitial && canvas) {
+      canvas.style.opacity = '0';
+      await new Promise((r) => setTimeout(r, FADE_MS));
+      if (myToken !== pendingSwapToken) return; // a newer swap superseded us
+    }
+    const pix = await loadPixogram(file);
+    if (myToken !== pendingSwapToken) return;
+    if (!pix) return;
+    activePix = pix;
+    activeFrame = 0;
+    activeFps = Math.max(1, fps);
+    if (inView) startPlayback();
+    if (canvas) canvas.style.opacity = '1';
+  }
+
+  // === Scroll-driven chapter selection =====================================
+  // We use IntersectionObserver with a tight rootMargin so only the chapter
+  // currently sitting in the vertical middle band of the viewport is "active".
+  // Chapters above/below the band emit non-intersecting events and don't
+  // trigger a swap.
+  const chapters = Array.from(document.querySelectorAll<HTMLElement>('[data-pscs-chapter]'));
+  const chapterIO = new IntersectionObserver((entries) => {
+    // Multiple chapters can intersect at once near the band edges; pick the
+    // one whose centre is closest to the viewport centre.
+    const visible = entries.filter((e) => e.isIntersecting);
+    if (visible.length === 0) return;
+    const vh = window.innerHeight;
+    const mid = vh / 2;
+    let best: { el: HTMLElement; dist: number } | null = null;
+    for (const v of visible) {
+      const rect = v.boundingClientRect;
+      const c = rect.top + rect.height / 2;
+      const d = Math.abs(c - mid);
+      if (!best || d < best.dist) best = { el: v.target as HTMLElement, dist: d };
+    }
+    // Also re-scan all observed entries to catch the case where one chapter
+    // is leaving and another is entering in the same callback batch but only
+    // the leaving one is in `entries`.
+    if (!best) return;
+    const el = best.el;
+    const slug = el.dataset.pscsChapter ?? '';
+    const file = el.dataset.pscsFile ?? '';
+    const fps = Number(el.dataset.pscsFps ?? '5');
+    swapTo(slug, file, fps);
+  }, {
+    // Activate when the chapter's centre sits roughly mid-viewport.
+    rootMargin: '-35% 0px -45% 0px',
+    threshold: 0,
+  });
+  chapters.forEach((c) => chapterIO.observe(c));
+
+  // === Stage visibility — pause when off-screen ============================
+  if (stage) {
+    const stageIO = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        inView = e.isIntersecting;
+        if (inView && activePix) startPlayback();
+        else stopPlayback();
+      }
+    }, { threshold: 0 });
+    stageIO.observe(stage);
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stopPlayback();
+    else if (inView && activePix) startPlayback();
+  });
+
+  // === Initial pixogram — first chapter ====================================
+  // Route the initial load through swapTo. swapTo skips the fade-out phase
+  // when activePix is still null, so the page intro is a single fade-in.
+  const first = chapters[0];
+  if (first) {
+    const slug = first.dataset.pscsChapter ?? '';
+    const file = first.dataset.pscsFile ?? '';
+    const fps = Number(first.dataset.pscsFps ?? '5');
+    if (file) swapTo(slug, file, fps);
+  }
+
+  // === Perspective corners (same as PixogramLibrary) =======================
+  type Corners = PerspectiveCorners;
+  const CORNERS: Corners = {
+    tl: { x: 10.4, y: 8.1 },
+    tr: { x: 85.0, y: 9.3 },
+    bl: { x: 10.4, y: 83.6 },
+    br: { x: 84.8, y: 90.0 },
+  };
+  const REFL = { width: 0.9, offset: 0.1, opacity: 66, blur: 1.5 };
+  const CROP = { top: 0.9, right: 1.3 };
+
+  if (reflCanvas) {
+    reflCanvas.style.opacity = String(REFL.opacity / 100);
+    reflCanvas.style.filter = `blur(${REFL.blur}px)`;
+  }
+
+  function applyCorners() {
+    if (!clockEl || !display) return;
+    const rect = clockEl.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    display.style.transformOrigin = '0 0';
+    display.style.transform = cornersToMatrix3d(CORNERS, rect.width, rect.height);
+    if (reflEl) {
+      const rightX_top = CORNERS.tl.x + REFL.offset;
+      const rightX_bot = CORNERS.bl.x + REFL.offset;
+      const reflCorners: Corners = {
+        tl: { x: rightX_top - REFL.width, y: CORNERS.tl.y },
+        tr: { x: rightX_top,               y: CORNERS.tl.y },
+        bl: { x: rightX_bot - REFL.width, y: CORNERS.bl.y },
+        br: { x: rightX_bot,               y: CORNERS.bl.y },
+      };
+      reflEl.style.transform = cornersToMatrix3d(reflCorners, rect.width, rect.height);
+    }
+  }
+  if (clockEl) {
+    clockEl.style.setProperty('--pscs-crop-top', `${CROP.top}%`);
+    clockEl.style.setProperty('--pscs-crop-right', `${CROP.right}%`);
+    const ro = new ResizeObserver(() => applyCorners());
+    ro.observe(clockEl);
+  }
+  window.addEventListener('resize', applyCorners);
+  applyCorners();
+</script>
+
+<style>
+  .pscs {
+    font-family: 'Inter Tight', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    font-feature-settings: 'tnum' 1;
+    color: #0a0a0a;
+    padding: clamp(4rem, 8vw, 6rem) clamp(1rem, 4vw, 3rem) 0;
+    max-width: 1320px;
+    margin: 0 auto;
+  }
+  .pscs__head {
+    max-width: 60ch;
+    margin: 0 0 clamp(2rem, 4vw, 3rem);
+  }
+  .pscs__eyebrow {
+    margin: 0 0 0.85rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(10, 10, 10, 0.55);
+  }
+  .pscs__title {
+    margin: 0 0 1rem;
+    font-family: 'Mona Sans', 'Inter Tight', sans-serif;
+    font-size: clamp(1.9rem, 3.6vw, 2.9rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+  }
+  .pscs__lead {
+    margin: 0;
+    color: rgba(10, 10, 10, 0.7);
+    line-height: 1.6;
+    font-size: clamp(1rem, 1.3vw, 1.08rem);
+  }
+
+  /* === Two-column layout: sticky clock | scrolling chapters =============== */
+  .pscs__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: clamp(2rem, 4vw, 3.5rem);
+    align-items: start;
+  }
+
+  /* === Sticky stage (photo + projected canvas + reflection) =============== */
+  .pscs__stage { position: relative; }
+  .pscs__stage-inner {
+    position: sticky;
+    top: clamp(1rem, 6vh, 4rem);
+    padding: clamp(1rem, 3vh, 2rem) 0;
+  }
+  .pscs__clock {
+    position: relative;
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+    --pscs-crop-top: 0.9%;
+    --pscs-crop-right: 1.3%;
+    transition: filter 380ms ease;
+  }
+  .pscs__clock.is-closing { filter: brightness(0.5) saturate(0.6); }
+  .pscs__clock-photo {
+    display: block;
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 40px 80px rgba(10, 10, 10, 0.22));
+    pointer-events: none;
+  }
+  .pscs__clock-display {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform-origin: 0 0;
+    border-radius: 4px;
+    clip-path: inset(var(--pscs-crop-top) var(--pscs-crop-right) 0 0);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+      inset 0 8px 18px rgba(0, 0, 0, 0.45),
+      inset -14px 0 28px -2px rgba(0, 0, 0, 0.6),
+      inset 0 -12px 24px -2px rgba(0, 0, 0, 0.55),
+      inset 2px 0 4px rgba(255, 255, 255, 0.04),
+      0 0 80px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+  }
+  .pscs__clock-display::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0) 32%, rgba(255, 255, 255, 0) 70%, rgba(255, 255, 255, 0.06) 100%),
+      radial-gradient(ellipse 90% 110% at 50% 50%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.35) 100%);
+    border-radius: inherit;
+    mix-blend-mode: screen;
+  }
+  .pscs__clock-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    /* Crossfade on pixogram swap — JS flips opacity between 0/1. */
+    transition: opacity 420ms ease;
+    opacity: 1;
+  }
+  .pscs__clock-reflection {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform-origin: 0 0;
+    pointer-events: none;
+    background: #000;
+    clip-path: inset(var(--pscs-crop-top) 0 0 0);
+  }
+  .pscs__clock-reflection canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    image-rendering: auto;
+    clip-path: polygon(30% 0%, 100% 0%, 100% 100%, 0% 100%);
+  }
+
+  /* === Right column: scroll-driven chapters ============================== */
+  .pscs__flow {
+    /* Generous vertical spacing — each chapter needs enough scroll travel
+       so that exactly one chapter sits in the active band at a time. */
+    padding: clamp(2rem, 5vw, 3.5rem) 0 clamp(5rem, 10vw, 8rem);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8rem, 18vh, 14rem);
+  }
+  .pscs__chap {
+    max-width: 52ch;
+  }
+  .pscs__chap-eyebrow {
+    margin: 0 0 0.8rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #485dbd;
+  }
+  .pscs__chap-title {
+    margin: 0 0 0.6rem;
+    font-family: 'Mona Sans', 'Inter Tight', sans-serif;
+    font-size: clamp(1.6rem, 2.8vw, 2.1rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .pscs__chap-author {
+    margin: 0 0 1rem;
+    color: rgba(10, 10, 10, 0.55);
+    font-size: 0.92rem;
+  }
+  .pscs__chap-body {
+    margin: 0 0 0.9rem;
+    color: rgba(10, 10, 10, 0.72);
+    line-height: 1.65;
+    font-size: clamp(1rem, 1.3vw, 1.08rem);
+  }
+  .pscs__chap-body:last-child { margin-bottom: 0; }
+
+  /* Closing chapter: warmer accent and a divider so it visually separates
+     from the four pixogram chapters above. */
+  .pscs__chap--closing {
+    border-top: 1px solid rgba(10, 10, 10, 0.12);
+    padding-top: clamp(2rem, 4vw, 3rem);
+  }
+  .pscs__chap--closing .pscs__chap-eyebrow {
+    color: #b25a1e;
+  }
+
+  @media (max-width: 900px) {
+    .pscs__layout { grid-template-columns: 1fr; }
+    .pscs__stage-inner { position: static; padding: 0 0 clamp(1rem, 3vw, 2rem); }
+    .pscs__clock { max-width: 420px; }
+    .pscs__flow {
+      gap: clamp(4rem, 12vh, 8rem);
+      padding-top: clamp(1rem, 4vw, 2rem);
+    }
+  }
+</style>

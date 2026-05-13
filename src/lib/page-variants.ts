@@ -9,7 +9,7 @@ export type ExperimentVariantSlug = 'poster' | 'console' | 'catalog' | 'interior
 // the runtime dock ordering. Order here = display order in the "Neu" section
 // of the Landing Lab dock. Adding a new fresh layout: append the slug here.
 export const FRESH_LAYOUT_SLUGS = [
-  'plus3', 'plus2', 'plus',
+  'plus4', 'plus3', 'plus2', 'plus',
   'ribbon', 'sidebar', 'native', 'editorial', 'drop',
 ] as const;
 export type FreshLayoutSlug = typeof FRESH_LAYOUT_SLUGS[number];
@@ -695,6 +695,36 @@ export const pageVariants: PageVariant[] = [
         bullets: ['Schwarz-auf-Creme Monolith', 'Kein Sektions-Lärm', 'Ein Kauf-Moment'],
         note: 'Am nächsten an einer Small-Batch-Möbel- oder Fashion-Drop-Seite: souverän, ruhig, vollständig.',
         quote: { line1: 'Eine Drop-Seite,', line2: 'kein langer Verkaufsbrief.' },
+      },
+    },
+  },
+  {
+    slug: 'plus4',
+    layout: 'plus4',
+    theme: 'graphite',
+    headerVariant: 'dark',
+    copy: {
+      en: {
+        name: 'Original Plus⁴',
+        shortName: 'Plus⁴',
+        thesis: 'Plus³ with the pixogram library and the sticky pixel story merged into one scroll-driven moment: four pixograms cross-fade on a single sticky clock while their copy scrolls past.',
+        introEyebrow: 'Merged showcase',
+        introTitle: ['Time.', 'Design.', 'Expression.'],
+        introLead: 'Same conversion order as Plus³, but the two separate "watch the clock" sections collapse into one: the clock is sticky, and four pixograms walk past it as you scroll.',
+        bullets: ['Sticky clock, four pixograms scroll past', 'Static replacements where animations were', 'Same proof-first sales flow as Plus³'],
+        note: 'Tests whether the unified sticky showcase reads as one strong moment instead of two competing ones.',
+        quote: { line1: 'One sticky clock.', line2: 'Four pixograms walk by.' },
+      },
+      de: {
+        name: 'Original Plus⁴',
+        shortName: 'Plus⁴',
+        thesis: 'Plus³, aber Pixogramm-Library und Sticky-Pixel-Story sind zu einem scroll-getriebenen Moment verschmolzen: vier Pixogramme cross-faden auf einer sticky Uhr, während ihre Texte vorbeiscrollen.',
+        introEyebrow: 'Verschmolzene Showcase',
+        introTitle: ['Zeit.', 'Design.', 'Ausdruck.'],
+        introLead: 'Gleiche Conversion-Reihenfolge wie Plus³, aber die zwei separaten "Schau auf die Uhr"-Sektionen werden zu einer: die Uhr ist sticky, vier Pixogramme laufen beim Scrollen daran vorbei.',
+        bullets: ['Sticky Uhr, vier Pixogramme scrollen vorbei', 'Statische Ersatzteile, wo Animationen waren', 'Gleicher Beweis-zuerst Flow wie Plus³'],
+        note: 'Testet, ob die verschmolzene Sticky-Showcase als ein starker Moment liest statt als zwei konkurrierende.',
+        quote: { line1: 'Eine sticky Uhr.', line2: 'Vier Pixogramme laufen vorbei.' },
       },
     },
   },
