@@ -18,6 +18,9 @@ const allItems = (indexJson?.items ?? []) as Array<{
   description: string;
   appType: string;
   type: string;
+  /** Source framerate the .pxl was rendered at; drives playback interval. */
+  fps?: number;
+  duration?: number;
 }>;
 
 const items = limit > 0 ? allItems.slice(0, limit) : allItems;
@@ -95,6 +98,7 @@ const ui = locale === 'de'
           data-pxlib-author={item.author}
           data-pxlib-desc={item.description}
           data-pxlib-type={item.type}
+          data-pxlib-fps={item.fps ?? 5}
           type="button"
           aria-pressed={item.slug === initial}
         >
@@ -216,6 +220,7 @@ const ui = locale === 'de'
     url: string;
     canvas: HTMLCanvasElement;
     rendered: boolean;
+    fps: number;
     meta: { displayName: string; author: string; description: string; type: string };
   };
 
@@ -228,6 +233,7 @@ const ui = locale === 'de'
     thumbs.push({
       el, slug, url, canvas,
       rendered: false,
+      fps: Math.max(1, Number(el.dataset.pxlibFps ?? 5)),
       meta: {
         displayName: el.dataset.pxlibName ?? '',
         author: el.dataset.pxlibAuthor ?? '',
@@ -271,6 +277,7 @@ const ui = locale === 'de'
   let activePix: Pixogram | null = null;
   let activeFrame = 0;
   let activeTimer: number | null = null;
+  let activeFps = 5;
   let inView = true;
 
   // 3D handle — populated lazily when the user first toggles to 3D mode so
@@ -322,10 +329,14 @@ const ui = locale === 'de'
     stopLarge();
     if (!activePix) return;
     paintLarge();
+    // Playback interval is derived from the source .pxl's fps (index.json
+    // metadata), so re-rendering at higher fps produces smoother playback
+    // automatically without any code change.
+    const intervalMs = Math.max(16, Math.round(1000 / activeFps));
     activeTimer = window.setInterval(() => {
       activeFrame += 1;
       paintLarge();
-    }, 200);
+    }, intervalMs);
   }
 
   async function setActive(t: Thumb) {
@@ -349,6 +360,7 @@ const ui = locale === 'de'
     if (!pix) return;
     activePix = pix;
     activeFrame = 0;
+    activeFps = t.fps;
     if (inView) startLarge();
   }
 

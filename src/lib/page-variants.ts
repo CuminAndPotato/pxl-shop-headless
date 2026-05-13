@@ -3,7 +3,7 @@ import type { OriginalDraftSlug } from './original-drafts';
 
 export type OriginalTweakSlug = 'spatial' | 'live' | 'proof';
 export type ExperimentVariantSlug = 'poster' | 'console' | 'catalog' | 'interior' | 'buildbook';
-export type FreshLayoutSlug = 'ribbon' | 'sidebar' | 'native' | 'editorial' | 'drop' | 'plus' | 'plus2';
+export type FreshLayoutSlug = 'ribbon' | 'sidebar' | 'native' | 'editorial' | 'drop' | 'plus' | 'plus2' | 'plus3';
 export type PageVariantSlug = 'default' | 'dev' | 'maker' | OriginalDraftSlug | OriginalTweakSlug | ExperimentVariantSlug | FreshLayoutSlug;
 
 interface VariantLocaleCopy {
@@ -25,7 +25,7 @@ export interface PageVariant {
   slug: PageVariantSlug;
   layout:
     | 'default' | 'dev' | 'maker' | 'original' | 'tweak' | 'experiment'
-    | 'ribbon' | 'sidebar' | 'native' | 'editorial' | 'drop' | 'plus' | 'plus2';
+    | 'ribbon' | 'sidebar' | 'native' | 'editorial' | 'drop' | 'plus' | 'plus2' | 'plus3';
   theme: 'graphite' | 'amber' | 'mist';
   headerVariant?: 'dark' | 'light';
   copy: Record<Locale, VariantLocaleCopy>;
@@ -680,6 +680,36 @@ export const pageVariants: PageVariant[] = [
         bullets: ['Schwarz-auf-Creme Monolith', 'Kein Sektions-Lärm', 'Ein Kauf-Moment'],
         note: 'Am nächsten an einer Small-Batch-Möbel- oder Fashion-Drop-Seite: souverän, ruhig, vollständig.',
         quote: { line1: 'Eine Drop-Seite,', line2: 'kein langer Verkaufsbrief.' },
+      },
+    },
+  },
+  {
+    slug: 'plus3',
+    layout: 'plus3',
+    theme: 'graphite',
+    headerVariant: 'dark',
+    copy: {
+      en: {
+        name: 'Original Plus³',
+        shortName: 'Plus³',
+        thesis: 'Sales-page restructure: show proof first (PixogramLibrary up top), trust strip with real OSS credentials, founder story moved up, FAQ added, AI pipeline + workshop gallery cut for focus.',
+        introEyebrow: 'Sales-page restructure',
+        introTitle: ['Time.', 'Design.', 'Expression.'],
+        introLead: 'Same content as Plus² but reordered for conversion: proof before code-deep-dive, founder credentials surfaced, objections answered. Built around the AIDA pattern adapted for a developer audience.',
+        bullets: ['PixogramLibrary right after Hero', 'Maker credentials (Cordova + F# OSS)', 'FAQ section + reassurance under CTA'],
+        note: 'Tests whether show-proof-first + early trust + objection-handling lifts conversion vs Plus².',
+        quote: { line1: 'Prove first.', line2: 'Then sell.' },
+      },
+      de: {
+        name: 'Original Plus³',
+        shortName: 'Plus³',
+        thesis: 'Sales-Page-Umbau: Beweis zuerst (PixogramLibrary nach oben), Trust-Strip mit echten OSS-Credentials, Gründer-Story vorgezogen, FAQ ergänzt, AI Pipeline + Workshop-Galerie für Fokus gestrichen.',
+        introEyebrow: 'Sales-Page-Umbau',
+        introTitle: ['Zeit.', 'Design.', 'Ausdruck.'],
+        introLead: 'Gleicher Inhalt wie Plus², aber neu sortiert auf Conversion: Beweis vor Code-Deep-Dive, Gründer-Credentials nach vorn, Einwände beantwortet. Aufgebaut nach AIDA-Pattern für Dev-Zielgruppe.',
+        bullets: ['PixogramLibrary direkt nach Hero', 'Maker-Credentials (Cordova + F# OSS)', 'FAQ + Reassurance unter CTA'],
+        note: 'Testet, ob Beweis-zuerst + früher Trust + Einwand-Behandlung die Conversion vs Plus² hebt.',
+        quote: { line1: 'Erst beweisen.', line2: 'Dann verkaufen.' },
       },
     },
   },

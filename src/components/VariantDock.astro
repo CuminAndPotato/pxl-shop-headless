@@ -14,7 +14,7 @@ const currentIndex = pageVariants.findIndex((variant) => variant.slug === curren
 const comparePeer = pageVariants[(currentIndex + 1) % pageVariants.length]?.slug ?? 'default';
 
 const ORIGINAL_SLUG: PageVariantSlug = 'default';
-const FRESH_SLUGS: PageVariantSlug[] = ['plus2', 'plus', 'ribbon', 'sidebar', 'native', 'editorial'];
+const FRESH_SLUGS: PageVariantSlug[] = ['plus3', 'plus2', 'plus', 'ribbon', 'sidebar', 'native', 'editorial'];
 const original = pageVariants.find((v) => v.slug === ORIGINAL_SLUG);
 const fresh = FRESH_SLUGS
   .map((slug) => pageVariants.find((v) => v.slug === slug))

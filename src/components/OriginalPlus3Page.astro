@@ -1,0 +1,657 @@
+---
+import type { Locale } from '../i18n/strings';
+import { t } from '../i18n/strings';
+import type { Product } from '../lib/shop';
+import type { PageVariant } from '../lib/page-variants';
+import { lifestyleGallery, workshopGallery } from '../lib/assets';
+import Hero from './Hero.astro';
+import ProductPanel from './ProductPanel.astro';
+import Gallery from './Gallery.astro';
+import Handmade from './Handmade.astro';
+import Setup from './Setup.astro';
+import OurStory from './OurStory.astro';
+import AISandbox from './AISandbox.astro';
+import StickyPixelStory from './StickyPixelStory.astro';
+import SectionDivider from './SectionDivider.astro';
+import PixogramLibrary from './PixogramLibrary.astro';
+import TrustStrip from './TrustStrip.astro';
+import FAQ from './FAQ.astro';
+import type { StickyChapter } from './StickyPixelStory.astro';
+
+interface Props {
+  locale: Locale;
+  variant: PageVariant;
+  product: Product | null;
+}
+
+const { locale, product } = Astro.props;
+const s = t(locale);
+
+// === Real code snippet from the PXL Clock NuGet README =====================
+const stickyCode = `Color GetColor(int minute, int second, int x, int y, int step)
+{
+    var hue = (x + y + step) * 5.0 / 360.0;
+    return Color.FromHsv(hue, 1, 1);
+}`;
+
+// === Sticky chapters (same content as plus2) ===============================
+const stickyChapters: StickyChapter[] = locale === 'de'
+  ? [
+      {
+        shape: 'lede',
+        title: 'Eine Uhr, die zeigt, was du ihr sagst.',
+        body: 'PXL Clock ist eine 24 × 24 Pixel-Matrix hinter echtem Glas. Tags zeigt sie die Zeit, abends eine Animation, wenn du willst auch deinen Build-Status oder das Wetter. 576 LEDs sind nicht viel — und genau das ist die Idee.',
+        inlineSpecs: '576 LEDs · 24 × 24 RGB · WLAN · OTA · iOS und Android · 27 × 27 × 6 cm · 2 kg',
+      },
+      {
+        shape: 'quote',
+        quote: 'Sie hängt da und atmet. Das ist eigentlich alles, was ein Objekt im Raum tun muss.',
+        byline: 'Aus einem ersten Test mit einer Beta-Uhr.',
+      },
+      {
+        shape: 'code',
+        title: 'In C# programmierbar.',
+        body: 'Ein Pixogramm ist eine C#-Funktion: für jeden Pixel an Position (x, y) und für jeden Animationsschritt step gibst du eine Farbe zurück. Mehr braucht es nicht — die NuGet-Library Pxl erledigt den Rest.',
+        code: stickyCode,
+      },
+      {
+        shape: 'still',
+        img: workshopGallery[2],
+        caption: 'Aus einer Werkstatt in Köln. Software, Rahmen, Glas und Versand alles aus Deutschland — Cumin & Potato GmbH, Kleinserie, hundert Stück.',
+      },
+      {
+        shape: 'lede',
+        title: 'Eine Community, die mitprogrammiert.',
+        body: 'PXL JAM 2024 war Teil des F# Advent Calendar — die Community hat geforkt, Pixogramme gebaut, Pull Requests submitted. Drei Gewinner haben jeweils eine PXL Clock Mk1 bekommen. Die Werkzeuge bleiben: Browser-Simulator, VS Code Extension, alle Beispiele auf GitHub.',
+        inlineSpecs: 'github.com/SchlenkR/pxl-clock · discord.gg/KDbVdKQh5j · marketplace.visualstudio.com',
+      },
+    ]
+  : [
+      {
+        shape: 'lede',
+        title: 'A clock that shows what you tell it.',
+        body: 'PXL Clock is a 24 × 24 pixel matrix behind real glass. By day it shows time, in the evening an animation, and a build status or the weather if that is what you want. 576 LEDs is not much — that is the point.',
+        inlineSpecs: '576 LEDs · 24 × 24 RGB · WiFi · OTA · iOS and Android · 27 × 27 × 6 cm · 2 kg',
+      },
+      {
+        shape: 'quote',
+        quote: 'It hangs there and breathes. That is really all an object in a room has to do.',
+        byline: 'From an early test with a beta unit.',
+      },
+      {
+        shape: 'code',
+        title: 'Programmable in C#.',
+        body: 'A pixogram is a C# function: for every pixel at (x, y) and every animation step, return a colour. That is the whole API — the Pxl NuGet library takes it from there.',
+        code: stickyCode,
+      },
+      {
+        shape: 'still',
+        img: workshopGallery[2],
+        caption: 'From a workshop in Cologne. Software, frame, glass, and shipping — all from Germany. Cumin & Potato GmbH, small run, one hundred pieces.',
+      },
+      {
+        shape: 'lede',
+        title: 'A community that codes along.',
+        body: 'PXL JAM 2024 was part of the F# Advent Calendar — the community forked, built pixograms, submitted pull requests. Three winners each got a PXL Clock Mk1. The tooling stays: browser simulator, VS Code extension, every example open on GitHub.',
+        inlineSpecs: 'github.com/SchlenkR/pxl-clock · discord.gg/KDbVdKQh5j · marketplace.visualstudio.com',
+      },
+    ];
+
+// === Combined Maker triptych — same data, now folds into Handmade visually
+const makerSteps = locale === 'de'
+  ? [
+      { tag: 'Schritt 01', title: 'Schreibe Code.', body: 'Ein Pixogramm ist eine C#-Datei. Die Pxl-NuGet-Library liefert das Pixel-API — du brauchst keine Build-Pipeline und kein Framework drumherum.' },
+      { tag: 'Schritt 02', title: 'Sieh es im Simulator.', body: 'Der eingebaute Simulator startet automatisch — Live-Preview in VS Code, Hot Reload bei jedem Speichern, keine Hardware nötig.' },
+      { tag: 'Schritt 03', title: 'Push auf die Uhr.', body: 'Über das lokale Netzwerk findet die Extension deine PXL Clock und überträgt das Pixogramm direkt — ein Klick reicht.' },
+    ]
+  : [
+      { tag: 'Step 01', title: 'Write code.', body: 'A pixogram is a C# file. The Pxl NuGet library brings the pixel API — no build pipeline, no framework around it.' },
+      { tag: 'Step 02', title: 'See it in the simulator.', body: 'The built-in simulator starts automatically — live preview in VS Code, hot reload on every save, no hardware needed.' },
+      { tag: 'Step 03', title: 'Push to the clock.', body: 'The extension finds your PXL Clock on the local network and pushes the pixogram with one click.' },
+    ];
+
+// === VS Code Extension — folds in a one-line teaser for the AI pipeline
+//     (the full AI Pipeline section is cut in plus3 for focus).
+const vscodeCopy = locale === 'de'
+  ? {
+      kicker: 'Werkzeug',
+      title: 'Develop, preview, publish — alles im VS Code.',
+      lede: 'Die offizielle PXL Clock Extension für VS Code bringt den ganzen Workflow in den Editor. Erschienen als v1 im Februar 2026, kostenlos im Marketplace.',
+      bullets: [
+        'Eingebauter Simulator — startet automatisch, keine Konfiguration nötig.',
+        'Live-Preview in der Sidebar oder als eigenes Panel, Hot Reload bei jedem Speichern.',
+        'Datei-Explorer für alle Pixogramme als Sidebar-Tree.',
+        'Run, Stop, Restart per Click direkt in der Editor-Toolbar.',
+        'Publish-to-Device über das lokale Netzwerk — ein Klick auf das Wolken-Symbol.',
+        'C#-IntelliSense, Diagnostics und Signature-Help via Roslyn.',
+      ],
+      cta: 'Im Marketplace öffnen',
+      meta: 'pxlclock.pxl-clock · v1 · Februar 2026',
+      pipelineTeaser: 'Bonus: unsere Multi-Agent-AI-Pipeline (Claude, Sonnet, Gemini, GPT-OSS) generiert aus GitHub-Issues neue Pixogramme — Live-Gallery auf schlenkr.github.io/pxl-clock.',
+    }
+  : {
+      kicker: 'Tooling',
+      title: 'Develop, preview, publish — all inside VS Code.',
+      lede: 'The official PXL Clock extension for VS Code brings the whole workflow into the editor. Shipped as v1 in February 2026, free on the Marketplace.',
+      bullets: [
+        'Built-in simulator — starts automatically, zero config.',
+        'Live preview in the sidebar or a full panel, hot reload on every save.',
+        'File explorer for all pixograms as a sidebar tree.',
+        'Run, Stop, Restart from the editor toolbar with one click.',
+        'Publish to device over the local network — one click on the cloud icon.',
+        'C# IntelliSense, diagnostics, and signature help via Roslyn.',
+      ],
+      cta: 'Open in Marketplace',
+      meta: 'pxlclock.pxl-clock · v1 · February 2026',
+      pipelineTeaser: 'Bonus: our multi-agent AI pipeline (Claude, Sonnet, Gemini, GPT-OSS) turns GitHub issues into new pixograms — live gallery at schlenkr.github.io/pxl-clock.',
+    };
+
+// === PXL JAM (same as plus2) ===============================================
+const jamCopy = locale === 'de'
+  ? {
+      kicker: 'Community',
+      title: 'PXL JAM 2024 — die Community programmierte mit.',
+      paragraphs: [
+        'Dezember 2024. Teil des F# Advent Calendars, hosted von Sergey Tihon. Repository forken, eigene Pixogramme bauen, per Pull Request einreichen — drei Gewinner bekamen jeweils eine PXL Clock Mk1.',
+        'Der Hackathon war für Anfänger und erfahrene Devs offen. Die Werkzeuge — Browser-Simulator, NuGet-Library, GitHub-Workflow — sind bis heute Open Source.',
+      ],
+      links: [
+        { label: 'Repository ansehen', href: 'https://github.com/SchlenkR/PXL-JAM' },
+        { label: 'YouTube-Ankündigung', href: 'https://youtu.be/q5-QTpEMGdU' },
+      ],
+    }
+  : {
+      kicker: 'Community',
+      title: 'PXL JAM 2024 — the community coded along.',
+      paragraphs: [
+        'December 2024. Part of the F# Advent Calendar hosted by Sergey Tihon. Fork the repo, build your own pixograms, submit a pull request — three winners each got a PXL Clock Mk1.',
+        'The jam was open to beginners and experienced devs alike. The tooling — browser simulator, NuGet library, GitHub workflow — is still open source today.',
+      ],
+      links: [
+        { label: 'See the repository', href: 'https://github.com/SchlenkR/PXL-JAM' },
+        { label: 'YouTube announcement', href: 'https://youtu.be/q5-QTpEMGdU' },
+      ],
+    };
+
+// === Final CTA with reassurance =============================================
+const closing = locale === 'de'
+  ? {
+      headline: 'Eine Beta-Serie. Eine ehrliche Entscheidung.',
+      body: 'Versand in zwei bis vier Werktagen mit DHL. Mit Promo-Code RONALD sparst du 25 €.',
+      cta: 'Jetzt bestellen',
+      reassurance: ['Kostenloser Versand in Deutschland', '30 Tage Rückgaberecht', '2 Jahre Garantie'],
+    }
+  : {
+      headline: 'A beta run. An honest decision.',
+      body: 'Ships in two to four business days with DHL. Promo code RONALD takes 25 € off.',
+      cta: 'Order now',
+      reassurance: ['Free shipping in Germany', '30-day returns', '2-year warranty'],
+    };
+
+const price = product?.discountedPrice?.formatted ?? product?.price?.formatted ?? '229,00€';
+const cartHref = locale === 'de' ? '/de/cart' : '/cart';
+const defaultVariantId = product?.variants[0]?.id ?? '';
+---
+
+<div class="op3-page">
+
+  {/* 1. Hero — same as plus2 */}
+  <Hero locale={locale} />
+
+  {/* 2. Trust strip with maker credentials. The Cordova + F# OSS angle is
+       what separates these makers from random LED resellers — the second
+       sentence below the icons makes it concrete. */}
+  <TrustStrip locale={locale} />
+
+  {/* 3. PixogramLibrary moved up from position 12. This is the strongest
+       visual proof — 16 live pixograms running on a simulated clock. Now
+       it lands BEFORE the buy moment so visitors see what the product does
+       before deciding. */}
+  <section class="op3-library">
+    <PixogramLibrary locale={locale} />
+  </section>
+
+  {/* 4. Specs ribbon — single line, scannable. */}
+  <section class="op3-ribbon">
+    <p>
+      {locale === 'de'
+        ? '24 × 24 RGB-LEDs · 576 Pixel · echtes Glas · handgefertigt · 27 × 27 × 6 cm · 2 kg · WLAN · OTA · iOS + Android · C# / .NET · 229 €'
+        : '24 × 24 RGB LEDs · 576 pixels · real glass · handmade · 27 × 27 × 6 cm · 2 kg · WiFi · OTA · iOS + Android · C# / .NET · 229 €'}
+    </p>
+  </section>
+
+  {/* 5. Buy moment — after the proof + specs. */}
+  <ProductPanel locale={locale} product={product} />
+
+  {/* 6. Sticky pixel story — for the scrollers who want the deeper code
+       narrative. Comes AFTER first buy chance, not before. */}
+  <section class="op3-sticky">
+    <StickyPixelStory locale={locale} chapters={stickyChapters} />
+  </section>
+
+  {/* 7. Lifestyle gallery — sells the "in a real room" feeling. */}
+  <Gallery images={lifestyleGallery} ariaLabel={locale === 'de' ? 'Lifestyle-Galerie' : 'Lifestyle gallery'} />
+
+  {/* 8. Founder story moved up from position 14. Buyers should know who
+       they're buying from BEFORE the deep-tech sections, not after. */}
+  <OurStory locale={locale} />
+
+  {/* 9. Maker triptych + Handmade story — visually one cluster: how it's
+       made (3 software steps + 1 hardware section). */}
+  <section class="op3-maker">
+    <header class="op3-maker__head">
+      <p class="op3-kicker">{locale === 'de' ? 'Werkstatt' : 'Workshop'}</p>
+      <h2 class="op3-h">{locale === 'de' ? 'Von der Idee zum Pixogramm — drei Schritte.' : 'From idea to pixogram — three steps.'}</h2>
+    </header>
+    <ol class="op3-maker__steps">
+      {makerSteps.map((step) => (
+        <li>
+          <p class="op3-maker__tag">{step.tag}</p>
+          <h3 class="op3-maker__title">{step.title}</h3>
+          <p class="op3-maker__body">{step.body}</p>
+        </li>
+      ))}
+    </ol>
+  </section>
+  <Handmade locale={locale} productId={product?.id} />
+
+  {/* 10. VS Code Extension — now with a 1-line AI-pipeline teaser folded in,
+       since the standalone AI Pipeline section is cut in plus3. */}
+  <section class="op3-vscode">
+    <SectionDivider side="top" pattern="scallop" fill="#0d1014" height="110px" />
+    <div class="op3-vscode__inner">
+      <p class="op3-kicker op3-kicker--inv">{vscodeCopy.kicker}</p>
+      <h2 class="op3-h op3-h--inv">{vscodeCopy.title}</h2>
+      <p class="op3-vscode__lede">{vscodeCopy.lede}</p>
+      <ul class="op3-vscode__list">
+        {vscodeCopy.bullets.map((b) => <li>{b}</li>)}
+      </ul>
+      <p class="op3-vscode__teaser">
+        {vscodeCopy.pipelineTeaser}
+        {' '}
+        <a href="https://schlenkr.github.io/pxl-clock/" target="_blank" rel="noopener">
+          {locale === 'de' ? 'Gallery ansehen' : 'See the gallery'} →
+        </a>
+      </p>
+      <p class="op3-vscode__meta">
+        <a href="https://marketplace.visualstudio.com/items?itemName=pxlclock.pxl-clock" target="_blank" rel="noopener">{vscodeCopy.cta}</a>
+        <span>·</span>
+        <span class="op3-vscode__metainfo">{vscodeCopy.meta}</span>
+      </p>
+    </div>
+    <SectionDivider side="bottom" pattern="wave-asym" fill="#ffffff" height="120px" />
+  </section>
+
+  {/* 11. PXL JAM — community proof */}
+  <section class="op3-jam">
+    <div class="op3-jam__inner">
+      <div class="op3-jam__copy">
+        <p class="op3-kicker">{jamCopy.kicker}</p>
+        <h2 class="op3-h">{jamCopy.title}</h2>
+        {jamCopy.paragraphs.map((p) => <p class="op3-jam__body">{p}</p>)}
+        <p class="op3-jam__links">
+          {jamCopy.links.map((l, i) => (
+            <>
+              {i > 0 && <span class="op3-jam__sep">·</span>}
+              <a href={l.href} target="_blank" rel="noopener">{l.label}</a>
+            </>
+          ))}
+        </p>
+      </div>
+      <figure class="op3-jam__figure">
+        <img src={workshopGallery[5]} alt="" loading="lazy" />
+        <figcaption>{locale === 'de' ? 'PXL JAM 2024 — Hackathon-Edition, drei Gewinner-Pixogramme aus der Community.' : 'PXL JAM 2024 — hackathon edition, three winning pixograms from the community.'}</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  {/* 12. AI Sandbox — interactive "build your own" */}
+  <section class="op3-sandbox">
+    <AISandbox locale={locale} variant="card" tone="light" />
+  </section>
+
+  {/* 13. FAQ — handle objections right before the final close. */}
+  <FAQ locale={locale} />
+
+  {/* 14. Setup */}
+  <Setup locale={locale} />
+
+  {/* 15. Final CTA with reassurance line. */}
+  <section class="op3-final">
+    <div class="op3-final__inner">
+      <h2 class="op3-h">{closing.headline}</h2>
+      <p>{closing.body}</p>
+      <button class="op3-btn" type="button" data-op3-buy data-product-id={product?.id ?? ''} data-variant-id={defaultVariantId} data-cart-href={cartHref}>
+        {closing.cta} · {price}
+      </button>
+      <ul class="op3-final__reassurance">
+        {closing.reassurance.map((r) => <li>{r}</li>)}
+      </ul>
+    </div>
+  </section>
+
+</div>
+
+<style is:global>
+  @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Mona+Sans:wght@500;600;700&display=swap');
+</style>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-op3-buy]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const productId = btn.dataset.productId;
+      if (!productId) return;
+      btn.disabled = true;
+      try {
+        const { addToCart } = await import('../lib/shop-browser');
+        await addToCart({ productId, variantId: btn.dataset.variantId || undefined, quantity: 1 });
+        window.location.href = btn.dataset.cartHref || '/cart';
+      } catch (err) {
+        console.error('[OriginalPlus3] addToCart failed:', err);
+        btn.disabled = false;
+      }
+    });
+  });
+</script>
+
+<style>
+  /* ===== Page wrapper + brand gradient (same family as plus2) ===== */
+  .op3-page {
+    background:
+      radial-gradient(ellipse 60% 50% at 88% 8%, rgba(192, 209, 218, 1) 0%, rgba(192, 209, 218, 0) 60%),
+      radial-gradient(ellipse 70% 40% at 64% 35%, rgba(251, 182, 56, 0.32) 0%, rgba(251, 182, 56, 0) 60%),
+      radial-gradient(ellipse 80% 50% at 2% 70%, rgba(192, 209, 218, 0.7) 0%, rgba(192, 209, 218, 0) 60%),
+      radial-gradient(ellipse 70% 40% at 94% 60%, rgba(72, 93, 189, 0.42) 0%, rgba(72, 93, 189, 0) 65%),
+      radial-gradient(ellipse 80% 60% at 50% 90%, rgba(231, 250, 152, 0.28) 0%, rgba(231, 250, 152, 0) 65%),
+      #ffffff;
+    background-attachment: fixed;
+    color: #0a0a0a;
+    font-family: 'Inter Tight', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  .op3-kicker {
+    margin: 0 0 0.85rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(10, 10, 10, 0.55);
+  }
+  .op3-kicker--inv { color: rgba(236, 230, 218, 0.7); }
+  .op3-h {
+    margin: 0 0 1rem;
+    font-family: 'Mona Sans', 'Inter Tight', sans-serif;
+    font-size: clamp(1.9rem, 3.6vw, 2.9rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    color: #0a0a0a;
+  }
+  .op3-h--inv { color: #ece6da; }
+
+  /* Pixogram library — prominent placement, lots of breathing room */
+  .op3-library {
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem);
+  }
+  .op3-library > :global(.pxlib) { max-width: 1280px; margin: 0 auto; }
+
+  /* Specs ribbon */
+  .op3-ribbon {
+    padding: clamp(2rem, 4vw, 3rem) clamp(1rem, 4vw, 3rem);
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(6px);
+    border-top: 1px solid rgba(10, 10, 10, 0.08);
+    border-bottom: 1px solid rgba(10, 10, 10, 0.08);
+  }
+  .op3-ribbon p {
+    margin: 0 auto;
+    max-width: 1080px;
+    font-size: clamp(0.92rem, 1.2vw, 1.02rem);
+    color: rgba(10, 10, 10, 0.78);
+    text-align: center;
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+  }
+
+  /* Sticky already styles itself */
+  .op3-sticky { background: transparent; }
+
+  /* Maker triptych */
+  .op3-maker {
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem) clamp(2rem, 5vw, 3rem);
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  .op3-maker__head { max-width: 56ch; margin-bottom: clamp(2.5rem, 5vw, 4rem); }
+  .op3-maker__steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(1.5rem, 3vw, 2.5rem);
+  }
+  .op3-maker__steps li {
+    padding: clamp(1.5rem, 3vw, 2.2rem);
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(10, 10, 10, 0.10);
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+  }
+  .op3-maker__tag {
+    margin: 0 0 1rem;
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #485dbd;
+    letter-spacing: 0.04em;
+  }
+  .op3-maker__title {
+    margin: 0 0 0.6rem;
+    font-family: 'Mona Sans', 'Inter Tight', sans-serif;
+    font-size: clamp(1.2rem, 1.8vw, 1.5rem);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+  }
+  .op3-maker__body {
+    margin: 0;
+    color: rgba(10, 10, 10, 0.65);
+    line-height: 1.6;
+    font-size: 0.96rem;
+  }
+  @media (max-width: 860px) {
+    .op3-maker__steps { grid-template-columns: 1fr; }
+  }
+
+  /* VS Code section */
+  .op3-vscode {
+    position: relative;
+    background: #0d1014;
+    color: #ece6da;
+    padding: clamp(5rem, 10vw, 8rem) 0;
+  }
+  .op3-vscode__inner {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 clamp(1rem, 4vw, 3rem);
+    position: relative;
+    z-index: 2;
+  }
+  .op3-vscode__lede {
+    margin: 0 0 1.8rem;
+    color: rgba(236, 230, 218, 0.78);
+    line-height: 1.6;
+    font-size: clamp(1rem, 1.3vw, 1.1rem);
+  }
+  .op3-vscode__list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem;
+    display: grid;
+    gap: 0.85rem;
+  }
+  .op3-vscode__list li {
+    padding-left: 1.4rem;
+    position: relative;
+    color: rgba(236, 230, 218, 0.85);
+    line-height: 1.55;
+    font-size: 0.98rem;
+  }
+  .op3-vscode__list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.6rem;
+    width: 7px;
+    height: 7px;
+    border-radius: 1px;
+    background: #fbb238;
+  }
+  .op3-vscode__teaser {
+    margin: 0 0 2rem;
+    padding: 1.2rem 1.4rem;
+    background: rgba(72, 93, 189, 0.12);
+    border-left: 3px solid #485dbd;
+    border-radius: 0 6px 6px 0;
+    color: rgba(236, 230, 218, 0.9);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+  .op3-vscode__teaser a {
+    color: #fbb238;
+    font-weight: 700;
+    text-decoration: none;
+    margin-left: 0.4rem;
+    white-space: nowrap;
+  }
+  .op3-vscode__teaser a:hover { text-decoration: underline; }
+  .op3-vscode__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+    margin: 0;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(236, 230, 218, 0.15);
+    font-size: 0.9rem;
+  }
+  .op3-vscode__meta a {
+    color: #fbb238;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .op3-vscode__meta a:hover { text-decoration: underline; }
+  .op3-vscode__metainfo {
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.82rem;
+    color: rgba(236, 230, 218, 0.55);
+  }
+
+  /* PXL JAM */
+  .op3-jam {
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem);
+  }
+  .op3-jam__inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+  }
+  .op3-jam__copy { max-width: 56ch; }
+  .op3-jam__body {
+    margin: 0 0 1rem;
+    color: rgba(10, 10, 10, 0.7);
+    line-height: 1.65;
+    font-size: clamp(1rem, 1.3vw, 1.08rem);
+  }
+  .op3-jam__links {
+    margin: 1.4rem 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  .op3-jam__links a {
+    color: #485dbd;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  .op3-jam__sep { color: rgba(10, 10, 10, 0.3); }
+  .op3-jam__figure {
+    margin: 0;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border-radius: 8px;
+  }
+  .op3-jam__figure img {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+  .op3-jam__figure figcaption {
+    margin-top: 0.9rem;
+    color: rgba(10, 10, 10, 0.55);
+    font-size: 0.86rem;
+    line-height: 1.55;
+  }
+  @media (max-width: 860px) {
+    .op3-jam__inner { grid-template-columns: 1fr; }
+  }
+
+  /* Sandbox */
+  .op3-sandbox {
+    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem);
+  }
+  .op3-sandbox > :global(.ais) { max-width: 1180px; margin: 0 auto; }
+
+  /* Final CTA — with reassurance pills below the button */
+  .op3-final {
+    padding: clamp(6rem, 12vw, 10rem) clamp(1rem, 4vw, 3rem);
+    text-align: center;
+  }
+  .op3-final__inner { max-width: 760px; margin: 0 auto; }
+  .op3-final p {
+    margin: 0 auto 1.6rem;
+    color: rgba(10, 10, 10, 0.7);
+    line-height: 1.6;
+    max-width: 50ch;
+  }
+  .op3-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 1.1rem 1.8rem;
+    border: 0;
+    border-radius: 999px;
+    background: #0a0a0a;
+    color: #ffffff;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 1.05rem;
+    cursor: pointer;
+    transition: background 160ms ease, transform 160ms ease;
+  }
+  .op3-btn:hover { background: #000; transform: translateY(-1px); }
+  .op3-final__reassurance {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.8rem 2rem;
+    font-size: 0.85rem;
+    color: rgba(10, 10, 10, 0.55);
+  }
+  .op3-final__reassurance li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .op3-final__reassurance li::before {
+    content: '✓';
+    color: #485dbd;
+    font-weight: 700;
+  }
+</style>

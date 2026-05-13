@@ -1,0 +1,159 @@
+---
+import type { Locale } from '../i18n/strings';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+
+// 6 questions chosen to handle the most likely objections a buyer has on a
+// developer-friendly LED-display product in the 229€ range. Order roughly
+// from "is it for me?" → "what do I get?" → "what if it goes wrong?".
+const faqs = locale === 'de'
+  ? [
+      {
+        q: 'Muss ich coden können?',
+        a: 'Nein. Die Uhr kommt mit vorinstallierten Clockfaces und du kannst beliebig viele kostenlose Pixogramme aus der Community installieren. Programmieren ist optional — aber wenn du willst, ist die Uhr in C# über einen Browser-Simulator mit Live-Hot-Reload programmierbar.',
+      },
+      {
+        q: 'Was ist im Lieferumfang?',
+        a: 'Die handgefertigte PXL Clock (27 × 27 × 6 cm, echtes Glas, 576 RGB-LEDs), USB-C-Netzteil mit EU-Stecker, und eine kurze Setup-Anleitung. App-Download (iOS + Android) ist kostenlos.',
+      },
+      {
+        q: 'Garantie und Rückgabe?',
+        a: '2 Jahre Herstellergarantie nach EU-Recht. 30 Tage Rückgaberecht ohne Begründung — wir holen sie kostenfrei innerhalb Deutschlands ab. Reparaturen machen wir in der eigenen Werkstatt.',
+      },
+      {
+        q: 'Stromverbrauch?',
+        a: 'Im Normalbetrieb etwa 5 Watt. Bei Vollbild-Weiß auf maximaler Helligkeit kurzzeitig bis ~15 W. Kein Hitzeproblem, läuft 24/7 stabil. Du kannst die Helligkeit pro Tageszeit programmieren.',
+      },
+      {
+        q: 'Funktioniert sie ohne Cloud?',
+        a: 'Ja. Die Uhrzeit holt sie sich beim Start einmal via NTP, danach läuft sie offline. Cloud-Backend ist optional und nur für Pixogramm-Sync zwischen Geräten + OTA-Updates. Open Source — du kannst alles selbst hosten.',
+      },
+      {
+        q: 'Wie schnell kommt sie?',
+        a: 'Versand 2–4 Werktage innerhalb Deutschlands, EU 5–8 Tage. Wir fertigen in kleinen Batches — wenn ausverkauft, schreiben wir Lieferzeit im Shop transparent dran.',
+      },
+    ]
+  : [
+      {
+        q: 'Do I need to code?',
+        a: 'No. The clock ships with pre-installed clockfaces and you can install any number of free pixograms from the community. Coding is optional — but if you want, the clock is programmable in C# through a browser simulator with live hot-reload.',
+      },
+      {
+        q: 'What’s in the box?',
+        a: 'The handmade PXL Clock (27 × 27 × 6 cm, real glass, 576 RGB LEDs), a USB-C power supply with EU plug, and a short setup guide. App download (iOS + Android) is free.',
+      },
+      {
+        q: 'Warranty and returns?',
+        a: '2-year manufacturer warranty under EU law. 30-day no-questions-asked returns — we cover pickup within Germany. Repairs happen in our own workshop.',
+      },
+      {
+        q: 'Power consumption?',
+        a: 'About 5 watts in normal operation. Briefly up to ~15 W on a full-white screen at max brightness. Runs 24/7 stable, no heat issues. Brightness is programmable by time of day.',
+      },
+      {
+        q: 'Does it work without the cloud?',
+        a: 'Yes. It fetches the time via NTP once at boot, then runs offline. The cloud backend is optional and only used for syncing pixograms between devices + OTA updates. Open source — you can self-host everything.',
+      },
+      {
+        q: 'How fast does it ship?',
+        a: 'Within Germany 2–4 business days, EU 5–8 days. We build in small batches — if sold out, we post lead time transparently on the shop.',
+      },
+    ];
+
+const heading = locale === 'de' ? 'Häufig gefragt' : 'Frequently asked';
+const eyebrow = locale === 'de' ? 'Antworten' : 'Answers';
+---
+
+<section class="faq">
+  <header class="faq__head">
+    <p class="faq__eyebrow">{eyebrow}</p>
+    <h2 class="faq__title">{heading}</h2>
+  </header>
+  <ul class="faq__list">
+    {faqs.map((item) => (
+      <li class="faq__item">
+        <details>
+          <summary>
+            <span>{item.q}</span>
+            <span class="faq__icon" aria-hidden="true">+</span>
+          </summary>
+          <p>{item.a}</p>
+        </details>
+      </li>
+    ))}
+  </ul>
+</section>
+
+<style>
+  .faq {
+    padding: clamp(3rem, 8vw, 6rem) var(--pad-x, 1.5rem);
+    max-width: 800px;
+    margin: 0 auto;
+    font-family: 'Inter Tight', -apple-system, system-ui, sans-serif;
+    color: #0a0a0a;
+  }
+  .faq__head { margin: 0 0 clamp(1.5rem, 4vw, 2.5rem); }
+  .faq__eyebrow {
+    margin: 0 0 0.85rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(10, 10, 10, 0.55);
+  }
+  .faq__title {
+    margin: 0;
+    font-family: 'Mona Sans', 'Inter Tight', sans-serif;
+    font-size: clamp(1.9rem, 3.6vw, 2.9rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+  }
+  .faq__list { list-style: none; margin: 0; padding: 0; }
+  .faq__item { border-bottom: 1px solid rgba(10, 10, 10, 0.1); }
+  .faq__item:first-child { border-top: 1px solid rgba(10, 10, 10, 0.1); }
+  .faq__item summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.1rem 0;
+    cursor: pointer;
+    list-style: none;
+    font-weight: 600;
+    font-size: clamp(1rem, 1.4vw, 1.1rem);
+    line-height: 1.35;
+  }
+  .faq__item summary::-webkit-details-marker { display: none; }
+  .faq__item summary:hover { color: #485dbd; }
+  .faq__icon {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(10, 10, 10, 0.2);
+    border-radius: 50%;
+    font-size: 1.2rem;
+    font-weight: 400;
+    line-height: 0;
+    transition: transform 200ms ease, background 200ms ease;
+  }
+  .faq__item details[open] .faq__icon {
+    transform: rotate(45deg);
+    background: #0a0a0a;
+    color: #f4f4f4;
+    border-color: #0a0a0a;
+  }
+  .faq__item p {
+    margin: 0 0 1.2rem;
+    padding-right: 2.5rem;
+    color: rgba(10, 10, 10, 0.7);
+    line-height: 1.6;
+    font-size: 0.98rem;
+  }
+</style>

@@ -23,6 +23,7 @@ import EditorialObjectPage from './EditorialObjectPage.astro';
 import QuietDropPage from './QuietDropPage.astro';
 import OriginalPlusPage from './OriginalPlusPage.astro';
 import OriginalPlus2Page from './OriginalPlus2Page.astro';
+import OriginalPlus3Page from './OriginalPlus3Page.astro';
 import { lifestyleGallery, workshopGallery, shapeSpacesBg, startedBg } from '../lib/assets';
 
 interface Props {
@@ -133,4 +134,8 @@ const copy = variant.copy[locale];
 
 {variant.layout === 'plus2' && (
   <OriginalPlus2Page locale={locale} variant={variant} product={product} />
+)}
+
+{variant.layout === 'plus3' && (
+  <OriginalPlus3Page locale={locale} variant={variant} product={product} />
 )}
