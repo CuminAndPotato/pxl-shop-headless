@@ -3,14 +3,12 @@ import type { Locale } from '../i18n/strings';
 import type { Product } from '../lib/shop';
 import type { PageVariant } from '../lib/page-variants';
 import { lifestyleGallery, workshopGallery } from '../lib/assets';
-import { url } from '../lib/url';
 import Hero from './Hero.astro';
 import ProductPanel from './ProductPanel.astro';
 import Gallery from './Gallery.astro';
 import Handmade from './Handmade.astro';
 import Setup from './Setup.astro';
 import OurStory from './OurStory.astro';
-import AISandbox from './AISandbox.astro';
 import SectionDivider from './SectionDivider.astro';
 import PixogramScrollShowcase from './PixogramScrollShowcase.astro';
 import type { ShowcaseChapter } from './PixogramScrollShowcase.astro';
@@ -21,8 +19,6 @@ import {
   vscodeCopy as buildVscodeCopy,
   jamCopy as buildJamCopy,
 } from '../lib/pxl-page-content';
-import BuyButton from './BuyButton.astro';
-
 interface Props {
   locale: Locale;
   variant: PageVariant;
@@ -137,24 +133,6 @@ const pipelineTeaser = locale === 'de'
   ? 'Bonus: unsere Multi-Agent-AI-Pipeline (Claude, Sonnet, Gemini, GPT-OSS) generiert aus GitHub-Issues neue Pixogramme — Live-Gallery auf schlenkr.github.io/pxl-clock.'
   : 'Bonus: our multi-agent AI pipeline (Claude, Sonnet, Gemini, GPT-OSS) turns GitHub issues into new pixograms — live gallery at schlenkr.github.io/pxl-clock.';
 
-// === Final CTA with reassurance =============================================
-const closing = locale === 'de'
-  ? {
-      headline: 'Eine Beta-Serie. Eine ehrliche Entscheidung.',
-      body: 'Versand in zwei bis vier Werktagen mit DHL. Mit Promo-Code RONALD sparst du 25 €.',
-      cta: 'Jetzt bestellen',
-      reassurance: ['Kostenloser Versand in Deutschland', '30 Tage Rückgaberecht', '2 Jahre Garantie'],
-    }
-  : {
-      headline: 'A beta run. An honest decision.',
-      body: 'Ships in two to four business days with DHL. Promo code RONALD takes 25 € off.',
-      cta: 'Order now',
-      reassurance: ['Free shipping in Germany', '30-day returns', '2-year warranty'],
-    };
-
-const price = product?.discountedPrice?.formatted ?? product?.price?.formatted ?? '229,00€';
-const cartHref = locale === 'de' ? url('/de/cart') : url('/cart');
-const defaultVariantId = product?.variants[0]?.id ?? '';
 ---
 
 <div class="op4-page brand-gradient">
@@ -261,34 +239,11 @@ const defaultVariantId = product?.variants[0]?.id ?? '';
     </div>
   </section>
 
-  {/* 11. AI Sandbox — interactive "build your own" */}
-  <section class="op4-sandbox">
-    <AISandbox locale={locale} variant="card" tone="light" />
-  </section>
-
-  {/* 12. FAQ — handle objections right before the final close. */}
+  {/* 11. FAQ — handle objections right before the final close. */}
   <FAQ locale={locale} />
 
-  {/* 13. Setup */}
+  {/* 12. Setup */}
   <Setup locale={locale} />
-
-  {/* 14. Final CTA with reassurance line. */}
-  <section class="op4-final">
-    <div class="op4-final__inner">
-      <h2 class="op4-h">{closing.headline}</h2>
-      <p>{closing.body}</p>
-      <BuyButton
-        productId={product?.id}
-        variantId={defaultVariantId}
-        cartHref={cartHref}
-        label={`${closing.cta} · ${price}`}
-        class="op4-btn"
-      />
-      <ul class="op4-final__reassurance">
-        {closing.reassurance.map((r) => <li>{r}</li>)}
-      </ul>
-    </div>
-  </section>
 
 </div>
 
@@ -529,59 +484,4 @@ const defaultVariantId = product?.variants[0]?.id ?? '';
     .op4-jam__inner { grid-template-columns: 1fr; }
   }
 
-  /* Sandbox */
-  .op4-sandbox {
-    padding: clamp(5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem);
-  }
-  .op4-sandbox > :global(.ais) { max-width: 1180px; margin: 0 auto; }
-
-  /* Final CTA */
-  .op4-final {
-    padding: clamp(6rem, 12vw, 10rem) clamp(1rem, 4vw, 3rem);
-    text-align: center;
-  }
-  .op4-final__inner { max-width: 760px; margin: 0 auto; }
-  .op4-final p {
-    margin: 0 auto 1.6rem;
-    color: rgba(10, 10, 10, 0.7);
-    line-height: 1.6;
-    max-width: 50ch;
-  }
-  .op4-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 1.1rem 1.8rem;
-    border: 0;
-    border-radius: 999px;
-    background: #0a0a0a;
-    color: #ffffff;
-    font-family: inherit;
-    font-weight: 700;
-    font-size: 1.05rem;
-    cursor: pointer;
-    transition: background 160ms ease, transform 160ms ease;
-  }
-  .op4-btn:hover { background: #000; transform: translateY(-1px); }
-  .op4-final__reassurance {
-    list-style: none;
-    padding: 0;
-    margin: 1.5rem 0 0;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.8rem 2rem;
-    font-size: 0.85rem;
-    color: rgba(10, 10, 10, 0.55);
-  }
-  .op4-final__reassurance li {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-  .op4-final__reassurance li::before {
-    content: '✓';
-    color: #485dbd;
-    font-weight: 700;
-  }
 </style>

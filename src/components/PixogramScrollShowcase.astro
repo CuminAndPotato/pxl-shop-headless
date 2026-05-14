@@ -70,7 +70,14 @@ const ui = locale === 'de'
             height="1045"
           />
           <div class="pscs__clock-display" data-pscs-display>
-            <canvas class="pscs__clock-canvas" data-pscs-canvas width="540" height="540"></canvas>
+            {/* Two stacked canvases for cross-fade swaps. At any moment one
+                is fully opaque (the visible pixogram) and the other is
+                staged for the next swap. We fade the staged one IN over the
+                visible one — the visible one never fades to a low opacity,
+                so the LED display area of the underlying photo is never
+                allowed to show through. */}
+            <canvas class="pscs__clock-canvas" data-pscs-canvas-a width="540" height="540"></canvas>
+            <canvas class="pscs__clock-canvas" data-pscs-canvas-b width="540" height="540"></canvas>
           </div>
           <div class="pscs__clock-reflection" data-pscs-reflection>
             <canvas data-pscs-reflection-canvas></canvas>
@@ -131,27 +138,38 @@ const ui = locale === 'de'
   }
 
   // === Playback state =======================================================
-  const canvas = document.querySelector<HTMLCanvasElement>('[data-pscs-canvas]');
+  // Two canvases ("slots") cross-fade: at any moment one is the visible front
+  // slot (opacity 1) and the other is staged for the next swap. We never fade
+  // the front slot OUT — instead the back slot fades IN over the front. This
+  // keeps the underlying photo's LED display area covered at all times.
+  const canvasA = document.querySelector<HTMLCanvasElement>('[data-pscs-canvas-a]');
+  const canvasB = document.querySelector<HTMLCanvasElement>('[data-pscs-canvas-b]');
   const display = document.querySelector<HTMLElement>('[data-pscs-display]');
   const reflCanvas = document.querySelector<HTMLCanvasElement>('[data-pscs-reflection-canvas]');
   const reflEl = document.querySelector<HTMLElement>('[data-pscs-reflection]');
   const clockEl = document.querySelector<HTMLElement>('[data-pscs-clock]');
   const stage = document.querySelector<HTMLElement>('.pscs__stage');
 
-  let activePix: Pixogram | null = null;
-  let activeFrame = 0;
-  let activeTimer: number | null = null;
-  let activeFps = 5;
+  interface Slot {
+    el: HTMLCanvasElement;
+    pix: Pixogram | null;
+    frame: number;
+    fps: number;
+    timer: number | null;
+  }
+  const slotA: Slot | null = canvasA ? { el: canvasA, pix: null, frame: 0, fps: 5, timer: null } : null;
+  const slotB: Slot | null = canvasB ? { el: canvasB, pix: null, frame: 0, fps: 5, timer: null } : null;
+  let front: Slot | null = slotA; // currently visible
+  let back: Slot | null = slotB;  // staged for next swap
   let inView = true;
 
-  function paint() {
-    if (!activePix || !canvas) return;
-    const f = activePix.frames[activeFrame % activePix.frames.length];
-    renderRgbPhotoreal(canvas, f, activePix.width, activePix.height);
-    paintReflection(activePix.width);
+  function paintSlot(slot: Slot) {
+    if (!slot.pix) return;
+    const f = slot.pix.frames[slot.frame % slot.pix.frames.length];
+    renderRgbPhotoreal(slot.el, f, slot.pix.width, slot.pix.height);
   }
-  function paintReflection(matrixWidth: number) {
-    if (!reflCanvas || !canvas) return;
+  function paintReflection() {
+    if (!reflCanvas || !front || !front.pix) return;
     const ctx = reflCanvas.getContext('2d');
     if (!ctx) return;
     const cssW = reflCanvas.clientWidth;
@@ -166,30 +184,43 @@ const ui = locale === 'de'
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cssW, cssH);
-    const sliceW = Math.max(1, Math.round(canvas.width / matrixWidth));
-    ctx.drawImage(canvas, 0, 0, sliceW, canvas.height, 0, 0, cssW, cssH);
+    const sliceW = Math.max(1, Math.round(front.el.width / front.pix.width));
+    ctx.drawImage(front.el, 0, 0, sliceW, front.el.height, 0, 0, cssW, cssH);
   }
-  function startPlayback() {
-    stopPlayback();
-    if (!activePix) return;
-    paint();
-    const intervalMs = Math.max(16, Math.round(1000 / activeFps));
-    activeTimer = window.setInterval(() => { activeFrame += 1; paint(); }, intervalMs);
+  function startSlot(slot: Slot, isFront: boolean) {
+    stopSlot(slot);
+    if (!slot.pix) return;
+    paintSlot(slot);
+    if (isFront) paintReflection();
+    const intervalMs = Math.max(16, Math.round(1000 / slot.fps));
+    slot.timer = window.setInterval(() => {
+      slot.frame += 1;
+      paintSlot(slot);
+      if (slot === front) paintReflection();
+    }, intervalMs);
   }
-  function stopPlayback() {
-    if (activeTimer != null) { clearInterval(activeTimer); activeTimer = null; }
+  function stopSlot(slot: Slot) {
+    if (slot.timer != null) { clearInterval(slot.timer); slot.timer = null; }
+  }
+  function stopAll() {
+    if (slotA) stopSlot(slotA);
+    if (slotB) stopSlot(slotB);
+  }
+  function startAll() {
+    if (front && front.pix) startSlot(front, true);
+    if (back && back.pix) startSlot(back, false);
   }
 
   // === Cross-fade swap ======================================================
-  // CSS transitions the canvas opacity. We fade out, swap the source, fade
-  // back in. Reflection follows the canvas because it draws from the same
-  // pixel buffer on every paint().
-  const FADE_MS = 420;
+  // Render the new pixogram on the BACK slot, raise it above the front via
+  // z-index, then animate its opacity from 0→1. The front slot stays at
+  // opacity 1 throughout, so the photo's display area is never exposed.
+  // After the fade completes we swap roles and reset the new back slot.
+  const FADE_MS = 480;
   let activeSlug = '';
   let pendingSwapToken = 0;
   async function swapTo(slug: string, file: string, fps: number) {
     if (slug === activeSlug) return;
-    const isInitial = !activePix; // first paint — no fade-out of empty canvas
     activeSlug = slug;
     const myToken = ++pendingSwapToken;
     // Closing chapter has no file — keep showing the previous pixogram but
@@ -199,19 +230,56 @@ const ui = locale === 'de'
       return;
     }
     if (clockEl) clockEl.classList.remove('is-closing');
-    if (!isInitial && canvas) {
-      canvas.style.opacity = '0';
-      await new Promise((r) => setTimeout(r, FADE_MS));
-      if (myToken !== pendingSwapToken) return; // a newer swap superseded us
-    }
     const pix = await loadPixogram(file);
     if (myToken !== pendingSwapToken) return;
-    if (!pix) return;
-    activePix = pix;
-    activeFrame = 0;
-    activeFps = Math.max(1, fps);
-    if (inView) startPlayback();
-    if (canvas) canvas.style.opacity = '1';
+    if (!pix || !front || !back) return;
+
+    // Initial paint: no fade — directly render on the front slot and snap
+    // its opacity to 1. The display element's solid #000 background covers
+    // the photo's LED rectangle until the first frame paints.
+    if (!front.pix) {
+      front.pix = pix;
+      front.frame = 0;
+      front.fps = Math.max(1, fps);
+      front.el.style.transition = 'none';
+      front.el.style.opacity = '1';
+      front.el.style.zIndex = '2';
+      back.el.style.opacity = '0';
+      back.el.style.zIndex = '1';
+      void front.el.offsetWidth; // commit instant styles before next paint
+      front.el.style.transition = 'opacity 480ms ease';
+      back.el.style.transition = 'opacity 480ms ease';
+      if (inView) startSlot(front, true);
+      return;
+    }
+
+    // Subsequent swap: stage on back, fade back IN above front.
+    back.pix = pix;
+    back.frame = 0;
+    back.fps = Math.max(1, fps);
+    back.el.style.zIndex = '2';
+    front.el.style.zIndex = '1';
+    if (inView) startSlot(back, false);
+    else paintSlot(back);
+    // Force a layout commit so the upcoming opacity change actually
+    // transitions instead of being batched with the z-index change.
+    void back.el.offsetWidth;
+    back.el.style.opacity = '1';
+    await new Promise((r) => setTimeout(r, FADE_MS));
+    if (myToken !== pendingSwapToken) return;
+    // Swap roles. The old front becomes the staging slot; snap it to
+    // opacity 0 instantly so it's invisible behind the new front, and
+    // stop its animation timer to save cycles.
+    const oldFront = front;
+    front = back;
+    back = oldFront;
+    stopSlot(back);
+    back.pix = null;
+    back.el.style.transition = 'none';
+    back.el.style.opacity = '0';
+    void back.el.offsetWidth;
+    back.el.style.transition = 'opacity 480ms ease';
+    paintReflection();
   }
 
   // === Scroll-driven chapter selection =====================================
@@ -250,20 +318,63 @@ const ui = locale === 'de'
   });
   chapters.forEach((c) => chapterIO.observe(c));
 
+  // === Scroll-driven chapter opacity =======================================
+  // Each chapter fades in as its centre approaches the viewport centre and
+  // fades out as it leaves. The curve is a smoothstep so the transition is
+  // gentle near the edges and snappy near the centre — chapters arriving
+  // from below are invisible until they enter the active band, then ramp up
+  // to full opacity, then ramp back down as they leave upward.
+  //
+  // Tuning:
+  //  - FULL_BAND:  fraction of viewport height where the chapter is solid 1.
+  //  - FADE_BAND:  additional fraction over which it fades from 0 to 1.
+  // dist = |chapter-centre − viewport-centre| in pixels.
+  const FULL_BAND = 0.18; // ±18% of vh is fully opaque
+  const FADE_BAND = 0.38; // an extra 38% of vh to fade from 0 to 1
+  let rafPending = false;
+  function updateChapterOpacity() {
+    rafPending = false;
+    const vh = window.innerHeight;
+    const mid = vh / 2;
+    const full = vh * FULL_BAND;
+    const fade = vh * FADE_BAND;
+    for (const ch of chapters) {
+      const r = ch.getBoundingClientRect();
+      const c = r.top + r.height / 2;
+      const dist = Math.abs(c - mid);
+      let t: number;
+      if (dist <= full) t = 1;
+      else if (dist >= full + fade) t = 0;
+      else {
+        const u = 1 - (dist - full) / fade;
+        t = u * u * (3 - 2 * u); // smoothstep
+      }
+      ch.style.opacity = String(t);
+    }
+  }
+  function scheduleOpacityUpdate() {
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(updateChapterOpacity);
+  }
+  window.addEventListener('scroll', scheduleOpacityUpdate, { passive: true });
+  window.addEventListener('resize', scheduleOpacityUpdate);
+  scheduleOpacityUpdate();
+
   // === Stage visibility — pause when off-screen ============================
   if (stage) {
     const stageIO = new IntersectionObserver((entries) => {
       for (const e of entries) {
         inView = e.isIntersecting;
-        if (inView && activePix) startPlayback();
-        else stopPlayback();
+        if (inView) startAll();
+        else stopAll();
       }
     }, { threshold: 0 });
     stageIO.observe(stage);
   }
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) stopPlayback();
-    else if (inView && activePix) startPlayback();
+    if (document.hidden) stopAll();
+    else if (inView) startAll();
   });
 
   // === Initial pixogram — first chapter ====================================
@@ -406,6 +517,10 @@ const ui = locale === 'de'
     transform-origin: 0 0;
     border-radius: 4px;
     clip-path: inset(var(--pscs-crop-top) var(--pscs-crop-right) 0 0);
+    /* Solid black underneath the canvases: if a canvas is mid-transition or
+       hasn't painted its first frame yet, the photo's LED display rectangle
+       is still covered, so we never see the bare photo through the canvas. */
+    background: #000;
     box-shadow:
       inset 0 0 0 1px rgba(255, 255, 255, 0.05),
       inset 0 8px 18px rgba(0, 0, 0, 0.45),
@@ -427,13 +542,18 @@ const ui = locale === 'de'
     mix-blend-mode: screen;
   }
   .pscs__clock-canvas {
+    /* Both canvases overlap perfectly inside the display so we can
+       cross-fade between them. JS toggles z-index so the "incoming" canvas
+       sits on top during a swap, and animates its opacity from 0 to 1. */
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     display: block;
-    /* Crossfade on pixogram swap — JS flips opacity between 0/1. */
-    transition: opacity 420ms ease;
-    opacity: 1;
+    transition: opacity 480ms ease;
   }
+  .pscs__clock-canvas[data-pscs-canvas-a] { opacity: 1; z-index: 2; }
+  .pscs__clock-canvas[data-pscs-canvas-b] { opacity: 0; z-index: 1; }
   .pscs__clock-reflection {
     position: absolute;
     top: 0;
@@ -464,6 +584,11 @@ const ui = locale === 'de'
   }
   .pscs__chap {
     max-width: 52ch;
+    /* JS sets opacity per scroll position via a smoothstep curve. The CSS
+       transition smooths over rAF cadence jitter so the fade looks like a
+       continuous curve even if a scroll event lands between two frames. */
+    transition: opacity 220ms ease-out;
+    will-change: opacity;
   }
   .pscs__chap-eyebrow {
     margin: 0 0 0.8rem;
