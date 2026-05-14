@@ -10,6 +10,7 @@ import Handmade from './Handmade.astro';
 import Setup from './Setup.astro';
 import OurStory from './OurStory.astro';
 import SectionDivider from './SectionDivider.astro';
+import Variants from './Variants.astro';
 import PixogramScrollShowcase from './PixogramScrollShowcase.astro';
 import type { ShowcaseChapter } from './PixogramScrollShowcase.astro';
 import TrustStrip from './TrustStrip.astro';
@@ -152,7 +153,12 @@ const pipelineTeaser = locale === 'de'
     <PixogramScrollShowcase locale={locale} chapters={showcaseChapters} />
   </section>
 
-  {/* 4. Specs ribbon — single line, scannable. */}
+  {/* 4. "Two variants. One character." — restored from the Original
+       homepage. Two product silhouettes (black + white) so the buyer
+       sees the colour choice right after the showcase. */}
+  <Variants locale={locale} />
+
+  {/* 5. Specs ribbon — single line, scannable. */}
   <section class="op4-ribbon">
     <p>
       {locale === 'de'

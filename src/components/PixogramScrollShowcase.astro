@@ -79,8 +79,13 @@ const ui = locale === 'de'
             <canvas class="pscs__clock-canvas" data-pscs-canvas-a width="540" height="540"></canvas>
             <canvas class="pscs__clock-canvas" data-pscs-canvas-b width="540" height="540"></canvas>
           </div>
+          {/* Paired reflection canvases — one per main slot. Both stack
+              identically to the main canvases and share their opacity /
+              z-index swap so the bezel reflection cross-fades in perfect
+              lock-step with the main display (no visible "lag"). */}
           <div class="pscs__clock-reflection" data-pscs-reflection>
-            <canvas data-pscs-reflection-canvas></canvas>
+            <canvas data-pscs-refl-a></canvas>
+            <canvas data-pscs-refl-b></canvas>
           </div>
         </div>
       </div>
@@ -144,21 +149,30 @@ const ui = locale === 'de'
   // keeps the underlying photo's LED display area covered at all times.
   const canvasA = document.querySelector<HTMLCanvasElement>('[data-pscs-canvas-a]');
   const canvasB = document.querySelector<HTMLCanvasElement>('[data-pscs-canvas-b]');
-  const display = document.querySelector<HTMLElement>('[data-pscs-display]');
-  const reflCanvas = document.querySelector<HTMLCanvasElement>('[data-pscs-reflection-canvas]');
+  const reflA = document.querySelector<HTMLCanvasElement>('[data-pscs-refl-a]');
+  const reflB = document.querySelector<HTMLCanvasElement>('[data-pscs-refl-b]');
+  // displayEl carries the matrix3d transform that projects the canvases onto
+  // the LED quadrilateral in the clock photo. Lose this lookup and the
+  // canvases stay axis-aligned full-bleed on the photo — i.e. the visible
+  // clock frame disappears behind the pixogram.
+  const displayEl = document.querySelector<HTMLElement>('[data-pscs-display]');
   const reflEl = document.querySelector<HTMLElement>('[data-pscs-reflection]');
   const clockEl = document.querySelector<HTMLElement>('[data-pscs-clock]');
   const stage = document.querySelector<HTMLElement>('.pscs__stage');
 
   interface Slot {
     el: HTMLCanvasElement;
+    refl: HTMLCanvasElement | null;
     pix: Pixogram | null;
     frame: number;
     fps: number;
-    timer: number | null;
+    /** rAF handle for the playback loop. */
+    raf: number;
+    /** Timestamp of last paint, for fps-throttled rAF. */
+    lastPaint: number;
   }
-  const slotA: Slot | null = canvasA ? { el: canvasA, pix: null, frame: 0, fps: 5, timer: null } : null;
-  const slotB: Slot | null = canvasB ? { el: canvasB, pix: null, frame: 0, fps: 5, timer: null } : null;
+  const slotA: Slot | null = canvasA ? { el: canvasA, refl: reflA, pix: null, frame: 0, fps: 5, raf: 0, lastPaint: 0 } : null;
+  const slotB: Slot | null = canvasB ? { el: canvasB, refl: reflB, pix: null, frame: 0, fps: 5, raf: 0, lastPaint: 0 } : null;
   let front: Slot | null = slotA; // currently visible
   let back: Slot | null = slotB;  // staged for next swap
   let inView = true;
@@ -167,9 +181,15 @@ const ui = locale === 'de'
     if (!slot.pix) return;
     const f = slot.pix.frames[slot.frame % slot.pix.frames.length];
     renderRgbPhotoreal(slot.el, f, slot.pix.width, slot.pix.height);
+    // The reflection is painted from THIS slot's main canvas, so it stays
+    // in lock-step with its slot's opacity. Because both reflections stack
+    // identically to the main canvases, the visible reflection always
+    // matches the visible front pixogram — no perceived lag.
+    paintReflection(slot);
   }
-  function paintReflection() {
-    if (!reflCanvas || !front || !front.pix) return;
+  function paintReflection(slot: Slot) {
+    const reflCanvas = slot.refl;
+    if (!reflCanvas || !slot.pix) return;
     const ctx = reflCanvas.getContext('2d');
     if (!ctx) return;
     const cssW = reflCanvas.clientWidth;
@@ -184,31 +204,43 @@ const ui = locale === 'de'
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cssW, cssH);
-    const sliceW = Math.max(1, Math.round(front.el.width / front.pix.width));
-    ctx.drawImage(front.el, 0, 0, sliceW, front.el.height, 0, 0, cssW, cssH);
+    const sliceW = Math.max(1, Math.round(slot.el.width / slot.pix.width));
+    ctx.drawImage(slot.el, 0, 0, sliceW, slot.el.height, 0, 0, cssW, cssH);
   }
-  function startSlot(slot: Slot, isFront: boolean) {
+  // === Playback via rAF =====================================================
+  // setInterval can fire while the browser is composing a scroll frame, which
+  // causes visible jank on lower-end hardware. rAF lets the browser schedule
+  // the paint between layout passes, so the scroll thread stays responsive.
+  // We throttle to the pixogram's native fps by comparing timestamps.
+  function startSlot(slot: Slot) {
     stopSlot(slot);
     if (!slot.pix) return;
     paintSlot(slot);
-    if (isFront) paintReflection();
-    const intervalMs = Math.max(16, Math.round(1000 / slot.fps));
-    slot.timer = window.setInterval(() => {
-      slot.frame += 1;
-      paintSlot(slot);
-      if (slot === front) paintReflection();
-    }, intervalMs);
+    slot.lastPaint = performance.now();
+    const intervalMs = 1000 / slot.fps;
+    const tick = (now: number) => {
+      if (!slot.pix || slot.raf === 0) return;
+      if (now - slot.lastPaint >= intervalMs) {
+        slot.frame += 1;
+        paintSlot(slot);
+        // Drift-correct: align lastPaint to the most recent expected tick so
+        // we don't accumulate sub-frame error across long playback sessions.
+        slot.lastPaint = now - ((now - slot.lastPaint) % intervalMs);
+      }
+      slot.raf = requestAnimationFrame(tick);
+    };
+    slot.raf = requestAnimationFrame(tick);
   }
   function stopSlot(slot: Slot) {
-    if (slot.timer != null) { clearInterval(slot.timer); slot.timer = null; }
+    if (slot.raf !== 0) { cancelAnimationFrame(slot.raf); slot.raf = 0; }
   }
   function stopAll() {
     if (slotA) stopSlot(slotA);
     if (slotB) stopSlot(slotB);
   }
   function startAll() {
-    if (front && front.pix) startSlot(front, true);
-    if (back && back.pix) startSlot(back, false);
+    if (front && front.pix) startSlot(front);
+    if (back && back.pix) startSlot(back);
   }
 
   // === Cross-fade swap ======================================================
@@ -234,6 +266,19 @@ const ui = locale === 'de'
     if (myToken !== pendingSwapToken) return;
     if (!pix || !front || !back) return;
 
+    // Helper: assign opacity + z-index to both the main canvas AND its
+    // paired reflection canvas at once so they cross-fade together.
+    function setSlotVisuals(slot: Slot, opacity: string, zIndex: string, transition: string) {
+      slot.el.style.transition = transition;
+      slot.el.style.opacity = opacity;
+      slot.el.style.zIndex = zIndex;
+      if (slot.refl) {
+        slot.refl.style.transition = transition;
+        slot.refl.style.opacity = opacity;
+        slot.refl.style.zIndex = zIndex;
+      }
+    }
+
     // Initial paint: no fade — directly render on the front slot and snap
     // its opacity to 1. The display element's solid #000 background covers
     // the photo's LED rectangle until the first frame paints.
@@ -241,15 +286,12 @@ const ui = locale === 'de'
       front.pix = pix;
       front.frame = 0;
       front.fps = Math.max(1, fps);
-      front.el.style.transition = 'none';
-      front.el.style.opacity = '1';
-      front.el.style.zIndex = '2';
-      back.el.style.opacity = '0';
-      back.el.style.zIndex = '1';
+      setSlotVisuals(front, '1', '2', 'none');
+      setSlotVisuals(back, '0', '1', 'none');
       void front.el.offsetWidth; // commit instant styles before next paint
-      front.el.style.transition = 'opacity 480ms ease';
-      back.el.style.transition = 'opacity 480ms ease';
-      if (inView) startSlot(front, true);
+      setSlotVisuals(front, '1', '2', 'opacity 480ms ease');
+      setSlotVisuals(back, '0', '1', 'opacity 480ms ease');
+      if (inView) startSlot(front);
       return;
     }
 
@@ -257,29 +299,28 @@ const ui = locale === 'de'
     back.pix = pix;
     back.frame = 0;
     back.fps = Math.max(1, fps);
-    back.el.style.zIndex = '2';
-    front.el.style.zIndex = '1';
-    if (inView) startSlot(back, false);
+    setSlotVisuals(back, '0', '2', 'opacity 480ms ease');
+    setSlotVisuals(front, '1', '1', 'opacity 480ms ease');
+    if (inView) startSlot(back);
     else paintSlot(back);
     // Force a layout commit so the upcoming opacity change actually
     // transitions instead of being batched with the z-index change.
     void back.el.offsetWidth;
     back.el.style.opacity = '1';
+    if (back.refl) back.refl.style.opacity = '1';
     await new Promise((r) => setTimeout(r, FADE_MS));
     if (myToken !== pendingSwapToken) return;
     // Swap roles. The old front becomes the staging slot; snap it to
     // opacity 0 instantly so it's invisible behind the new front, and
-    // stop its animation timer to save cycles.
+    // stop its animation loop to save cycles.
     const oldFront = front;
     front = back;
     back = oldFront;
     stopSlot(back);
     back.pix = null;
-    back.el.style.transition = 'none';
-    back.el.style.opacity = '0';
+    setSlotVisuals(back, '0', '1', 'none');
     void back.el.offsetWidth;
-    back.el.style.transition = 'opacity 480ms ease';
-    paintReflection();
+    setSlotVisuals(back, '0', '1', 'opacity 480ms ease');
   }
 
   // === Scroll-driven chapter selection =====================================
@@ -338,18 +379,32 @@ const ui = locale === 'de'
     const mid = vh / 2;
     const full = vh * FULL_BAND;
     const fade = vh * FADE_BAND;
+    const maxDist = full + fade;
     for (const ch of chapters) {
       const r = ch.getBoundingClientRect();
+      // Cheap pre-filter: skip chapters whose bounding box is entirely
+      // outside the viewport plus a generous fade margin. Avoids the
+      // smoothstep arithmetic and the style write for off-screen chapters.
+      if (r.bottom < -fade || r.top > vh + fade) {
+        // Make sure they're invisible — we still need to commit opacity 0
+        // once when a chapter first leaves the active zone, but afterwards
+        // it stays 0 so we can keep skipping the write.
+        if (ch.style.opacity !== '0') ch.style.opacity = '0';
+        continue;
+      }
       const c = r.top + r.height / 2;
       const dist = Math.abs(c - mid);
       let t: number;
       if (dist <= full) t = 1;
-      else if (dist >= full + fade) t = 0;
+      else if (dist >= maxDist) t = 0;
       else {
         const u = 1 - (dist - full) / fade;
         t = u * u * (3 - 2 * u); // smoothstep
       }
-      ch.style.opacity = String(t);
+      // Avoid forcing a style recalc when the value hasn't moved enough to
+      // matter. Two decimal places is sub-pixel for opacity rendering.
+      const next = t.toFixed(2);
+      if (ch.style.opacity !== next) ch.style.opacity = next;
     }
   }
   function scheduleOpacityUpdate() {
@@ -399,17 +454,20 @@ const ui = locale === 'de'
   const REFL = { width: 0.9, offset: 0.1, opacity: 66, blur: 1.5 };
   const CROP = { top: 0.9, right: 1.3 };
 
-  if (reflCanvas) {
-    reflCanvas.style.opacity = String(REFL.opacity / 100);
-    reflCanvas.style.filter = `blur(${REFL.blur}px)`;
-  }
+  // Brightness multiplier lives on the reflection CONTAINER so it stacks
+  // multiplicatively with each canvas's cross-fade opacity. Blur lives on
+  // each canvas individually because filters compose with their target's
+  // own pixels, not with siblings.
+  if (reflEl) reflEl.style.opacity = String(REFL.opacity / 100);
+  if (reflA) reflA.style.filter = `blur(${REFL.blur}px)`;
+  if (reflB) reflB.style.filter = `blur(${REFL.blur}px)`;
 
   function applyCorners() {
-    if (!clockEl || !display) return;
+    if (!clockEl || !displayEl) return;
     const rect = clockEl.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
-    display.style.transformOrigin = '0 0';
-    display.style.transform = cornersToMatrix3d(CORNERS, rect.width, rect.height);
+    displayEl.style.transformOrigin = '0 0';
+    displayEl.style.transform = cornersToMatrix3d(CORNERS, rect.width, rect.height);
     if (reflEl) {
       const rightX_top = CORNERS.tl.x + REFL.offset;
       const rightX_bot = CORNERS.bl.x + REFL.offset;
@@ -566,12 +624,20 @@ const ui = locale === 'de'
     clip-path: inset(var(--pscs-crop-top) 0 0 0);
   }
   .pscs__clock-reflection canvas {
+    /* Both reflection canvases stack and cross-fade in lock-step with the
+       main canvas pair, so the bezel light always matches the visible
+       pixogram. */
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     display: block;
     image-rendering: auto;
     clip-path: polygon(30% 0%, 100% 0%, 100% 100%, 0% 100%);
+    transition: opacity 480ms ease;
   }
+  .pscs__clock-reflection canvas[data-pscs-refl-a] { opacity: 1; z-index: 2; }
+  .pscs__clock-reflection canvas[data-pscs-refl-b] { opacity: 0; z-index: 1; }
 
   /* === Right column: scroll-driven chapters ============================== */
   .pscs__flow {
@@ -589,6 +655,12 @@ const ui = locale === 'de'
        continuous curve even if a scroll event lands between two frames. */
     transition: opacity 220ms ease-out;
     will-change: opacity;
+    /* Isolate each chapter's repaint scope: opacity changes on one chapter
+       don't invalidate the layout or paint of its siblings, and promoting
+       to its own composited layer lets the GPU composite the scroll
+       independently of the main thread. */
+    contain: layout style paint;
+    transform: translateZ(0);
   }
   .pscs__chap-eyebrow {
     margin: 0 0 0.8rem;
