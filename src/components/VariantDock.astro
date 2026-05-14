@@ -232,9 +232,12 @@ const labels = locale === 'de'
     width: min(190px, calc(100vw - 2rem));
     padding: 0.45rem;
     border-radius: 12px;
-    background: rgba(255,255,255,0.9);
+    /* No backdrop-filter: the dock is position:fixed and the page scrolls
+       behind it, so a 14px backdrop-blur was recomputed every scroll frame
+       — a sustained scroll-jank cost. A slightly higher alpha on the white
+       background restores the same visual weight without that cost. */
+    background: rgba(255,255,255,0.96);
     border: 1px solid rgba(10,10,10,0.1);
-    backdrop-filter: blur(14px);
     box-shadow: 0 12px 34px rgba(0,0,0,0.14);
     font-family: 'Satoshi', -apple-system, system-ui, Helvetica, Arial, sans-serif;
     transition: width 220ms ease, padding 220ms ease, border-radius 220ms ease;

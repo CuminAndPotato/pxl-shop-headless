@@ -9,7 +9,7 @@ export type ExperimentVariantSlug = 'poster' | 'console' | 'catalog' | 'interior
 // the runtime dock ordering. Order here = display order in the "Neu" section
 // of the Landing Lab dock. Adding a new fresh layout: append the slug here.
 export const FRESH_LAYOUT_SLUGS = [
-  'plus4', 'plus3', 'plus2', 'plus',
+  'plus5', 'plus4', 'plus3', 'plus2', 'plus',
   'ribbon', 'sidebar', 'native', 'editorial', 'drop',
 ] as const;
 export type FreshLayoutSlug = typeof FRESH_LAYOUT_SLUGS[number];
@@ -695,6 +695,36 @@ export const pageVariants: PageVariant[] = [
         bullets: ['Schwarz-auf-Creme Monolith', 'Kein Sektions-Lärm', 'Ein Kauf-Moment'],
         note: 'Am nächsten an einer Small-Batch-Möbel- oder Fashion-Drop-Seite: souverän, ruhig, vollständig.',
         quote: { line1: 'Eine Drop-Seite,', line2: 'kein langer Verkaufsbrief.' },
+      },
+    },
+  },
+  {
+    slug: 'plus5',
+    layout: 'plus5',
+    theme: 'graphite',
+    headerVariant: 'dark',
+    copy: {
+      en: {
+        name: 'Original Plus⁵',
+        shortName: 'Plus⁵',
+        thesis: 'Hero-only scroll experiment: pinned hero with scrub-driven title scroll-out, supporting elements fade away and the lifestyle background dims to 20% as the user scrolls past.',
+        introEyebrow: 'Hero-only experiment',
+        introTitle: ['Time.', 'Design.', 'Expression.'],
+        introLead: 'A single pinned hero. The headline scrolls up and away while the lifestyle photo behind it slowly dims down. First in a series of Motion-driven scroll effects.',
+        bullets: ['Pinned hero, scrub animation', 'Headline scrolls up + fades', 'Background dims to 20%'],
+        note: 'Sandbox for the Motion (motion.dev) library — we layer more scroll effects on top of this baseline.',
+        quote: { line1: 'One hero.', line2: 'Scrolled past, not past it.' },
+      },
+      de: {
+        name: 'Original Plus⁵',
+        shortName: 'Plus⁵',
+        thesis: 'Hero-only Scroll-Experiment: gepinnter Hero, der Headline scrollt scrub-getrieben nach oben weg, restliche Elemente faden aus und der Lifestyle-Hintergrund dimmt auf 20 %.',
+        introEyebrow: 'Hero-only Experiment',
+        introTitle: ['Zeit.', 'Design.', 'Ausdruck.'],
+        introLead: 'Ein einziger gepinnter Hero. Die Headline scrollt nach oben weg, während das Lifestyle-Foto dahinter langsam abdunkelt. Erster Schritt einer Serie Motion-getriebener Scroll-Effekte.',
+        bullets: ['Gepinnter Hero, scrub-Animation', 'Headline scrollt hoch + fadet', 'Hintergrund dimmt auf 20 %'],
+        note: 'Sandbox für die Motion-Library (motion.dev) — weitere Scroll-Effekte werden hier draufgeschichtet.',
+        quote: { line1: 'Ein Hero.', line2: 'Vorbeigescrollt, nicht überholt.' },
       },
     },
   },

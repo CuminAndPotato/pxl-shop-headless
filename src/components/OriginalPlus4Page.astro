@@ -264,6 +264,14 @@ const pipelineTeaser = locale === 'de'
     font-family: 'Inter Tight', -apple-system, system-ui, Helvetica, Arial, sans-serif;
     font-feature-settings: 'tnum' 1;
   }
+  /* Override brand-gradient.css's `background-attachment: fixed` for plus4:
+     a fixed-attachment multi-radial-gradient forces the GPU to recomposite
+     all five gradients against the moving page on every scroll frame and is
+     the single biggest scroll-jank source on this layout. Switching to
+     `scroll` paints the gradient once at element size and just translates
+     it during scroll. Visual difference is minimal (the blobs spread over
+     the page instead of locking to the viewport). */
+  .op4-page.brand-gradient { background-attachment: scroll; }
 
   .op4-kicker {
     margin: 0 0 0.85rem;
@@ -290,11 +298,13 @@ const pipelineTeaser = locale === 'de'
      into the trust strip. */
   .op4-showcase { padding-top: clamp(2rem, 5vw, 3rem); }
 
-  /* Specs ribbon */
+  /* Specs ribbon. No backdrop-filter — over a moving multi-gradient bg the
+     per-frame blur capture is far too expensive for the visual gain, which
+     is invisible at this strip's small height anyway. A slightly higher
+     alpha on the white background restores the same weight. */
   .op4-ribbon {
     padding: clamp(2rem, 4vw, 3rem) clamp(1rem, 4vw, 3rem);
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(6px);
+    background: rgba(255, 255, 255, 0.86);
     border-top: 1px solid rgba(10, 10, 10, 0.08);
     border-bottom: 1px solid rgba(10, 10, 10, 0.08);
   }
@@ -325,10 +335,12 @@ const pipelineTeaser = locale === 'de'
   }
   .op4-maker__steps li {
     padding: clamp(1.5rem, 3vw, 2.2rem);
-    background: rgba(255, 255, 255, 0.85);
+    /* Slightly higher alpha replaces the 8px backdrop-filter blur. Same
+       reason as the specs ribbon — the per-frame backdrop capture across
+       three sibling cards is a significant scroll cost on integrated GPUs. */
+    background: rgba(255, 255, 255, 0.92);
     border: 1px solid rgba(10, 10, 10, 0.10);
     border-radius: 12px;
-    backdrop-filter: blur(8px);
   }
   .op4-maker__tag {
     margin: 0 0 1rem;

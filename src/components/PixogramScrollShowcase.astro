@@ -87,6 +87,13 @@ const ui = locale === 'de'
             <canvas data-pscs-refl-a></canvas>
             <canvas data-pscs-refl-b></canvas>
           </div>
+          {/* Tweak-mode corner handles — only visible when ?tweak is in
+              the URL. Drag to fine-tune how the canvas projects onto the
+              clock photo's LED quadrilateral. */}
+          <button type="button" class="pscs__corner" data-corner="tl" aria-label="Top-left corner"></button>
+          <button type="button" class="pscs__corner" data-corner="tr" aria-label="Top-right corner"></button>
+          <button type="button" class="pscs__corner" data-corner="bl" aria-label="Bottom-left corner"></button>
+          <button type="button" class="pscs__corner" data-corner="br" aria-label="Bottom-right corner"></button>
         </div>
       </div>
     </aside>
@@ -115,6 +122,57 @@ const ui = locale === 'de'
       ))}
     </div>
   </div>
+
+  {/* Tweak readout panel — only visible when the page is opened with
+      ?tweak in the URL. Lets us fine-tune the four perspective corners,
+      the canvas crop and the bezel reflection live, persisting to
+      localStorage so we don't lose adjustments across reloads. */}
+  <aside class="pscs-tweak" data-pscs-tweak hidden>
+    <header>
+      <strong>Tweak panel</strong>
+      <button type="button" data-pscs-tweak-close aria-label="Close">×</button>
+    </header>
+    <section class="pscs-tweak__section">
+      <p class="pscs-tweak__hint">Drag the four dots on the clock to fit the display area.</p>
+      <label class="pscs-tweak__check">
+        <input type="checkbox" checked data-pscs-tweak-handles>
+        <span>show handles</span>
+      </label>
+      <label class="pscs-tweak__row">
+        <span>opacity <output data-pscs-tweak-opacity-out>50</output>%</span>
+        <input type="range" min="0" max="100" step="1" value="50" data-pscs-tweak-opacity>
+      </label>
+      <label class="pscs-tweak__row">
+        <span>crop top <output data-pscs-crop-out="top">0.9</output>%</span>
+        <input type="range" min="0" max="15" step="0.1" value="0.9" data-pscs-crop="top">
+      </label>
+      <label class="pscs-tweak__row">
+        <span>crop right <output data-pscs-crop-out="right">1.3</output>%</span>
+        <input type="range" min="0" max="15" step="0.1" value="1.3" data-pscs-crop="right">
+      </label>
+      <label class="pscs-tweak__row">
+        <span>refl width <output data-pscs-refl-out="width">0.9</output>%</span>
+        <input type="range" min="0" max="10" step="0.1" value="0.9" data-pscs-refl="width">
+      </label>
+      <label class="pscs-tweak__row">
+        <span>refl offset <output data-pscs-refl-out="offset">0.2</output>%</span>
+        <input type="range" min="-5" max="5" step="0.1" value="0.2" data-pscs-refl="offset">
+      </label>
+      <label class="pscs-tweak__row">
+        <span>refl opacity <output data-pscs-refl-out="opacity">100</output>%</span>
+        <input type="range" min="0" max="100" step="1" value="100" data-pscs-refl="opacity">
+      </label>
+      <label class="pscs-tweak__row">
+        <span>refl blur <output data-pscs-refl-out="blur">4.1</output>px</span>
+        <input type="range" min="0" max="20" step="0.1" value="4.1" data-pscs-refl="blur">
+      </label>
+      <pre data-pscs-tweak-output></pre>
+      <div class="pscs-tweak__actions">
+        <button type="button" data-pscs-tweak-copy>Copy</button>
+        <button type="button" data-pscs-tweak-reset>Reset</button>
+      </div>
+    </section>
+  </aside>
 </section>
 
 <script>
@@ -445,22 +503,59 @@ const ui = locale === 'de'
 
   // === Perspective corners (same as PixogramLibrary) =======================
   type Corners = PerspectiveCorners;
-  const CORNERS: Corners = {
-    tl: { x: 10.4, y: 8.1 },
-    tr: { x: 85.0, y: 9.3 },
-    bl: { x: 10.4, y: 83.6 },
-    br: { x: 84.8, y: 90.0 },
-  };
-  const REFL = { width: 0.9, offset: 0.1, opacity: 66, blur: 1.5 };
-  const CROP = { top: 0.9, right: 1.3 };
+  type ReflConfig = { width: number; offset: number; opacity: number; blur: number };
+  type Crop = { top: number; right: number };
 
-  // Brightness multiplier lives on the reflection CONTAINER so it stacks
-  // multiplicatively with each canvas's cross-fade opacity. Blur lives on
-  // each canvas individually because filters compose with their target's
-  // own pixels, not with siblings.
-  if (reflEl) reflEl.style.opacity = String(REFL.opacity / 100);
-  if (reflA) reflA.style.filter = `blur(${REFL.blur}px)`;
-  if (reflB) reflB.style.filter = `blur(${REFL.blur}px)`;
+  const DEFAULT_CORNERS: Corners = {
+    tl: { x: 9.8, y: 8.6 },
+    tr: { x: 85.0, y: 9.5 },
+    bl: { x: 10.4, y: 83.6 },
+    br: { x: 85.0, y: 90.2 },
+  };
+  const DEFAULT_REFL: ReflConfig = { width: 0.9, offset: 0.2, opacity: 100, blur: 4.1 };
+  const DEFAULT_CROP: Crop = { top: 0.9, right: 1.3 };
+  const CORNERS_KEY = 'pscs-corners';
+  const REFL_KEY = 'pscs-reflection';
+  const CROP_KEY = 'pscs-crop';
+
+  function loadJson<T>(key: string, fallback: T): T {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return fallback;
+      return { ...fallback, ...JSON.parse(raw) };
+    } catch { return fallback; }
+  }
+  function saveJson(key: string, value: unknown) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+  }
+
+  // Mutable — the tweak panel drags these around, and they're persisted to
+  // localStorage so adjustments survive a reload. The defaults are baked in
+  // measurements against the current whatis-clock-tight.png.
+  let CORNERS: Corners = loadJson(CORNERS_KEY, DEFAULT_CORNERS);
+  let REFL: ReflConfig = loadJson(REFL_KEY, DEFAULT_REFL);
+  let CROP: Crop = loadJson(CROP_KEY, DEFAULT_CROP);
+
+  function applyReflStyle() {
+    // Brightness multiplier lives on the reflection CONTAINER so it stacks
+    // multiplicatively with each canvas's cross-fade opacity. Blur + a 0.5
+    // brightness clamp live on each canvas — the brightness halves the LED
+    // luminance so the bezel spill reads as a soft reflection rather than a
+    // second display; blur composes with its target's own pixels, not with
+    // siblings, so it has to be per-canvas.
+    if (reflEl) reflEl.style.opacity = String(REFL.opacity / 100);
+    const f = `blur(${REFL.blur}px) brightness(0.5)`;
+    if (reflA) reflA.style.filter = f;
+    if (reflB) reflB.style.filter = f;
+  }
+  applyReflStyle();
+
+  function applyCrop() {
+    if (!clockEl) return;
+    clockEl.style.setProperty('--pscs-crop-top', `${CROP.top}%`);
+    clockEl.style.setProperty('--pscs-crop-right', `${CROP.right}%`);
+  }
+  applyCrop();
 
   function applyCorners() {
     if (!clockEl || !displayEl) return;
@@ -479,15 +574,170 @@ const ui = locale === 'de'
       };
       reflEl.style.transform = cornersToMatrix3d(reflCorners, rect.width, rect.height);
     }
+    // Position the four corner-drag handles at their corners.
+    document.querySelectorAll<HTMLElement>('.pscs__corner').forEach((h) => {
+      const k = h.dataset.corner as keyof Corners | undefined;
+      if (!k || !CORNERS[k]) return;
+      h.style.left = `${CORNERS[k].x}%`;
+      h.style.top = `${CORNERS[k].y}%`;
+    });
   }
   if (clockEl) {
-    clockEl.style.setProperty('--pscs-crop-top', `${CROP.top}%`);
-    clockEl.style.setProperty('--pscs-crop-right', `${CROP.right}%`);
     const ro = new ResizeObserver(() => applyCorners());
     ro.observe(clockEl);
   }
   window.addEventListener('resize', applyCorners);
   applyCorners();
+
+  // === Tweak panel ==========================================================
+  // Activated by ?tweak in the URL. Renders the corner-drag handles, the
+  // sliders for crop/reflection, and the live readout of the four corner
+  // positions as a paste-ready JS literal.
+  if (new URLSearchParams(location.search).has('tweak') && clockEl) {
+    clockEl.setAttribute('data-tweak', '');
+    const panel = document.querySelector<HTMLElement>('[data-pscs-tweak]');
+    const out = panel?.querySelector<HTMLElement>('[data-pscs-tweak-output]');
+    if (panel) panel.hidden = false;
+
+    function fmtCorners(c: Corners) {
+      const n = (v: number) => v.toFixed(1);
+      return (
+        `tl: { x: ${n(c.tl.x)}, y: ${n(c.tl.y)} },\n` +
+        `tr: { x: ${n(c.tr.x)}, y: ${n(c.tr.y)} },\n` +
+        `bl: { x: ${n(c.bl.x)}, y: ${n(c.bl.y)} },\n` +
+        `br: { x: ${n(c.br.x)}, y: ${n(c.br.y)} },`
+      );
+    }
+    if (out) out.textContent = fmtCorners(CORNERS);
+
+    // Corner drag handlers.
+    document.querySelectorAll<HTMLElement>('.pscs__corner').forEach((handle) => {
+      handle.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        handle.setPointerCapture(e.pointerId);
+        handle.classList.add('is-dragging');
+        const key = handle.dataset.corner as keyof Corners;
+        const onMove = (ev: PointerEvent) => {
+          const rect = clockEl!.getBoundingClientRect();
+          const x = ((ev.clientX - rect.left) / rect.width) * 100;
+          const y = ((ev.clientY - rect.top) / rect.height) * 100;
+          CORNERS[key] = {
+            x: Math.max(0, Math.min(100, x)),
+            y: Math.max(0, Math.min(100, y)),
+          };
+          applyCorners();
+          if (out) out.textContent = fmtCorners(CORNERS);
+        };
+        const onUp = () => {
+          handle.classList.remove('is-dragging');
+          handle.removeEventListener('pointermove', onMove);
+          handle.removeEventListener('pointerup', onUp);
+          saveJson(CORNERS_KEY, CORNERS);
+        };
+        handle.addEventListener('pointermove', onMove);
+        handle.addEventListener('pointerup', onUp);
+      });
+    });
+
+    // Display-opacity slider — semi-transparent canvases so you can eyeball
+    // the corner positions against the photo's actual LED rectangle.
+    const opacityInput = panel?.querySelector<HTMLInputElement>('[data-pscs-tweak-opacity]');
+    const opacityOut = panel?.querySelector<HTMLElement>('[data-pscs-tweak-opacity-out]');
+    function applyDisplayOpacity(v: number) {
+      if (displayEl) displayEl.style.opacity = String(v / 100);
+      if (opacityOut) opacityOut.textContent = String(v);
+    }
+    if (opacityInput) {
+      applyDisplayOpacity(Number(opacityInput.value));
+      opacityInput.addEventListener('input', () => applyDisplayOpacity(Number(opacityInput.value)));
+    }
+
+    // Show / hide the orange dots (e.g. for a clean screenshot).
+    const handlesInput = panel?.querySelector<HTMLInputElement>('[data-pscs-tweak-handles]');
+    if (handlesInput && clockEl) {
+      const apply = (on: boolean) => {
+        if (on) clockEl.removeAttribute('data-handles-hidden');
+        else clockEl.setAttribute('data-handles-hidden', '');
+      };
+      apply(handlesInput.checked);
+      handlesInput.addEventListener('change', () => apply(handlesInput.checked));
+    }
+
+    // Crop sliders.
+    document.querySelectorAll<HTMLInputElement>('[data-pscs-crop]').forEach((input) => {
+      const key = input.dataset.pscsCrop as 'top' | 'right' | undefined;
+      if (!key) return;
+      input.value = String(CROP[key]);
+      const o = document.querySelector<HTMLElement>(`[data-pscs-crop-out="${key}"]`);
+      if (o) o.textContent = CROP[key].toFixed(1);
+      input.addEventListener('input', () => {
+        const v = Number(input.value);
+        CROP = { ...CROP, [key]: v };
+        applyCrop();
+        if (o) o.textContent = v.toFixed(1);
+        saveJson(CROP_KEY, CROP);
+      });
+    });
+
+    // Reflection sliders.
+    document.querySelectorAll<HTMLInputElement>('[data-pscs-refl]').forEach((input) => {
+      const key = input.dataset.pscsRefl as keyof ReflConfig | undefined;
+      if (!key) return;
+      input.value = String(REFL[key]);
+      const o = document.querySelector<HTMLElement>(`[data-pscs-refl-out="${key}"]`);
+      if (o) o.textContent = key === 'opacity' ? String(REFL[key]) : REFL[key].toFixed(1);
+      input.addEventListener('input', () => {
+        const v = Number(input.value);
+        REFL = { ...REFL, [key]: v };
+        applyReflStyle();
+        applyCorners();
+        if (o) o.textContent = key === 'opacity' ? String(v) : v.toFixed(1);
+        saveJson(REFL_KEY, REFL);
+      });
+    });
+
+    // Copy + Reset.
+    panel?.querySelector<HTMLButtonElement>('[data-pscs-tweak-copy]')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget as HTMLButtonElement;
+      try {
+        await navigator.clipboard.writeText(fmtCorners(CORNERS));
+        const orig = btn.textContent;
+        btn.textContent = 'Copied ✓';
+        setTimeout(() => { btn.textContent = orig; }, 1200);
+      } catch {}
+    });
+    panel?.querySelector<HTMLButtonElement>('[data-pscs-tweak-reset]')?.addEventListener('click', () => {
+      CORNERS = JSON.parse(JSON.stringify(DEFAULT_CORNERS));
+      CROP = { ...DEFAULT_CROP };
+      REFL = { ...DEFAULT_REFL };
+      saveJson(CORNERS_KEY, CORNERS);
+      saveJson(CROP_KEY, CROP);
+      saveJson(REFL_KEY, REFL);
+      applyCorners();
+      applyCrop();
+      applyReflStyle();
+      if (out) out.textContent = fmtCorners(CORNERS);
+      document.querySelectorAll<HTMLInputElement>('[data-pscs-crop]').forEach((input) => {
+        const key = input.dataset.pscsCrop as 'top' | 'right' | undefined;
+        if (!key) return;
+        input.value = String(CROP[key]);
+        const o = document.querySelector<HTMLElement>(`[data-pscs-crop-out="${key}"]`);
+        if (o) o.textContent = CROP[key].toFixed(1);
+      });
+      document.querySelectorAll<HTMLInputElement>('[data-pscs-refl]').forEach((input) => {
+        const key = input.dataset.pscsRefl as keyof ReflConfig | undefined;
+        if (!key) return;
+        input.value = String(REFL[key]);
+        const o = document.querySelector<HTMLElement>(`[data-pscs-refl-out="${key}"]`);
+        if (o) o.textContent = key === 'opacity' ? String(REFL[key]) : REFL[key].toFixed(1);
+      });
+    });
+
+    panel?.querySelector('[data-pscs-tweak-close]')?.addEventListener('click', () => {
+      if (panel) panel.hidden = true;
+      if (displayEl) displayEl.style.opacity = '';
+    });
+  }
 </script>
 
 <style>
@@ -557,14 +807,20 @@ const ui = locale === 'de'
     --pscs-crop-top: 0.9%;
     --pscs-crop-right: 1.3%;
     transition: filter 380ms ease;
+    /* Replacement for the photo's filter:drop-shadow — same visual weight
+       but the GPU rasterises it once and just translates it during scroll. */
+    box-shadow: 0 40px 80px rgba(10, 10, 10, 0.22);
   }
   .pscs__clock.is-closing { filter: brightness(0.5) saturate(0.6); }
   .pscs__clock-photo {
     display: block;
     width: 100%;
     height: auto;
-    filter: drop-shadow(0 40px 80px rgba(10, 10, 10, 0.22));
     pointer-events: none;
+    /* Drop-shadow filter replaced by a box-shadow on the wrapper below.
+       drop-shadow creates an offscreen layer that the compositor blends
+       on every transform; box-shadow on a non-filtered element is
+       rasterised once and composited directly. */
   }
   .pscs__clock-display {
     position: absolute;
@@ -588,17 +844,10 @@ const ui = locale === 'de'
       0 0 80px rgba(0, 0, 0, 0.4);
     overflow: hidden;
   }
-  .pscs__clock-display::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0) 32%, rgba(255, 255, 255, 0) 70%, rgba(255, 255, 255, 0.06) 100%),
-      radial-gradient(ellipse 90% 110% at 50% 50%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.35) 100%);
-    border-radius: inherit;
-    mix-blend-mode: screen;
-  }
+  /* Glass-sheen overlay removed: the mix-blend-mode: screen forced an
+     extra composited layer on top of the matrix3d-transformed display for a
+     subtle highlight that wasn't pulling its weight perf-wise. The LED bloom
+     in the canvas renderer already provides the "glowing under glass" feel. */
   .pscs__clock-canvas {
     /* Both canvases overlap perfectly inside the display so we can
        cross-fade between them. JS toggles z-index so the "incoming" canvas
@@ -710,4 +959,158 @@ const ui = locale === 'de'
       padding-top: clamp(1rem, 4vw, 2rem);
     }
   }
+
+  /* In tweak mode the box-shadow + glass-sheen on the display would obscure
+     the underlying photo while you align the corners, so strip them while
+     ?tweak is active. */
+  .pscs__clock[data-tweak] .pscs__clock-display {
+    box-shadow: none;
+  }
+  .pscs__clock[data-tweak] .pscs__clock-display::after {
+    display: none;
+  }
+
+  /* === Corner drag handles (only visible with ?tweak) ===================== */
+  .pscs__corner {
+    display: none;
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    margin: -11px 0 0 -11px;
+    padding: 0;
+    border: 2px solid #fbb238;
+    background: rgba(251, 178, 56, 0.35);
+    border-radius: 50%;
+    cursor: grab;
+    z-index: 50;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.4);
+    touch-action: none;
+    transition: transform 120ms ease, background 120ms ease;
+  }
+  .pscs__corner:hover { transform: scale(1.2); background: rgba(251, 178, 56, 0.6); }
+  .pscs__corner.is-dragging { cursor: grabbing; transform: scale(1.4); background: #fbb238; }
+  .pscs__clock[data-tweak] .pscs__corner { display: block; }
+  .pscs__clock[data-tweak][data-handles-hidden] .pscs__corner { display: none; }
+
+  /* === Tweak readout panel (only visible with ?tweak in URL) ============== */
+  .pscs-tweak {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 300;
+    width: 280px;
+    padding: 0.9rem 1rem;
+    background: rgba(15, 16, 22, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: #ece6da;
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.78rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+  .pscs-tweak[hidden] { display: none !important; }
+  .pscs-tweak header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0;
+  }
+  .pscs-tweak header strong {
+    font-size: 0.74rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #fbb238;
+  }
+  .pscs-tweak header button {
+    width: 24px; height: 24px;
+    border: 0;
+    background: rgba(255, 255, 255, 0.06);
+    color: #ece6da;
+    border-radius: 999px;
+    font-size: 1.1rem;
+    line-height: 0;
+    cursor: pointer;
+  }
+  .pscs-tweak header button:hover { background: rgba(255, 255, 255, 0.16); }
+  .pscs-tweak__hint {
+    margin: 0;
+    color: rgba(236, 230, 218, 0.55);
+    font-size: 0.72rem;
+    line-height: 1.4;
+  }
+  .pscs-tweak__check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: rgba(236, 230, 218, 0.78);
+    cursor: pointer;
+    user-select: none;
+  }
+  .pscs-tweak__check input[type="checkbox"] {
+    accent-color: #fbb238;
+    margin: 0;
+    cursor: pointer;
+  }
+  .pscs-tweak__section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .pscs-tweak__section:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .pscs-tweak__row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    color: rgba(236, 230, 218, 0.78);
+  }
+  .pscs-tweak__row output {
+    color: #fbb238;
+    font-weight: 600;
+  }
+  .pscs-tweak__row input[type="range"] {
+    width: 100%;
+    accent-color: #fbb238;
+    margin: 0;
+  }
+  .pscs-tweak__actions {
+    display: flex;
+    gap: 0.4rem;
+  }
+  .pscs-tweak pre {
+    margin: 0;
+    padding: 0.5rem 0.6rem;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+    color: rgba(236, 230, 218, 0.78);
+    font-size: 0.72rem;
+    line-height: 1.5;
+    white-space: pre;
+  }
+  .pscs-tweak__actions button {
+    flex: 1;
+    padding: 0.45rem;
+    border: 0;
+    border-radius: 6px;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .pscs-tweak__actions button[data-pscs-tweak-copy] {
+    background: #fbb238;
+    color: #0a0a0a;
+  }
+  .pscs-tweak__actions button[data-pscs-tweak-copy]:hover { background: #f4ae3b; }
+  .pscs-tweak__actions button[data-pscs-tweak-reset] {
+    background: rgba(255, 255, 255, 0.06);
+    color: #ece6da;
+  }
+  .pscs-tweak__actions button[data-pscs-tweak-reset]:hover { background: rgba(255, 255, 255, 0.14); }
 </style>

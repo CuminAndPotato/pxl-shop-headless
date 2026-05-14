@@ -1,0 +1,321 @@
+---
+import type { Locale } from '../i18n/strings';
+import { t } from '../i18n/strings';
+import type { Product } from '../lib/shop';
+import type { PageVariant } from '../lib/page-variants';
+import { url } from '../lib/url';
+import Variants from './Variants.astro';
+
+interface Props {
+  locale: Locale;
+  variant: PageVariant;
+  product: Product | null;
+}
+
+const { locale } = Astro.props;
+const s = t(locale);
+---
+
+{/* Plus⁵ — Hero-only sandbox for Motion (motion.dev).
+    Markup + styling of the hero itself mirror Hero.astro 1:1 so the initial
+    on-load view is visually identical to Plus⁴. The added wrapping (200vh
+    scroll spacer with the hero `position: sticky` inside) is invisible at
+    rest — it only becomes meaningful once the user starts scrolling, at
+    which point Motion's scroll() scrubs two animations:
+      1. .hero__title translates up and fades out
+      2. .hero__pic dims its filter:brightness from 1 to 0.2
+    After the scroll spacer is consumed, the Variants section follows. */}
+<div class="op5-page" data-op5>
+  {/* Dev/debug-only act indicator. Pinned to viewport, shows which Act of
+      the choreography is currently active based on scroll position. */}
+  <div class="op5-act-badge" data-op5-badge aria-hidden="true">
+    <span data-op5-badge-num>1</span>
+    <span data-op5-badge-name>Hero out</span>
+  </div>
+  <div class="op5-hero-scroll" data-op5-scroll>
+    <div class="op5-hero-sticky">
+    <section class="hero">
+      <picture class="hero__pic" data-op5-bg>
+        <img
+          src={url('/img/sections/hero-lifestyle.avif')}
+          alt=""
+          width="2400"
+          height="1600"
+        />
+      </picture>
+      <div class="hero__overlay" aria-hidden="true"></div>
+      {/* Clock-only overlay: same image cropped to the PXL Clock with the
+          rest transparent. Sits ON TOP of the dim gradient at the same
+          positioning as hero__pic so they line up pixel-perfectly. The
+          dimming filter only targets hero__pic, so the clock stays at
+          full brightness while the background fades. */}
+      <picture class="hero__clock" data-op5-clock aria-hidden="true">
+        <img
+          src={url('/img/sections/hero-lifestyle-clock.webp')}
+          alt=""
+          width="2400"
+          height="1600"
+        />
+      </picture>
+      <div class="hero__inner">
+        <h1 class="h-display hero__title" data-op5-title>
+          {s.hero.title.map((line) => <span>{line}</span>)}
+        </h1>
+      </div>
+    </section>
+    </div>
+  </div>
+
+  <Variants locale={locale} />
+</div>
+
+<script>
+  import { scroll, animate } from 'motion';
+
+  const page = document.querySelector<HTMLElement>('[data-op5]');
+  if (page) {
+    const target = page.querySelector<HTMLElement>('[data-op5-scroll]')!;
+    const title = page.querySelector<HTMLElement>('[data-op5-title]');
+    const bg = page.querySelector<HTMLElement>('[data-op5-bg]');
+    const clock = page.querySelector<HTMLElement>('[data-op5-clock]');
+
+    // Act 1 spans the first 75vh of scroll against a 400vh spacer
+    // (75 / 400 = 18.75%). Title translates by exactly the scrolled
+    // distance (0 → -75vh) so it leaves at normal page-scroll speed,
+    // fading to 0 in parallel. Background dims to 0.3 brightness — not
+    // fully black — so we keep some scene context. The clock overlay
+    // cross-fades in (opacity 0 → 1) at the same rate the background
+    // dims, so the bright clock appears to "emerge" from the darkening
+    // scene rather than being visible from the start.
+    if (title) {
+      scroll(
+        animate(title, { y: [0, '-75vh'], opacity: [1, 0] }, { ease: 'linear' }),
+        { target, offset: ['start start', '18.75% start'] },
+      );
+    }
+
+    if (bg) {
+      scroll(
+        animate(bg, { filter: ['brightness(1)', 'brightness(0.3)'] }, { ease: 'linear' }),
+        { target, offset: ['start start', '18.75% start'] },
+      );
+    }
+
+    if (clock) {
+      scroll(
+        animate(clock, { opacity: [0, 1] }, { ease: 'linear' }),
+        { target, offset: ['start start', '18.75% start'] },
+      );
+    }
+
+    // Act indicator: maps current scrollY (relative to the spacer) to one
+    // of the four acts and updates the badge. rAF-throttled so we don't
+    // recompute on every scroll event.
+    const badgeNum = page.querySelector<HTMLElement>('[data-op5-badge-num]');
+    const badgeName = page.querySelector<HTMLElement>('[data-op5-badge-name]');
+    if (badgeNum && badgeName) {
+      // Thresholds in "viewport heights of scroll" (so 0.75 = scrolled
+      // 75vh, 2 = scrolled 200vh, etc.). Match the spacer geometry:
+      // spacer is 400vh tall → max progress ≈ 4.
+      const acts: Array<[number, string, string]> = [
+        // [endViewports exclusive, number, name]
+        [0.75, '1', 'Hero out'],
+        [2,    '2', 'Clock'],
+        [3,    '3', 'Variants slide'],
+        [4,    '4', 'Unpin'],
+      ];
+      let last = -1;
+      let raf = 0;
+      const update = () => {
+        raf = 0;
+        const rect = target.getBoundingClientRect();
+        // doc scroll since the spacer's top entered the viewport top, in
+        // multiples of viewport height.
+        const progress = -rect.top / window.innerHeight;
+        let idx = acts.length; // post = beyond last act
+        for (let i = 0; i < acts.length; i++) {
+          if (progress < acts[i][0]) { idx = i; break; }
+        }
+        if (idx !== last) {
+          last = idx;
+          if (idx === acts.length) {
+            badgeNum.textContent = '–';
+            badgeName.textContent = 'Post';
+          } else {
+            badgeNum.textContent = acts[idx][1];
+            badgeName.textContent = acts[idx][2];
+          }
+        }
+      };
+      const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      update();
+    }
+  }
+</script>
+
+<style>
+  .op5-page {
+    background: #0a0a0a;
+    color: #fff;
+    font-family: 'Inter Tight', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+  }
+
+  /* Dev act indicator: pinned to top-right, always above everything. */
+  .op5-act-badge {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font: 500 13px/1 ui-monospace, 'SF Mono', Menlo, monospace;
+    letter-spacing: 0.02em;
+    pointer-events: none;
+    user-select: none;
+  }
+  .op5-act-badge [data-op5-badge-num] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 6px;
+    background: #fff;
+    color: #000;
+    font-weight: 700;
+    font-size: 11px;
+  }
+  .op5-act-badge [data-op5-badge-name] {
+    opacity: 0.85;
+  }
+
+  /* === Scroll spacer + sticky hero ========================================
+     Spacer is 4× viewport, splitting the choreography into four 1vh acts:
+       Act 1 (0–100vh):    title scrolls out at natural page speed,
+                           background dims to fully black
+       Act 2 (100–200vh):  black wall — hero pinned, nothing else moves
+                           (the deliberate "delay" before new content)
+       Act 3 (200–300vh):  Variants slides up from below over the still-
+                           pinned blacked-out hero
+       Act 4 (300–400vh):  hero un-pins (sticky container ran out), Variants
+                           continues in normal flow
+     Sticky un-pins at containerHeight − stickyHeight = 400vh − 100vh =
+     300vh, which is exactly where Act 4 begins. */
+  .op5-hero-scroll {
+    position: relative;
+    height: 400vh;
+    z-index: 1;
+  }
+  /* Sticky wrapper sits OUTSIDE the hero section. Keeping it separate
+     avoids fighting the hero's inherited `position: relative` (which would
+     otherwise win on specificity and break the pin). The wrapper takes
+     exactly one viewport so the hero inside fills it cleanly. */
+  .op5-hero-sticky {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* Hero styling lifted from Hero.astro so the initial layout matches Plus⁴
+     pixel-for-pixel. The only additions are the will-change hints on the
+     two animated elements so the compositor pre-promotes them to their own
+     layers and doesn't repaint during the scrub. */
+  :global(.op5-page .hero) {
+    position: relative;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 640px;
+    display: flex;
+    align-items: center;
+    padding-top: 4rem;
+    color: #fff;
+    overflow: hidden;
+    isolation: isolate;
+    background: #1a1a1a;
+  }
+  :global(.op5-page .hero__pic) {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    will-change: filter;
+  }
+  :global(.op5-page .hero__pic img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 30%;
+    display: block;
+  }
+  :global(.op5-page .hero__overlay) {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.62) 0%, rgba(255, 255, 255, 0) 60.982%);
+    z-index: -1;
+  }
+  /* Clock-only overlay layer. Same `inset: 0 + object-fit: cover +
+     object-position: center 30%` as .hero__pic so it overlays the
+     background pixel-perfectly. Sits above the dim gradient (z-index 0
+     beats overlay's -1) and below the inner (which is z-index 1 below).
+     pointer-events: none so it never intercepts clicks. */
+  :global(.op5-page .hero__clock) {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0;
+    will-change: opacity;
+  }
+  :global(.op5-page .hero__clock img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 30%;
+    display: block;
+  }
+  :global(.op5-page .hero__inner) {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    padding-top: 120px;
+    padding-bottom: 80px;
+    padding-left: var(--pad-x);
+    padding-right: var(--pad-x);
+    box-sizing: border-box;
+  }
+  :global(.op5-page .hero__title) {
+    max-width: none;
+    will-change: transform, opacity;
+  }
+  :global(.op5-page .hero__title span) {
+    display: block;
+    color: #fff;
+  }
+  @media (max-width: 720px) {
+    :global(.op5-page .hero__inner) { padding-top: 96px; padding-bottom: 48px; }
+  }
+
+  /* Variants slides UP over the still-pinned (and now fully blacked-out)
+     hero. With a 400vh spacer, its natural doc position is doc-y 400vh.
+     `margin-top: -100vh` brings the top up to doc-y 300vh — that's the
+     start of Act 3 (one viewport AFTER the blackout finished, giving the
+     deliberate dark-wall delay the user asked for). It enters from the
+     bottom of the viewport at doc scroll 200vh and reaches the viewport
+     top at scroll 300vh, exactly when the hero begins to un-pin. The
+     higher z-index keeps it visually on top during the overlap. */
+  :global(.op5-page > section.variants) {
+    position: relative;
+    z-index: 2;
+    margin-top: -100vh;
+  }
+</style>
