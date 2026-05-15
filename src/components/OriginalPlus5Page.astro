@@ -81,6 +81,26 @@ const chapters: Chapter[] = locale === 'de'
           <button type="button" data-mode="off">Off</button>
         </div>
       </div>
+      <div class="op5-tweak__row op5-tweak__row--slider">
+        <span>Crop top</span>
+        <input type="range" data-op5-tweak-croptop min="0" max="5" step="0.1">
+        <output data-op5-tweak-croptop-out>0</output>%
+      </div>
+      <div class="op5-tweak__row op5-tweak__row--slider">
+        <span>Crop right</span>
+        <input type="range" data-op5-tweak-cropright min="0" max="5" step="0.1">
+        <output data-op5-tweak-cropright-out>0</output>%
+      </div>
+      <div class="op5-tweak__row op5-tweak__row--slider">
+        <span>Corner top</span>
+        <input type="range" data-op5-tweak-cornertop min="0" max="50" step="1">
+        <output data-op5-tweak-cornertop-out>0</output>px
+      </div>
+      <div class="op5-tweak__row op5-tweak__row--slider">
+        <span>Grid gap</span>
+        <input type="range" data-op5-tweak-gridgap min="0" max="10" step="0.1">
+        <output data-op5-tweak-gridgap-out>2</output>px
+      </div>
       <fieldset class="op5-tweak__fs">
         <legend>LED corners (image-px)</legend>
         <label>TL x <input type="number" data-corner="tl" data-axis="x" step="1"></label>
@@ -116,6 +136,12 @@ const chapters: Chapter[] = locale === 'de'
         />
       </picture>
       <div class="hero__overlay" aria-hidden="true"></div>
+      {/* Dim layer — black overlay whose opacity is scroll-scrubbed in
+          Act 1. Replaces `filter: brightness()` on the bg <img> because
+          opacity on a flat-colour layer is ~free on the GPU, while a
+          filter shader has to run over the entire 2400×1600 bg texture
+          each composite. */}
+      <div class="hero__dim" data-op5-dim aria-hidden="true"></div>
       {/* Clock-only overlay: same image cropped to the PXL Clock with the
           rest transparent. Sits ON TOP of the dim gradient at the same
           positioning as hero__pic so they line up pixel-perfectly. The
@@ -129,12 +155,17 @@ const chapters: Chapter[] = locale === 'de'
           height="1600"
         />
       </picture>
-      {/* LED canvas — positioned by JS to align with the LED quadrilateral
-          inside the hero photo. The JS uses `object-fit: cover` math
-          against the photo's natural aspect ratio so the canvas tracks
-          the LED panel across any viewport size. The pixograms render on
-          this canvas via renderRgbPhotoreal (same renderer Plus⁴ uses). */}
-      <canvas class="hero__led" data-op5-led width="540" height="540" aria-hidden="true"></canvas>
+      {/* LED stage — a wrapper div carries the matrix3d transform; the
+          actual LEDs are a 24×24 HTML grid of <div>s. Per frame the JS
+          only sets `--r/--g/--b` CSS custom properties on cells whose
+          colour changed, so the main-thread work is just N setProperty
+          calls (N typically 100–300, NOT 576). The browser handles cell
+          rasterisation + bloom on its compositor/raster thread. */}
+      <div class="hero__led-wrap" data-op5-led-wrap aria-hidden="true">
+        <div class="hero__led-grid" data-op5-led-grid>
+          {Array.from({ length: 576 }).map(() => <div class="hero__led-cell"></div>)}
+        </div>
+      </div>
       {/* Corner grippers — visible only when the tweak panel's "Show
           corner grippers" is on. Each gripper is offset diagonally
           OUTWARD from its LED corner by 50px so the canvas corner stays
@@ -175,12 +206,27 @@ const chapters: Chapter[] = locale === 'de'
   </div>
 
   <Variants locale={locale} />
+
+  {/* Hidden SVG defs — the bloom filter applied to the LED grid in
+      Photoreal mode. feGaussianBlur is GPU-accelerated by modern
+      browsers; feComposite arithmetic adds the blurred copy back on
+      top of the source for an additive halo. */}
+  <svg class="op5-defs" aria-hidden="true" focusable="false">
+    <defs>
+      <filter id="op5-led-bloom" x="-25%" y="-25%" width="150%" height="150%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="0.5" result="blur" />
+        <feComposite in="blur" in2="SourceGraphic" operator="arithmetic" k1="0" k2="0.55" k3="1" k4="0" />
+      </filter>
+    </defs>
+  </svg>
 </div>
 
 <script>
-  import { scroll, animate } from 'motion';
   import { parsePxl, type Pixogram } from '../lib/pxl-format';
-  import { renderRgbPhotoreal, renderRgbFast } from '../lib/pixel-canvas';
+  // Canvas-based renderers are no longer used — we paint the LED grid as
+  // 576 HTML divs whose colour is set via CSS custom properties. The
+  // browser does the cell rasterisation and a single SVG feGaussianBlur
+  // filter pass for the bloom halo, all on the compositor/raster thread.
   import { cornersToMatrix3d } from '../lib/pxlib-perspective';
   import { url } from '../lib/url';
 
@@ -191,33 +237,21 @@ const chapters: Chapter[] = locale === 'de'
     const title = page.querySelector<HTMLElement>('[data-op5-title]');
     const bg = page.querySelector<HTMLElement>('[data-op5-bg]');
     const bgImg = bg?.querySelector('img') ?? null;
+    const dim = page.querySelector<HTMLElement>('[data-op5-dim]');
     const clock = page.querySelector<HTMLElement>('[data-op5-clock]');
-    const led = page.querySelector<HTMLCanvasElement>('[data-op5-led]');
+    const ledWrap = page.querySelector<HTMLElement>('[data-op5-led-wrap]');
+    const ledGrid = page.querySelector<HTMLElement>('[data-op5-led-grid]');
+    const ledCells = ledGrid ? Array.from(ledGrid.children) as HTMLElement[] : [];
     const chapterEls = Array.from(
       page.querySelectorAll<HTMLElement>('[data-op5-chapter]'),
     );
 
-    // Spacer is 700vh; Act 1 still spans 0–75vh of scroll = 10.71% offset
-    // (75 / 700). Title translates by exactly the scrolled distance so it
-    // leaves at normal page-scroll speed; bg dims to 0.3; clock fades in.
-    if (title) {
-      scroll(
-        animate(title, { y: [0, '-75vh'], opacity: [1, 0] }, { ease: 'linear' }),
-        { target, offset: ['start start', '10.71% start'] },
-      );
-    }
-    if (bg) {
-      scroll(
-        animate(bg, { filter: ['brightness(1)', 'brightness(0.3)'] }, { ease: 'linear' }),
-        { target, offset: ['start start', '10.71% start'] },
-      );
-    }
-    if (clock) {
-      scroll(
-        animate(clock, { opacity: [0, 1] }, { ease: 'linear' }),
-        { target, offset: ['start start', '10.71% start'] },
-      );
-    }
+    // Act 1 animations (title out, dim in, clock fade in) were previously
+    // driven by three separate motion.scroll() calls. Each installed its
+    // own scroll listener + per-frame value-apply pipeline, so during
+    // Act 1 the scroll thread had four animation handlers (3 motion + 1
+    // rAF) all doing redundant work. Consolidated into the main rAF loop
+    // below — one scroll handler, one writes-only-when-changed pass.
 
     // ── LED projection ─────────────────────────────────────────────────
     // The PXL Clock LED panel in hero-lifestyle.avif is a quadrilateral
@@ -233,8 +267,8 @@ const chapters: Chapter[] = locale === 'de'
     // Calibrated against the hero-lifestyle.avif photo. Adjust here OR
     // via the dev tweak panel; the panel writes back to localStorage.
     const DEFAULT_QUAD: Quad = {
-      tl: { x: 1207, y: 394 },
-      tr: { x: 1667, y: 397 },
+      tl: { x: 1208, y: 391 },
+      tr: { x: 1672, y: 393 },
       br: { x: 1669, y: 869 },
       bl: { x: 1208, y: 839 },
     };
@@ -245,7 +279,7 @@ const chapters: Chapter[] = locale === 'de'
       br: { ...DEFAULT_QUAD.br }, bl: { ...DEFAULT_QUAD.bl },
     };
     const OBJECT_POS_X = 0.5;
-    const OBJECT_POS_Y = 0.3;
+    const OBJECT_POS_Y = 0.3; // fixed — matches CSS `object-position: center 30%`
     // Canvas base CSS size — matrix3d transforms this rectangle to the
     // four corners, so the value just needs to be big enough for crisp
     // backbuffer resolution (renderRgbPhotoreal then ups by DPR).
@@ -266,7 +300,7 @@ const chapters: Chapter[] = locale === 'de'
     let onLedRectChanged: () => void = () => {};
 
     function positionLed(): void {
-      if (!led || !bg || !hero) return;
+      if (!ledWrap || !bg || !hero) return;
       const r = bg.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) return;
       // Cover math against the hero element box (bg <picture> has inset 0).
@@ -287,18 +321,14 @@ const chapters: Chapter[] = locale === 'de'
         viewQuad[k].x = dx + offX + LED_QUAD[k].x * scale;
         viewQuad[k].y = dy + offY + LED_QUAD[k].y * scale;
       });
-      // Position canvas at hero origin; warp via matrix3d to the 4 corners.
-      // cornersToMatrix3d expects destination corners as PERCENTAGES of
-      // (w, h) — internally it does `(c.x / 100) * w` to get the pixel
-      // target. So we feed it viewQuad as % of CANVAS_BASE, and the
-      // function reconstructs the pixel destination back to viewQuad.
-      led.style.left = '0px';
-      led.style.top = '0px';
-      led.style.width = CANVAS_BASE + 'px';
-      led.style.height = CANVAS_BASE + 'px';
-      led.style.transformOrigin = '0 0';
+      // matrix3d on the wrapper — the LED grid inside is a 2D layer.
+      ledWrap.style.left = '0px';
+      ledWrap.style.top = '0px';
+      ledWrap.style.width = CANVAS_BASE + 'px';
+      ledWrap.style.height = CANVAS_BASE + 'px';
+      ledWrap.style.transformOrigin = '0 0';
       const toPct = (p: Pt) => ({ x: (p.x / CANVAS_BASE) * 100, y: (p.y / CANVAS_BASE) * 100 });
-      led.style.transform = cornersToMatrix3d(
+      ledWrap.style.transform = cornersToMatrix3d(
         { tl: toPct(viewQuad.tl), tr: toPct(viewQuad.tr), br: toPct(viewQuad.br), bl: toPct(viewQuad.bl) },
         CANVAS_BASE, CANVAS_BASE,
       );
@@ -311,7 +341,7 @@ const chapters: Chapter[] = locale === 'de'
       markDirty();
       onLedRectChanged();
     }
-    if (led) {
+    if (ledWrap) {
       positionLed();
       window.addEventListener('resize', positionLed);
       // ResizeObserver catches every size change of the bg element —
@@ -359,15 +389,35 @@ const chapters: Chapter[] = locale === 'de'
     chapterMeta.forEach((c) => { void loadPx(c.file); });
 
     // ── Chapter timing ─────────────────────────────────────────────────
-    // Per-chapter [fadeInStart, fadeInEnd, fadeOutStart, fadeOutEnd] in vh
-    // of scroll. 25vh fade lengths with 100vh holds; ch(N+1)'s fade-in
-    // aligns with ch(N)'s fade-out so they cross-fade.
-    const FADES: Array<[number, number, number, number]> = [
-      [ 75, 100, 150, 175], // ch1: peak 100–150
-      [150, 175, 250, 275], // ch2: peak 175–250
-      [250, 275, 350, 375], // ch3: peak 275–350
-      [350, 375, 450, 475], // ch4: peak 375–450
-    ];
+    // ▼▼▼ THE pacing knobs — tweak here, FADES is derived from these. ▼▼▼
+    //   CHAPTER_START_VH  doc-scroll vh where ch1's fade-in starts
+    //                     (= end of Act 1, normally 75)
+    //   CHAPTER_FADE_VH   length of each fade-in and fade-out
+    //   CHAPTER_HOLD_VH   how long the chapter is FULLY visible
+    //
+    //   Per-chapter window  = 2·fade + hold
+    //   Start-to-start dist = fade + hold  (= "how soon does the next
+    //                         chapter start fading in")
+    //
+    //   Adjacent chapters overlap by exactly CHAPTER_FADE_VH so the
+    //   fade-out of N coincides 1:1 with the fade-in of N+1 (cross-fade).
+    //
+    // TODO responsiveness: on narrow viewports these vh-based windows
+    // map to less actual pixel distance — may feel hectic on mobile.
+    // Future fix: scale via a media query or compute against an
+    // effective-viewport multiplier.
+    const CHAPTER_START_VH = 75;
+    const CHAPTER_FADE_VH = 20;
+    const CHAPTER_HOLD_VH = 30;
+    const CHAPTER_WINDOW_VH = 2 * CHAPTER_FADE_VH + CHAPTER_HOLD_VH;
+    const CHAPTER_STEP_VH = CHAPTER_FADE_VH + CHAPTER_HOLD_VH;
+    const FADES: Array<[number, number, number, number]> = Array.from(
+      { length: chapterMeta.length },
+      (_, i) => {
+        const s = CHAPTER_START_VH + i * CHAPTER_STEP_VH;
+        return [s, s + CHAPTER_FADE_VH, s + CHAPTER_FADE_VH + CHAPTER_HOLD_VH, s + CHAPTER_WINDOW_VH];
+      },
+    );
     function chapterOpacityAt(progressVh: number, i: number): number {
       const [a, b, c, d] = FADES[i];
       if (progressVh <= a || progressVh >= d) return 0;
@@ -396,22 +446,52 @@ const chapters: Chapter[] = locale === 'de'
     interface Settings {
       mode: RenderMode;
       quad: Quad;
+      /** 0–100. Percent of the LED wrap height that gets clipped off
+       *  the top via `clip-path: inset(N% 0 0 0)`. Purely visual; does
+       *  NOT shift the bg image or re-project the LED. */
+      cropTop: number;
+      /** 0–5. Same idea as cropTop, but clips the right edge. */
+      cropRight: number;
+      /** 0–50, in CSS px of the LED wrap's local coordinate system
+       *  (CANVAS_BASE = 600). Radius applied to the TL + TR corners of
+       *  the clip-path inset, softening the top edge. */
+      cornerTop: number;
+      /** Grid gap between LED cells, in CSS px of the wrap's local
+       *  coordinate system (CANVAS_BASE = 600). Smaller = tighter
+       *  pixels, more "panel-like"; larger = more visible trenches. */
+      gridGap: number;
     }
-    const SETTINGS_KEY = 'op5-settings-v2'; // v2 = quad corners (v1 was axis-aligned bbox)
+    // v5 schema kept so previous tweaks survive; new fields read as
+    // defaults if the stored object pre-dates them.
+    const SETTINGS_KEY = 'op5-settings-v5';
     const DEFAULT_SETTINGS: Settings = {
       mode: 'photoreal',
       quad: {
         tl: { ...DEFAULT_QUAD.tl }, tr: { ...DEFAULT_QUAD.tr },
         br: { ...DEFAULT_QUAD.br }, bl: { ...DEFAULT_QUAD.bl },
       },
+      cropTop: 1,
+      cropRight: 0.8,
+      cornerTop: 3,
+      gridGap: 2,
     };
     function cloneQuad(q: Quad): Quad {
       return { tl: { ...q.tl }, tr: { ...q.tr }, br: { ...q.br }, bl: { ...q.bl } };
     }
+    function freshSettings(): Settings {
+      return {
+        mode: DEFAULT_SETTINGS.mode,
+        quad: cloneQuad(DEFAULT_SETTINGS.quad),
+        cropTop: DEFAULT_SETTINGS.cropTop,
+        cropRight: DEFAULT_SETTINGS.cropRight,
+        cornerTop: DEFAULT_SETTINGS.cornerTop,
+        gridGap: DEFAULT_SETTINGS.gridGap,
+      };
+    }
     function loadSettings(): Settings {
       try {
         const raw = localStorage.getItem(SETTINGS_KEY);
-        if (!raw) return { mode: DEFAULT_SETTINGS.mode, quad: cloneQuad(DEFAULT_SETTINGS.quad) };
+        if (!raw) return freshSettings();
         const parsed = JSON.parse(raw);
         const q = parsed.quad ?? {};
         return {
@@ -422,9 +502,13 @@ const chapters: Chapter[] = locale === 'de'
             br: { ...DEFAULT_SETTINGS.quad.br, ...(q.br ?? {}) },
             bl: { ...DEFAULT_SETTINGS.quad.bl, ...(q.bl ?? {}) },
           },
+          cropTop: typeof parsed.cropTop === 'number' ? parsed.cropTop : DEFAULT_SETTINGS.cropTop,
+          cropRight: typeof parsed.cropRight === 'number' ? parsed.cropRight : DEFAULT_SETTINGS.cropRight,
+          cornerTop: typeof parsed.cornerTop === 'number' ? parsed.cornerTop : DEFAULT_SETTINGS.cornerTop,
+          gridGap: typeof parsed.gridGap === 'number' ? parsed.gridGap : DEFAULT_SETTINGS.gridGap,
         };
       } catch {
-        return { mode: DEFAULT_SETTINGS.mode, quad: cloneQuad(DEFAULT_SETTINGS.quad) };
+        return freshSettings();
       }
     }
     function saveSettings(): void {
@@ -437,6 +521,13 @@ const chapters: Chapter[] = locale === 'de'
       LED_QUAD[k].x = settings.quad[k].x;
       LED_QUAD[k].y = settings.quad[k].y;
     });
+    // Crop-top + corner-top are pure visual clip-path knobs on the LED
+    // wrap — driven by CSS custom properties, never recompute layout or
+    // the projection. Bg image and clock overlay stay anchored.
+    page.style.setProperty('--op5-led-crop-top', settings.cropTop + '%');
+    page.style.setProperty('--op5-led-crop-right', settings.cropRight + '%');
+    page.style.setProperty('--op5-led-corner-top', settings.cornerTop + 'px');
+    page.style.setProperty('--op5-led-grid-gap', settings.gridGap + 'px');
 
     // ── Animation loop ─────────────────────────────────────────────────
     // The canvas paint is the expensive part. We ONLY repaint when the
@@ -444,43 +535,143 @@ const chapters: Chapter[] = locale === 'de'
     // every rAF — which on a 5fps pixogram cuts paints by ~12×. The rest
     // of the loop body (opacity + translateY for 4 chapter elements) is
     // composited and cheap.
-    const ctx = led?.getContext('2d') ?? null;
     let lastFrameTs = 0;
     let frameCounter = 0;
     let activeIdx = -1;
+    // Per-cell colour cache — packed rgb (24-bit) for each of the 576
+    // cells. Diff against the new frame so we only touch the DOM for
+    // cells whose colour actually changed.
+    const lastRgb: Int32Array = new Int32Array(ledCells.length);
+    lastRgb.fill(-1);
+    const OFF_R = 12, OFF_G = 13, OFF_B = 16; // matches the original photoreal void colour
+    // Mode classes applied to the grid. Only ONE may be active at a time.
+    function applyGridModeClass(): void {
+      if (!ledGrid) return;
+      ledGrid.classList.toggle('is-flat', settings.mode === 'flat');
+      ledGrid.classList.toggle('is-off',  settings.mode === 'off');
+      // Photoreal = default (bloom filter + cell highlight overlay).
+    }
+
+    // Cache target's document-Y so the rAF loop never has to call
+    // getBoundingClientRect (which forces a sync layout flush at 60Hz).
+    // Recompute on resize.
+    let targetDocY = 0;
+    function recomputeTargetDocY(): void {
+      targetDocY = target.getBoundingClientRect().top + window.scrollY;
+    }
+    recomputeTargetDocY();
+    window.addEventListener('resize', recomputeTargetDocY);
+
+    // Style-write cache. Browsers DO short-circuit identical style writes,
+    // but skipping the assignment also avoids the String() allocation and
+    // the property setter call on hot paths.
+    const lastChStr: Array<{ o: string; t: string }> = chapterMeta.map(() => ({ o: '', t: '' }));
+    let lastLedOpacityStr = '';
+    // Per-element caches for the Act 1 animations folded into the loop.
+    let lastTitleTransform = '';
+    let lastTitleOpacity = '';
+    let lastDimOpacity = '';
+    let lastClockOpacity = '';
+
+    // Cache viewport height; reads cost nothing but the property access
+    // adds up, and resize is the only thing that can change it.
+    let vh = window.innerHeight;
+    window.addEventListener('resize', () => { vh = window.innerHeight; });
 
     function repaint(): void {
-      if (!led || !ctx || activeIdx < 0) return;
+      if (activeIdx < 0 || ledCells.length === 0) return;
       const meta = chapterMeta[activeIdx];
       const pix = pixCache.get(meta.file);
       if (!pix) return;
       const frame = pix.frames[frameCounter % pix.frames.length];
-      if (settings.mode === 'photoreal') {
-        renderRgbPhotoreal(led, frame, pix.width, pix.height);
-      } else if (settings.mode === 'flat') {
-        renderRgbFast(led, frame, pix.width, pix.height);
-      } else {
-        // 'off' — clear the canvas; nothing painted.
-        ctx.clearRect(0, 0, led.width, led.height);
+      // For 'off' mode the CSS class makes every cell render flat-dark;
+      // we still update lastRgb so the next non-off frame triggers a
+      // full repaint of any cells whose colour differs.
+      if (settings.mode === 'off') {
+        for (let i = 0; i < ledCells.length; i++) {
+          if (lastRgb[i] === 0) continue;
+          lastRgb[i] = 0;
+          const cell = ledCells[i];
+          cell.style.setProperty('--r', String(OFF_R));
+          cell.style.setProperty('--g', String(OFF_G));
+          cell.style.setProperty('--b', String(OFF_B));
+        }
+        return;
+      }
+      // Photoreal + Flat both update the cell's --r/--g/--b. The visual
+      // difference comes from CSS classes on the grid (filter + cell
+      // gradient highlight on/off).
+      const total = ledCells.length;
+      for (let i = 0; i < total; i++) {
+        const off = i * 3;
+        const r = frame[off];
+        const g = frame[off + 1];
+        const b = frame[off + 2];
+        const dark = r + g + b < 12;
+        const er = dark ? OFF_R : r;
+        const eg = dark ? OFF_G : g;
+        const eb = dark ? OFF_B : b;
+        // Pack into a single 24-bit int for cheap diff.
+        const packed = (er << 16) | (eg << 8) | eb;
+        if (lastRgb[i] === packed) continue;
+        lastRgb[i] = packed;
+        const cell = ledCells[i];
+        cell.style.setProperty('--r', String(er));
+        cell.style.setProperty('--g', String(eg));
+        cell.style.setProperty('--b', String(eb));
       }
     }
 
     function loop(now: number): void {
-      const rect = target.getBoundingClientRect();
-      const progressVh = -rect.top / window.innerHeight * 100;
+      // Pure scroll-position math — no getBoundingClientRect, no layout
+      // flush. window.scrollY is essentially a cached value.
+      const progressPx = window.scrollY - targetDocY;
+      const progressVh = progressPx / vh * 100;
 
+      // ── Act 1: title out + dim in + clock fade in (0–75vh) ────────
+      // translate3d (not translateY) so the browser keeps the title on
+      // a dedicated GPU compositor layer — same trick used below for
+      // chapters and the LED canvas.
+      const act1 = progressVh <= 0 ? 0 : progressVh >= 75 ? 1 : progressVh / 75;
+      if (title) {
+        const tyPx = -act1 * 0.75 * vh;
+        const tStr = `translate3d(0,${tyPx.toFixed(1)}px,0)`;
+        const oStr = (1 - act1).toFixed(3);
+        if (tStr !== lastTitleTransform) { title.style.transform = tStr; lastTitleTransform = tStr; }
+        if (oStr !== lastTitleOpacity)   { title.style.opacity   = oStr; lastTitleOpacity   = oStr; }
+      }
+      if (dim) {
+        const oStr = (act1 * 0.7).toFixed(3);
+        if (oStr !== lastDimOpacity) { dim.style.opacity = oStr; lastDimOpacity = oStr; }
+      }
+      if (clock) {
+        const oStr = act1.toFixed(3);
+        if (oStr !== lastClockOpacity) { clock.style.opacity = oStr; lastClockOpacity = oStr; }
+      }
+
+      // ── Acts 2–5: chapter cross-fades + scroll-up motion ──────────
       let sum = 0;
       let bestOpacity = -1;
       let bestIdx = -1;
       for (let i = 0; i < chapterMeta.length; i++) {
         const o = chapterOpacityAt(progressVh, i);
         const ty = chapterTranslateAt(progressVh, i);
-        chapterMeta[i].el.style.opacity = String(o);
-        chapterMeta[i].el.style.transform = `translateY(${ty}px)`;
+        const oStr = o.toFixed(3);
+        const tStr = `translate3d(0,${ty.toFixed(1)}px,0)`;
+        const cache = lastChStr[i];
+        if (cache.o !== oStr) { chapterMeta[i].el.style.opacity = oStr; cache.o = oStr; }
+        if (cache.t !== tStr) { chapterMeta[i].el.style.transform = tStr; cache.t = tStr; }
         sum += o;
         if (o > bestOpacity) { bestOpacity = o; bestIdx = i; }
       }
-      if (led) led.style.opacity = String(Math.min(1, sum));
+      const ledOp = Math.min(1, sum).toFixed(3);
+      // Opacity goes on the WRAPPER (matrix3d carrier). The canvases
+      // inside stay opaque so the compositor can keep them as static
+      // 2D layers behind the wrapper's transform.
+      if (ledWrap && ledOp !== lastLedOpacityStr) {
+        ledWrap.style.opacity = ledOp;
+        lastLedOpacityStr = ledOp;
+      }
 
       if (bestIdx !== activeIdx) {
         activeIdx = bestIdx;
@@ -489,9 +680,8 @@ const chapters: Chapter[] = locale === 'de'
         markDirty();
       }
 
-      // Advance the frame counter at the pixogram's native fps. Repaint
-      // ONLY when the frame actually advanced (or something else marked
-      // the canvas dirty: chapter swap, render-mode change, resize).
+      // Repaint ONLY when frame advances or chapter swaps. Also skip
+      // entirely when the canvas is invisible (opacity ≈ 0).
       if (activeIdx >= 0 && bestOpacity > 0.01) {
         const meta = chapterMeta[activeIdx];
         const intervalMs = 1000 / meta.fps;
@@ -508,9 +698,7 @@ const chapters: Chapter[] = locale === 'de'
         }
       }
 
-      // Tick the live FPS counter (sampled by the tweak panel).
       fpsTick(now);
-
       requestAnimationFrame(loop);
     }
     requestAnimationFrame(loop);
@@ -547,6 +735,14 @@ const chapters: Chapter[] = locale === 'de'
       const modeButtons = Array.from(panel.querySelectorAll<HTMLButtonElement>('[data-op5-tweak-mode] button'));
       const fpsOut = panel.querySelector<HTMLOutputElement>('[data-op5-tweak-fps]');
       const cornerInputs = Array.from(panel.querySelectorAll<HTMLInputElement>('[data-corner]'));
+      const cropTopInput = panel.querySelector<HTMLInputElement>('[data-op5-tweak-croptop]');
+      const cropTopOut = panel.querySelector<HTMLOutputElement>('[data-op5-tweak-croptop-out]');
+      const cropRightInput = panel.querySelector<HTMLInputElement>('[data-op5-tweak-cropright]');
+      const cropRightOut = panel.querySelector<HTMLOutputElement>('[data-op5-tweak-cropright-out]');
+      const cornerTopInput = panel.querySelector<HTMLInputElement>('[data-op5-tweak-cornertop]');
+      const cornerTopOut = panel.querySelector<HTMLOutputElement>('[data-op5-tweak-cornertop-out]');
+      const gridGapInput = panel.querySelector<HTMLInputElement>('[data-op5-tweak-gridgap]');
+      const gridGapOut = panel.querySelector<HTMLOutputElement>('[data-op5-tweak-gridgap-out]');
       const toggleBtn = panel.querySelector<HTMLButtonElement>('[data-op5-tweak-toggle]');
       const resetBtn = panel.querySelector<HTMLButtonElement>('[data-op5-tweak-reset]');
       const copyBtn = panel.querySelector<HTMLButtonElement>('[data-op5-tweak-copy]');
@@ -563,10 +759,39 @@ const chapters: Chapter[] = locale === 'de'
           const a = inp.dataset.axis as Axis;
           inp.value = String(settings.quad[c][a]);
         });
+        if (cropTopInput && document.activeElement !== cropTopInput) cropTopInput.value = String(settings.cropTop);
+        if (cropTopOut) cropTopOut.value = String(settings.cropTop);
+        if (cropRightInput && document.activeElement !== cropRightInput) cropRightInput.value = String(settings.cropRight);
+        if (cropRightOut) cropRightOut.value = String(settings.cropRight);
+        if (cornerTopInput && document.activeElement !== cornerTopInput) cornerTopInput.value = String(settings.cornerTop);
+        if (cornerTopOut) cornerTopOut.value = String(settings.cornerTop);
+        if (gridGapInput && document.activeElement !== gridGapInput) gridGapInput.value = String(settings.gridGap);
+        if (gridGapOut) gridGapOut.value = String(settings.gridGap);
+      }
+      function applyCropTop(): void {
+        page.style.setProperty('--op5-led-crop-top', settings.cropTop + '%');
+        saveSettings();
+        syncControls();
+      }
+      function applyCropRight(): void {
+        page.style.setProperty('--op5-led-crop-right', settings.cropRight + '%');
+        saveSettings();
+        syncControls();
+      }
+      function applyCornerTop(): void {
+        page.style.setProperty('--op5-led-corner-top', settings.cornerTop + 'px');
+        saveSettings();
+        syncControls();
+      }
+      function applyGridGap(): void {
+        page.style.setProperty('--op5-led-grid-gap', settings.gridGap + 'px');
+        saveSettings();
+        syncControls();
       }
       function applyMode(m: RenderMode): void {
         settings.mode = m;
         saveSettings();
+        applyGridModeClass();
         markDirty();
         syncControls();
       }
@@ -583,6 +808,8 @@ const chapters: Chapter[] = locale === 'de'
       modeButtons.forEach((b) => {
         b.addEventListener('click', () => applyMode(b.dataset.mode as RenderMode));
       });
+      // Apply mode class on initial mount.
+      applyGridModeClass();
       cornerInputs.forEach((inp) => {
         inp.addEventListener('input', () => {
           const c = inp.dataset.corner as CornerKey;
@@ -594,14 +821,53 @@ const chapters: Chapter[] = locale === 'de'
           }
         });
       });
+      cropTopInput?.addEventListener('input', () => {
+        const v = Number(cropTopInput.value);
+        if (Number.isFinite(v)) {
+          settings.cropTop = Math.max(0, Math.min(5, v));
+          applyCropTop();
+        }
+      });
+      cropRightInput?.addEventListener('input', () => {
+        const v = Number(cropRightInput.value);
+        if (Number.isFinite(v)) {
+          settings.cropRight = Math.max(0, Math.min(5, v));
+          applyCropRight();
+        }
+      });
+      cornerTopInput?.addEventListener('input', () => {
+        const v = Number(cornerTopInput.value);
+        if (Number.isFinite(v)) {
+          settings.cornerTop = Math.max(0, Math.min(50, v));
+          applyCornerTop();
+        }
+      });
+      gridGapInput?.addEventListener('input', () => {
+        const v = Number(gridGapInput.value);
+        if (Number.isFinite(v)) {
+          settings.gridGap = Math.max(0, Math.min(10, v));
+          applyGridGap();
+        }
+      });
       resetBtn?.addEventListener('click', () => {
         settings.mode = DEFAULT_SETTINGS.mode;
         settings.quad = cloneQuad(DEFAULT_SETTINGS.quad);
+        settings.cropTop = DEFAULT_SETTINGS.cropTop;
+        settings.cropRight = DEFAULT_SETTINGS.cropRight;
+        settings.cornerTop = DEFAULT_SETTINGS.cornerTop;
+        settings.gridGap = DEFAULT_SETTINGS.gridGap;
         applyQuad();
+        applyCropTop();
+        applyCropRight();
+        applyCornerTop();
+        applyGridGap();
         applyMode(settings.mode);
       });
       copyBtn?.addEventListener('click', () => {
-        navigator.clipboard?.writeText(JSON.stringify(settings.quad, null, 2));
+        // Whole settings object (mode, quad, cropTop, cropRight,
+        // cornerTop). Paste-friendly for dropping straight back into
+        // DEFAULT_SETTINGS or for sharing tunings.
+        navigator.clipboard?.writeText(JSON.stringify(settings, null, 2));
       });
       toggleBtn?.addEventListener('click', () => {
         panel.classList.toggle('is-collapsed');
@@ -762,13 +1028,14 @@ const chapters: Chapter[] = locale === 'de'
   }
 
   /* === Dev tweak panel ====================================================
-     Pinned top-right, below the act badge. Compact and always-on-top. */
+     Pinned top-left so it doesn't fight the act badge top-right. Wider so
+     the corner-bbox inputs fit two-up without squeezing. */
   .op5-tweak {
     position: fixed;
-    top: 56px;
-    right: 14px;
+    top: 14px;
+    left: 14px;
     z-index: 9998;
-    width: 260px;
+    width: 320px;
     background: rgba(10, 12, 18, 0.92);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -797,6 +1064,9 @@ const chapters: Chapter[] = locale === 'de'
   }
   .op5-tweak__body { padding: 10px; display: flex; flex-direction: column; gap: 10px; }
   .op5-tweak__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .op5-tweak__row--slider { gap: 6px; }
+  .op5-tweak__row--slider input[type="range"] { flex: 1; min-width: 0; }
+  .op5-tweak__row--slider output { min-width: 28px; text-align: right; opacity: 0.85; }
   .op5-tweak__seg {
     display: inline-flex;
     background: rgba(255, 255, 255, 0.06);
@@ -808,7 +1078,7 @@ const chapters: Chapter[] = locale === 'de'
     background: transparent;
     border: 0;
     color: rgba(255, 255, 255, 0.7);
-    padding: 4px 8px;
+    padding: 4px 10px;
     font: inherit;
     cursor: pointer;
   }
@@ -948,7 +1218,25 @@ const chapters: Chapter[] = locale === 'de'
     position: absolute;
     inset: 0;
     z-index: -2;
-    will-change: filter;
+    /* Pre-promote to a dedicated compositor layer. The bg AVIF is large
+       (2400×1600) and we don't want the browser to re-rasterise it on
+       every composite. translateZ(0) + will-change: transform forces a
+       persistent GPU texture. */
+    transform: translateZ(0);
+    will-change: transform;
+  }
+  /* Solid-black dim overlay. Sits ABOVE bg (z-index -2) and the gradient
+     (z-index -1), but BELOW the clock overlay (z-index 0) so the clock
+     stays bright while the photo behind it dims. Opacity is scroll-
+     scrubbed by motion.scroll() — see Act 1. */
+  :global(.op5-page .hero__dim) {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+    will-change: opacity;
   }
   :global(.op5-page .hero__pic img) {
     width: 100%;
@@ -974,7 +1262,12 @@ const chapters: Chapter[] = locale === 'de'
     z-index: 0;
     pointer-events: none;
     opacity: 0;
-    will-change: opacity;
+    /* Permanently on its own compositor layer. translateZ(0) is the
+       part that GUARANTEES layer promotion across browsers; will-change
+       lets the browser hold the layer's texture in GPU memory and skip
+       re-rasterising it during opacity scrubs. */
+    transform: translateZ(0);
+    will-change: opacity, transform;
   }
   :global(.op5-page .hero__clock img) {
     width: 100%;
@@ -1005,11 +1298,14 @@ const chapters: Chapter[] = locale === 'de'
     :global(.op5-page .hero__inner) { padding-top: 96px; padding-bottom: 48px; }
   }
 
-  /* LED canvas — anchored to hero (0,0) with a fixed base CSS size; the
-     matrix3d transform applied by JS warps it onto the four image-space
-     quad corners. transform-origin must be top-left so matrix3d corners
-     are interpreted as destination points in hero-local coords. */
-  :global(.op5-page .hero__led) {
+  /* LED stage wrapper — carries the matrix3d transform AND the
+     visibility opacity. The inner grid stays a regular 2D layer so
+     opacity scrubs don't invalidate per-cell rasterisation.
+     `clip-path: inset(N% 0 0 0)` clips the TOP of the wrapper in its
+     LOCAL coordinate system (before matrix3d). After matrix3d the
+     clipped strip lies along the visual top edge of the LED quad.
+     `--op5-led-crop-top` is the JS-driven knob (0% = no crop). */
+  :global(.op5-page .hero__led-wrap) {
     position: absolute;
     left: 0;
     top: 0;
@@ -1018,6 +1314,55 @@ const chapters: Chapter[] = locale === 'de'
     transform-origin: 0 0;
     opacity: 0;
     will-change: opacity, transform;
+    clip-path: inset(
+      var(--op5-led-crop-top, 0) var(--op5-led-crop-right, 0) 0 0
+      round var(--op5-led-corner-top, 0) var(--op5-led-corner-top, 0) 0 0
+    );
+  }
+  /* HTML LED grid — 24×24 cells. Photoreal mode applies the SVG bloom
+     filter; Flat strips both the filter AND the per-cell highlight; Off
+     paints every cell dark (the JS still updates lastRgb so a return to
+     a paint mode triggers a clean diff). */
+  :global(.op5-page .hero__led-grid) {
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
+    grid-template-rows: repeat(24, 1fr);
+    width: 100%;
+    height: 100%;
+    padding: 4px;
+    gap: var(--op5-led-grid-gap, 2px);
+    background: #050608;
+    box-sizing: border-box;
+    filter: url(#op5-led-bloom);
+  }
+  :global(.op5-page .hero__led-grid.is-flat) { filter: none; }
+  :global(.op5-page .hero__led-grid.is-off)  { filter: none; }
+  :global(.op5-page .hero__led-cell) {
+    border-radius: 12%;
+    /* Layered backgrounds: the radial-gradient overlay is a constant
+       (browser caches the pattern), so changing only --r/--g/--b on the
+       solid base lets the compositor re-rasterise just the flat fill. */
+    background:
+      radial-gradient(circle at 50% 50%,
+        rgba(255, 255, 255, 0.18) 0%,
+        rgba(255, 255, 255, 0.06) 45%,
+        transparent 75%),
+      rgb(var(--r, 12), var(--g, 13), var(--b, 16));
+  }
+  :global(.op5-page .hero__led-grid.is-flat .hero__led-cell) {
+    background: rgb(var(--r, 12), var(--g, 13), var(--b, 16));
+  }
+  :global(.op5-page .hero__led-grid.is-off .hero__led-cell) {
+    background: rgb(12, 13, 16);
+  }
+
+  /* Hidden SVG defs container (filter lives here). */
+  :global(.op5-page .op5-defs) {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    pointer-events: none;
   }
 
   /* Chapter panel — covers the whole hero; chapters inside are absolutely
