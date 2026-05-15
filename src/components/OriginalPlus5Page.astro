@@ -58,6 +58,52 @@ const chapters: Chapter[] = locale === 'de'
     <span data-op5-badge-num>1</span>
     <span data-op5-badge-name>Hero out</span>
   </div>
+
+  {/* Dev tweak panel — render-mode toggle, live FPS, LED bbox inputs.
+      Pairs with the four corner grippers (rendered inside .hero) to fine
+      tune the canvas projection without code edits. State persists to
+      localStorage so adjustments survive reloads. */}
+  <aside class="op5-tweak" data-op5-tweak>
+    <header class="op5-tweak__head">
+      <strong>Plus⁵ Tweak</strong>
+      <button type="button" data-op5-tweak-toggle aria-label="Collapse">–</button>
+    </header>
+    <div class="op5-tweak__body">
+      <div class="op5-tweak__row">
+        <span>FPS</span>
+        <output data-op5-tweak-fps>—</output>
+      </div>
+      <div class="op5-tweak__row">
+        <span>Render</span>
+        <div class="op5-tweak__seg" data-op5-tweak-mode>
+          <button type="button" data-mode="photoreal">Photoreal</button>
+          <button type="button" data-mode="flat">Flat</button>
+          <button type="button" data-mode="off">Off</button>
+        </div>
+      </div>
+      <fieldset class="op5-tweak__fs">
+        <legend>LED corners (image-px)</legend>
+        <label>TL x <input type="number" data-corner="tl" data-axis="x" step="1"></label>
+        <label>TL y <input type="number" data-corner="tl" data-axis="y" step="1"></label>
+        <label>TR x <input type="number" data-corner="tr" data-axis="x" step="1"></label>
+        <label>TR y <input type="number" data-corner="tr" data-axis="y" step="1"></label>
+        <label>BR x <input type="number" data-corner="br" data-axis="x" step="1"></label>
+        <label>BR y <input type="number" data-corner="br" data-axis="y" step="1"></label>
+        <label>BL x <input type="number" data-corner="bl" data-axis="x" step="1"></label>
+        <label>BL y <input type="number" data-corner="bl" data-axis="y" step="1"></label>
+      </fieldset>
+      <div class="op5-tweak__row">
+        <label class="op5-tweak__check">
+          <input type="checkbox" data-op5-tweak-grippers checked>
+          Show corner grippers
+        </label>
+      </div>
+      <div class="op5-tweak__actions">
+        <button type="button" data-op5-tweak-reset>Reset</button>
+        <button type="button" data-op5-tweak-copy>Copy</button>
+      </div>
+    </div>
+  </aside>
   <div class="op5-hero-scroll" data-op5-scroll>
     <div class="op5-hero-sticky">
     <section class="hero">
@@ -89,6 +135,17 @@ const chapters: Chapter[] = locale === 'de'
           the LED panel across any viewport size. The pixograms render on
           this canvas via renderRgbPhotoreal (same renderer Plus⁴ uses). */}
       <canvas class="hero__led" data-op5-led width="540" height="540" aria-hidden="true"></canvas>
+      {/* Corner grippers — visible only when the tweak panel's "Show
+          corner grippers" is on. Each gripper is offset diagonally
+          OUTWARD from its LED corner by 50px so the canvas corner stays
+          visible inside the gripper bracket. Drag a gripper to adjust the
+          LED bbox in image-space. */}
+      <div class="hero__grippers" data-op5-grippers hidden>
+        <button type="button" class="hero__grip" data-grip="tl" aria-label="Top-left corner"></button>
+        <button type="button" class="hero__grip" data-grip="tr" aria-label="Top-right corner"></button>
+        <button type="button" class="hero__grip" data-grip="br" aria-label="Bottom-right corner"></button>
+        <button type="button" class="hero__grip" data-grip="bl" aria-label="Bottom-left corner"></button>
+      </div>
       {/* Chapter panel on the left. One container per chapter, all
           absolute-stacked at the same position; opacity is scrubbed by
           scroll position so they cross-fade through. */}
@@ -123,7 +180,8 @@ const chapters: Chapter[] = locale === 'de'
 <script>
   import { scroll, animate } from 'motion';
   import { parsePxl, type Pixogram } from '../lib/pxl-format';
-  import { renderRgbPhotoreal } from '../lib/pixel-canvas';
+  import { renderRgbPhotoreal, renderRgbFast } from '../lib/pixel-canvas';
+  import { cornersToMatrix3d } from '../lib/pxlib-perspective';
   import { url } from '../lib/url';
 
   const page = document.querySelector<HTMLElement>('[data-op5]');
@@ -162,56 +220,111 @@ const chapters: Chapter[] = locale === 'de'
     }
 
     // ── LED projection ─────────────────────────────────────────────────
-    // The LED panel of the PXL Clock in hero-lifestyle.avif sits at a
-    // fixed axis-aligned quad in IMAGE coordinates (measured once on the
-    // 1989×1119 source). To keep the canvas glued to the LEDs across any
-    // viewport size we replay the CSS `object-fit: cover; object-position:
-    // center 30%` math in JS: find where the image is actually rendered
-    // inside the hero (the cropped/centred region), then map the LED quad
-    // from image-space into that rendered area.
+    // The PXL Clock LED panel in hero-lifestyle.avif is a quadrilateral
+    // (slight perspective tilt). We store FOUR independent corners in
+    // IMAGE coordinates (1989×1119 source) and project them into the
+    // hero's local space by replaying the CSS `object-fit: cover;
+    // object-position: center 30%` math. The canvas itself sits at
+    // hero (0,0) with a fixed base size; `matrix3d` warps it onto the
+    // four corner points each layout pass.
+    interface Pt { x: number; y: number }
+    interface Quad { tl: Pt; tr: Pt; br: Pt; bl: Pt }
     const LED_NATURAL = { w: 1989, h: 1119 };
-    const LED_BBOX = { x: 1195, y: 410, w: 480, h: 465 };
+    // Calibrated against the hero-lifestyle.avif photo. Adjust here OR
+    // via the dev tweak panel; the panel writes back to localStorage.
+    const DEFAULT_QUAD: Quad = {
+      tl: { x: 1207, y: 394 },
+      tr: { x: 1667, y: 397 },
+      br: { x: 1669, y: 869 },
+      bl: { x: 1208, y: 839 },
+    };
+    // Live, mutable image-space corners. Tweak-panel inputs / gripper
+    // drags edit this in place; positionLed reads from it.
+    const LED_QUAD: Quad = {
+      tl: { ...DEFAULT_QUAD.tl }, tr: { ...DEFAULT_QUAD.tr },
+      br: { ...DEFAULT_QUAD.br }, bl: { ...DEFAULT_QUAD.bl },
+    };
     const OBJECT_POS_X = 0.5;
     const OBJECT_POS_Y = 0.3;
-    let currentLedHeight = 0; // captured so the chapter loop can scale its translateY range
+    // Canvas base CSS size — matrix3d transforms this rectangle to the
+    // four corners, so the value just needs to be big enough for crisp
+    // backbuffer resolution (renderRgbPhotoreal then ups by DPR).
+    const CANVAS_BASE = 600;
+
+    // 4 viewport (hero-local) corners — populated by positionLed. Used by
+    // the grippers and matrix3d transform.
+    const viewQuad: Quad = {
+      tl: { x: 0, y: 0 }, tr: { x: 0, y: 0 },
+      br: { x: 0, y: 0 }, bl: { x: 0, y: 0 },
+    };
+    let currentLedScale = 1; // viewport-px per image-px (uniform under cover)
+    let currentLedHeight = 0; // avg vertical span of the live quad, for chapter motion amplitude
+
+    let dirty = true;
+    let lastPaintedKey = '';
+    function markDirty(): void { dirty = true; lastPaintedKey = ''; }
+    let onLedRectChanged: () => void = () => {};
+
     function positionLed(): void {
       if (!led || !bg || !hero) return;
       const r = bg.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) return;
+      // Cover math against the hero element box (bg <picture> has inset 0).
       const imgAR = LED_NATURAL.w / LED_NATURAL.h;
       const elAR = r.width / r.height;
       let dispW: number, dispH: number;
-      if (imgAR > elAR) {
-        // image wider than element → element height fills, width overflows
-        dispH = r.height;
-        dispW = dispH * imgAR;
-      } else {
-        dispW = r.width;
-        dispH = dispW / imgAR;
-      }
+      if (imgAR > elAR) { dispH = r.height; dispW = dispH * imgAR; }
+      else              { dispW = r.width;  dispH = dispW / imgAR; }
       const offX = (r.width - dispW) * OBJECT_POS_X;
       const offY = (r.height - dispH) * OBJECT_POS_Y;
       const scale = dispW / LED_NATURAL.w;
-      const ledX = offX + LED_BBOX.x * scale;
-      const ledY = offY + LED_BBOX.y * scale;
-      const ledW = LED_BBOX.w * scale;
-      const ledH = LED_BBOX.h * scale;
+      currentLedScale = scale;
+      // Project each image-space corner into hero-local viewport coords.
       const heroRect = hero.getBoundingClientRect();
-      const localLeft = r.left + ledX - heroRect.left;
-      const localTop = r.top + ledY - heroRect.top;
-      led.style.left = localLeft + 'px';
-      led.style.top = localTop + 'px';
-      led.style.width = ledW + 'px';
-      led.style.height = ledH + 'px';
-      // Publish geometry to CSS so the chapter panel can vertically align
-      // with the clock without re-doing the cover math in CSS.
-      hero.style.setProperty('--op5-led-top', localTop + 'px');
-      hero.style.setProperty('--op5-led-height', ledH + 'px');
-      currentLedHeight = ledH;
+      const dx = r.left - heroRect.left;
+      const dy = r.top - heroRect.top;
+      (['tl', 'tr', 'br', 'bl'] as const).forEach((k) => {
+        viewQuad[k].x = dx + offX + LED_QUAD[k].x * scale;
+        viewQuad[k].y = dy + offY + LED_QUAD[k].y * scale;
+      });
+      // Position canvas at hero origin; warp via matrix3d to the 4 corners.
+      // cornersToMatrix3d expects destination corners as PERCENTAGES of
+      // (w, h) — internally it does `(c.x / 100) * w` to get the pixel
+      // target. So we feed it viewQuad as % of CANVAS_BASE, and the
+      // function reconstructs the pixel destination back to viewQuad.
+      led.style.left = '0px';
+      led.style.top = '0px';
+      led.style.width = CANVAS_BASE + 'px';
+      led.style.height = CANVAS_BASE + 'px';
+      led.style.transformOrigin = '0 0';
+      const toPct = (p: Pt) => ({ x: (p.x / CANVAS_BASE) * 100, y: (p.y / CANVAS_BASE) * 100 });
+      led.style.transform = cornersToMatrix3d(
+        { tl: toPct(viewQuad.tl), tr: toPct(viewQuad.tr), br: toPct(viewQuad.br), bl: toPct(viewQuad.bl) },
+        CANVAS_BASE, CANVAS_BASE,
+      );
+      // Average left & right edge heights → used by the chapter animation
+      // amplitude. Doesn't drive chapter REST position any more (those
+      // values are CSS-fixed) — only how far text travels in its window.
+      const leftH = viewQuad.bl.y - viewQuad.tl.y;
+      const rightH = viewQuad.br.y - viewQuad.tr.y;
+      currentLedHeight = (leftH + rightH) / 2;
+      markDirty();
+      onLedRectChanged();
     }
     if (led) {
       positionLed();
       window.addEventListener('resize', positionLed);
+      // ResizeObserver catches every size change of the bg element —
+      // viewport resize, browser zoom, mobile URL-bar collapse, devtools
+      // open/close — even when `resize` doesn't fire. visualViewport
+      // covers pinch-zoom on touch devices.
+      if (bg && 'ResizeObserver' in window) {
+        const ro = new ResizeObserver(() => positionLed());
+        ro.observe(bg);
+      }
+      if (typeof window.visualViewport !== 'undefined' && window.visualViewport) {
+        window.visualViewport.addEventListener('resize', positionLed);
+      }
       // Re-run after the image loads in case the hero hadn't laid out yet.
       if (bgImg && !bgImg.complete) bgImg.addEventListener('load', positionLed, { once: true });
     }
@@ -276,19 +389,86 @@ const chapters: Chapter[] = locale === 'de'
       return (1 - 2 * t) * TRAVEL_FACTOR * h;
     }
 
-    // Animation loop: at every frame, compute opacities, pick the active
-    // chapter (highest opacity), paint its current pixogram frame onto
-    // the canvas. Frame-stepping is fps-throttled per pixogram.
+    // ── Settings (persisted) ───────────────────────────────────────────
+    // Render-mode + LED quad corners are user-tweakable via the dev
+    // panel. State lives in `settings` and persists to localStorage.
+    type RenderMode = 'photoreal' | 'flat' | 'off';
+    interface Settings {
+      mode: RenderMode;
+      quad: Quad;
+    }
+    const SETTINGS_KEY = 'op5-settings-v2'; // v2 = quad corners (v1 was axis-aligned bbox)
+    const DEFAULT_SETTINGS: Settings = {
+      mode: 'photoreal',
+      quad: {
+        tl: { ...DEFAULT_QUAD.tl }, tr: { ...DEFAULT_QUAD.tr },
+        br: { ...DEFAULT_QUAD.br }, bl: { ...DEFAULT_QUAD.bl },
+      },
+    };
+    function cloneQuad(q: Quad): Quad {
+      return { tl: { ...q.tl }, tr: { ...q.tr }, br: { ...q.br }, bl: { ...q.bl } };
+    }
+    function loadSettings(): Settings {
+      try {
+        const raw = localStorage.getItem(SETTINGS_KEY);
+        if (!raw) return { mode: DEFAULT_SETTINGS.mode, quad: cloneQuad(DEFAULT_SETTINGS.quad) };
+        const parsed = JSON.parse(raw);
+        const q = parsed.quad ?? {};
+        return {
+          mode: parsed.mode ?? DEFAULT_SETTINGS.mode,
+          quad: {
+            tl: { ...DEFAULT_SETTINGS.quad.tl, ...(q.tl ?? {}) },
+            tr: { ...DEFAULT_SETTINGS.quad.tr, ...(q.tr ?? {}) },
+            br: { ...DEFAULT_SETTINGS.quad.br, ...(q.br ?? {}) },
+            bl: { ...DEFAULT_SETTINGS.quad.bl, ...(q.bl ?? {}) },
+          },
+        };
+      } catch {
+        return { mode: DEFAULT_SETTINGS.mode, quad: cloneQuad(DEFAULT_SETTINGS.quad) };
+      }
+    }
+    function saveSettings(): void {
+      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch {}
+    }
+    const settings: Settings = loadSettings();
+    // After loading, point positionLed at the loaded quad by mutating
+    // LED_QUAD in place (positionLed already reads from it).
+    (['tl', 'tr', 'br', 'bl'] as const).forEach((k) => {
+      LED_QUAD[k].x = settings.quad[k].x;
+      LED_QUAD[k].y = settings.quad[k].y;
+    });
+
+    // ── Animation loop ─────────────────────────────────────────────────
+    // The canvas paint is the expensive part. We ONLY repaint when the
+    // pixogram's frame index actually advances (fps-throttled) — not on
+    // every rAF — which on a 5fps pixogram cuts paints by ~12×. The rest
+    // of the loop body (opacity + translateY for 4 chapter elements) is
+    // composited and cheap.
     const ctx = led?.getContext('2d') ?? null;
     let lastFrameTs = 0;
     let frameCounter = 0;
     let activeIdx = -1;
+
+    function repaint(): void {
+      if (!led || !ctx || activeIdx < 0) return;
+      const meta = chapterMeta[activeIdx];
+      const pix = pixCache.get(meta.file);
+      if (!pix) return;
+      const frame = pix.frames[frameCounter % pix.frames.length];
+      if (settings.mode === 'photoreal') {
+        renderRgbPhotoreal(led, frame, pix.width, pix.height);
+      } else if (settings.mode === 'flat') {
+        renderRgbFast(led, frame, pix.width, pix.height);
+      } else {
+        // 'off' — clear the canvas; nothing painted.
+        ctx.clearRect(0, 0, led.width, led.height);
+      }
+    }
+
     function loop(now: number): void {
-      // Compute current scroll progress (in vh).
       const rect = target.getBoundingClientRect();
       const progressVh = -rect.top / window.innerHeight * 100;
 
-      // Per-chapter opacity + translateY, plus sum for canvas mask.
       let sum = 0;
       let bestOpacity = -1;
       let bestIdx = -1;
@@ -302,31 +482,190 @@ const chapters: Chapter[] = locale === 'de'
       }
       if (led) led.style.opacity = String(Math.min(1, sum));
 
-      // Switch the displayed pixogram if the active chapter changed.
       if (bestIdx !== activeIdx) {
         activeIdx = bestIdx;
         frameCounter = 0;
         lastFrameTs = now;
+        markDirty();
       }
 
-      // Advance & paint at the active chapter's fps.
-      if (activeIdx >= 0 && bestOpacity > 0.01 && led && ctx) {
+      // Advance the frame counter at the pixogram's native fps. Repaint
+      // ONLY when the frame actually advanced (or something else marked
+      // the canvas dirty: chapter swap, render-mode change, resize).
+      if (activeIdx >= 0 && bestOpacity > 0.01) {
         const meta = chapterMeta[activeIdx];
-        const pix = pixCache.get(meta.file);
-        if (pix) {
-          const intervalMs = 1000 / meta.fps;
-          if (now - lastFrameTs >= intervalMs) {
-            frameCounter += 1;
-            lastFrameTs = now - ((now - lastFrameTs) % intervalMs);
-          }
-          const frame = pix.frames[frameCounter % pix.frames.length];
-          renderRgbPhotoreal(led, frame, pix.width, pix.height);
+        const intervalMs = 1000 / meta.fps;
+        if (now - lastFrameTs >= intervalMs) {
+          frameCounter += 1;
+          lastFrameTs = now - ((now - lastFrameTs) % intervalMs);
+          markDirty();
+        }
+        const key = activeIdx + ':' + frameCounter;
+        if (dirty || key !== lastPaintedKey) {
+          repaint();
+          lastPaintedKey = key;
+          dirty = false;
         }
       }
+
+      // Tick the live FPS counter (sampled by the tweak panel).
+      fpsTick(now);
 
       requestAnimationFrame(loop);
     }
     requestAnimationFrame(loop);
+
+    // ── Live FPS counter (used by the dev panel) ───────────────────────
+    let fpsSamples = 0;
+    let fpsAccum = 0;
+    let fpsLast = 0;
+    let fpsDisplay = 0;
+    function fpsTick(now: number): void {
+      if (fpsLast > 0) {
+        fpsAccum += now - fpsLast;
+        fpsSamples += 1;
+        if (fpsAccum >= 500) {
+          fpsDisplay = Math.round(1000 * fpsSamples / fpsAccum);
+          fpsAccum = 0;
+          fpsSamples = 0;
+        }
+      }
+      fpsLast = now;
+    }
+
+    // ── Tweak panel ────────────────────────────────────────────────────
+    // Wires the floating panel + corner grippers to the LED bbox and
+    // render-mode settings. Two-way binding: number inputs and gripper
+    // drags both update `settings.bbox` and call positionLed; the panel
+    // re-reads from `settings` on every change to keep all controls in
+    // sync.
+    const panel = page.querySelector<HTMLElement>('[data-op5-tweak]');
+    const grippersHost = page.querySelector<HTMLElement>('[data-op5-grippers]');
+    if (panel) {
+      type CornerKey = 'tl' | 'tr' | 'br' | 'bl';
+      type Axis = 'x' | 'y';
+      const modeButtons = Array.from(panel.querySelectorAll<HTMLButtonElement>('[data-op5-tweak-mode] button'));
+      const fpsOut = panel.querySelector<HTMLOutputElement>('[data-op5-tweak-fps]');
+      const cornerInputs = Array.from(panel.querySelectorAll<HTMLInputElement>('[data-corner]'));
+      const toggleBtn = panel.querySelector<HTMLButtonElement>('[data-op5-tweak-toggle]');
+      const resetBtn = panel.querySelector<HTMLButtonElement>('[data-op5-tweak-reset]');
+      const copyBtn = panel.querySelector<HTMLButtonElement>('[data-op5-tweak-copy]');
+      const grippersCheck = panel.querySelector<HTMLInputElement>('[data-op5-tweak-grippers]');
+      const grippers = grippersHost ? Array.from(grippersHost.querySelectorAll<HTMLButtonElement>('[data-grip]')) : [];
+
+      function syncControls(): void {
+        modeButtons.forEach((b) => {
+          b.classList.toggle('is-active', b.dataset.mode === settings.mode);
+        });
+        cornerInputs.forEach((inp) => {
+          if (document.activeElement === inp) return;
+          const c = inp.dataset.corner as CornerKey;
+          const a = inp.dataset.axis as Axis;
+          inp.value = String(settings.quad[c][a]);
+        });
+      }
+      function applyMode(m: RenderMode): void {
+        settings.mode = m;
+        saveSettings();
+        markDirty();
+        syncControls();
+      }
+      function applyQuad(): void {
+        (['tl', 'tr', 'br', 'bl'] as const).forEach((k) => {
+          LED_QUAD[k].x = settings.quad[k].x;
+          LED_QUAD[k].y = settings.quad[k].y;
+        });
+        saveSettings();
+        positionLed();
+        syncControls();
+      }
+
+      modeButtons.forEach((b) => {
+        b.addEventListener('click', () => applyMode(b.dataset.mode as RenderMode));
+      });
+      cornerInputs.forEach((inp) => {
+        inp.addEventListener('input', () => {
+          const c = inp.dataset.corner as CornerKey;
+          const a = inp.dataset.axis as Axis;
+          const v = Number(inp.value);
+          if (Number.isFinite(v)) {
+            settings.quad[c][a] = v;
+            applyQuad();
+          }
+        });
+      });
+      resetBtn?.addEventListener('click', () => {
+        settings.mode = DEFAULT_SETTINGS.mode;
+        settings.quad = cloneQuad(DEFAULT_SETTINGS.quad);
+        applyQuad();
+        applyMode(settings.mode);
+      });
+      copyBtn?.addEventListener('click', () => {
+        navigator.clipboard?.writeText(JSON.stringify(settings.quad, null, 2));
+      });
+      toggleBtn?.addEventListener('click', () => {
+        panel.classList.toggle('is-collapsed');
+        toggleBtn.textContent = panel.classList.contains('is-collapsed') ? '+' : '–';
+      });
+
+      function applyGrippersVisible(): void {
+        if (!grippersHost) return;
+        grippersHost.hidden = !grippersCheck?.checked;
+      }
+      grippersCheck?.addEventListener('change', applyGrippersVisible);
+
+      // 50px diagonal-outward offset from each corner. The direction is
+      // OUT from the quad centroid so the gripper sits clear of the
+      // canvas corner regardless of how slanted the quad becomes.
+      const GRIP_OFFSET = 50;
+      function positionGrippers(): void {
+        if (!grippersHost) return;
+        const cx = (viewQuad.tl.x + viewQuad.tr.x + viewQuad.br.x + viewQuad.bl.x) / 4;
+        const cy = (viewQuad.tl.y + viewQuad.tr.y + viewQuad.br.y + viewQuad.bl.y) / 4;
+        for (const g of grippers) {
+          const which = g.dataset.grip as CornerKey;
+          const p = viewQuad[which];
+          const dx = p.x - cx, dy = p.y - cy;
+          const len = Math.hypot(dx, dy) || 1;
+          g.style.left = (p.x + (dx / len) * GRIP_OFFSET) + 'px';
+          g.style.top  = (p.y + (dy / len) * GRIP_OFFSET) + 'px';
+        }
+      }
+      onLedRectChanged = positionGrippers;
+      positionGrippers();
+      applyGrippersVisible();
+
+      // Drag: each gripper moves ONLY its own corner. Image-space delta
+      // = viewport-space delta / cover-scale (captured at drag start).
+      for (const g of grippers) {
+        g.addEventListener('pointerdown', (ev) => {
+          ev.preventDefault();
+          const which = g.dataset.grip as CornerKey;
+          const scale = currentLedScale || 1;
+          const origX = settings.quad[which].x;
+          const origY = settings.quad[which].y;
+          const sX = ev.clientX, sY = ev.clientY;
+          g.setPointerCapture(ev.pointerId);
+          const drag = (e: PointerEvent) => {
+            settings.quad[which].x = Math.round(origX + (e.clientX - sX) / scale);
+            settings.quad[which].y = Math.round(origY + (e.clientY - sY) / scale);
+            applyQuad();
+          };
+          const up = (e: PointerEvent) => {
+            g.releasePointerCapture(e.pointerId);
+            g.removeEventListener('pointermove', drag);
+            g.removeEventListener('pointerup', up);
+          };
+          g.addEventListener('pointermove', drag);
+          g.addEventListener('pointerup', up);
+        });
+      }
+
+      syncControls();
+      setInterval(() => {
+        if (fpsOut) fpsOut.value = fpsDisplay > 0 ? String(fpsDisplay) : '—';
+      }, 500);
+    }
 
     // ── Act badge ──────────────────────────────────────────────────────
     const badgeNum = page.querySelector<HTMLElement>('[data-op5-badge-num]');
@@ -421,6 +760,143 @@ const chapters: Chapter[] = locale === 'de'
   .op5-act-badge [data-op5-badge-name] {
     opacity: 0.85;
   }
+
+  /* === Dev tweak panel ====================================================
+     Pinned top-right, below the act badge. Compact and always-on-top. */
+  .op5-tweak {
+    position: fixed;
+    top: 56px;
+    right: 14px;
+    z-index: 9998;
+    width: 260px;
+    background: rgba(10, 12, 18, 0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    color: #fff;
+    font: 12px/1.4 ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  .op5-tweak.is-collapsed .op5-tweak__body { display: none; }
+  .op5-tweak__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .op5-tweak__head strong { font-size: 12px; letter-spacing: 0.04em; }
+  .op5-tweak__head button {
+    width: 22px; height: 22px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 5px;
+    color: #fff;
+    font: 600 14px/1 ui-monospace, monospace;
+    cursor: pointer;
+  }
+  .op5-tweak__body { padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+  .op5-tweak__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .op5-tweak__seg {
+    display: inline-flex;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .op5-tweak__seg button {
+    background: transparent;
+    border: 0;
+    color: rgba(255, 255, 255, 0.7);
+    padding: 4px 8px;
+    font: inherit;
+    cursor: pointer;
+  }
+  .op5-tweak__seg button.is-active {
+    background: #fff;
+    color: #000;
+    font-weight: 700;
+  }
+  .op5-tweak__fs {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    padding: 8px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 8px;
+  }
+  .op5-tweak__fs legend { padding: 0 4px; opacity: 0.75; font-size: 11px; }
+  .op5-tweak__fs label { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+  .op5-tweak__fs input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    color: #fff;
+    font: inherit;
+    padding: 2px 4px;
+  }
+  .op5-tweak__check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .op5-tweak__actions { display: flex; gap: 6px; }
+  .op5-tweak__actions button {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 5px;
+    color: #fff;
+    font: inherit;
+    padding: 5px 8px;
+    cursor: pointer;
+  }
+  .op5-tweak__actions button:hover { background: rgba(255, 255, 255, 0.14); }
+
+  /* === Corner grippers ===================================================
+     Pointer-event opt-in (parent .hero__grippers has pointer-events: none).
+     Each grip is a small ring; positioned at corner ±50px diagonally. The
+     `::after` short line points back to the actual LED corner. */
+  .hero__grippers {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+  }
+  .hero__grip {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    margin: -11px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 2px solid #f0a4ff;
+    border-radius: 50%;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.5) inset;
+    cursor: grab;
+    pointer-events: auto;
+    padding: 0;
+    touch-action: none;
+  }
+  .hero__grip:active { cursor: grabbing; transform: scale(1.1); }
+  .hero__grip::after {
+    /* Hairline from grip centre toward the LED corner; the 50px diagonal
+       offset translates to ~70px hypotenuse — a thin pink guide line. */
+    content: '';
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 70px;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(240, 164, 255, 0.95), rgba(240, 164, 255, 0.1));
+    transform-origin: 0 50%;
+    pointer-events: none;
+  }
+  .hero__grip[data-grip="tl"]::after { transform: rotate(135deg); }
+  .hero__grip[data-grip="tr"]::after { transform: rotate(225deg); }
+  .hero__grip[data-grip="br"]::after { transform: rotate(315deg); }
+  .hero__grip[data-grip="bl"]::after { transform: rotate(45deg); }
 
   /* === Scroll spacer + sticky hero ========================================
      Spacer is 7× viewport. Act layout (all in vh of doc scroll):
@@ -529,20 +1005,19 @@ const chapters: Chapter[] = locale === 'de'
     :global(.op5-page .hero__inner) { padding-top: 96px; padding-bottom: 48px; }
   }
 
-  /* LED canvas — absolutely positioned, sized to the rendered LED quad of
-     the hero photo (the JS sets left/top/width/height every resize). The
-     canvas's intrinsic size stays 540×540 (renderRgbPhotoreal handles DPR
-     internally) regardless of how the CSS box is sized. */
+  /* LED canvas — anchored to hero (0,0) with a fixed base CSS size; the
+     matrix3d transform applied by JS warps it onto the four image-space
+     quad corners. transform-origin must be top-left so matrix3d corners
+     are interpreted as destination points in hero-local coords. */
   :global(.op5-page .hero__led) {
     position: absolute;
+    left: 0;
+    top: 0;
     z-index: 1;
     pointer-events: none;
-    /* Initial CSS size; JS overrides on layout. Width/height of 0 keeps
-       the canvas invisible until positionLed() has run. */
-    width: 0;
-    height: 0;
+    transform-origin: 0 0;
     opacity: 0;
-    will-change: opacity;
+    will-change: opacity, transform;
   }
 
   /* Chapter panel — covers the whole hero; chapters inside are absolutely
@@ -554,16 +1029,16 @@ const chapters: Chapter[] = locale === 'de'
     inset: 0;
     pointer-events: none;
   }
-  /* Each chapter is positioned at the same X (variable) and Y (top of the
-     LED panel, published by positionLed). All four overlap; JS scrubs
-     opacity and translateY from scroll. The hard-coded `top` fallback
-     keeps the layout sensible BEFORE JS has run (and on browsers without
-     JS). */
+  /* Each chapter is positioned at the same X (--op5-chapter-left) and Y
+     (--op5-chapter-top). The Y default puts the chapter roughly in the
+     middle of the hero — INDEPENDENT of the LED canvas position, so
+     dragging the gripper corners doesn't shift the headlines. JS scrubs
+     opacity and translateY per chapter window. */
   :global(.op5-page .hero__chapter) {
     position: absolute;
     left: var(--op5-chapter-left);
     width: clamp(280px, 32vw, 440px);
-    top: var(--op5-led-top, clamp(120px, 18vh, 220px));
+    top: var(--op5-chapter-top, clamp(180px, 38vh, 360px));
     opacity: 0;
     will-change: opacity, transform;
   }
