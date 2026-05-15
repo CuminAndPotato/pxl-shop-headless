@@ -14,6 +14,32 @@ interface Props {
 
 const { locale } = Astro.props;
 const s = t(locale);
+
+// Chapters that scroll through Acts 2–5. Each chapter pairs a pixogram
+// (rendered on the LED canvas overlaid on the hero photo) with text on
+// the left side. Reuses Plus⁴'s curated set so we can iterate the
+// scroll choreography without re-doing the copy.
+interface Chapter {
+  slug: string;
+  file: string;
+  fps: number;
+  eyebrow: string;
+  title: string;
+  body: string;
+}
+const chapters: Chapter[] = locale === 'de'
+  ? [
+      { slug: 'ourtinysailboat',    file: 'ourtinysailboat.pxl',    fps: 5, eyebrow: 'Pixogramm 01', title: 'Our Tiny Sailboat',    body: 'Eine kleine Szene, die einfach passiert: ein Segelboot, eine Welle, ein Horizont. Pixogramme müssen nicht "smart" sein — manchmal reicht ein Bild, das atmet.' },
+      { slug: 'colourwheeldynamic', file: 'colourwheeldynamic.pxl', fps: 5, eyebrow: 'Pixogramm 02', title: 'Colour Wheel Dynamic', body: 'Reine Farbe, kein Inhalt. Ein HSV-Rad, das sich permanent neu sortiert — die Uhr wird zur Farbpalette an der Wand und zeigt nebenbei die Sekunde.' },
+      { slug: 'mythen',             file: 'mythen.pxl',             fps: 5, eyebrow: 'Pixogramm 03', title: 'Mythen',               body: 'Die Silhouette der Schweizer Mythen über einem zerfließenden Sonnenuntergang. Ein Pixogramm ist 24 × 24 — und kann trotzdem eine Landschaft sein.' },
+      { slug: 'gameoflife',         file: 'gameoflife.pxl',         fps: 5, eyebrow: 'Pixogramm 04', title: 'Game of Life',         body: 'Conways Game of Life, live auf 576 Zellen. Jede Generation rechnet die Uhr selbst — kein Loop, kein Cheat. Ein Bildschirm darf auch einfach denken.' },
+    ]
+  : [
+      { slug: 'ourtinysailboat',    file: 'ourtinysailboat.pxl',    fps: 5, eyebrow: 'Pixogram 01', title: 'Our Tiny Sailboat',    body: 'A small scene that simply happens — a boat, a wave, a horizon. Pixograms do not have to be "smart". Sometimes a quiet picture that breathes is enough.' },
+      { slug: 'colourwheeldynamic', file: 'colourwheeldynamic.pxl', fps: 5, eyebrow: 'Pixogram 02', title: 'Colour Wheel Dynamic', body: 'Pure colour, no subject. An HSV wheel that keeps reshuffling itself — the clock turns into a colour palette on the wall and still tells you the second.' },
+      { slug: 'mythen',             file: 'mythen.pxl',             fps: 5, eyebrow: 'Pixogram 03', title: 'Mythen',               body: 'The silhouette of the Swiss Mythen mountains over a slow sunset gradient. 24 × 24 pixels are still enough room for a landscape.' },
+      { slug: 'gameoflife',         file: 'gameoflife.pxl',         fps: 5, eyebrow: 'Pixogram 04', title: 'Game of Life',         body: 'Conway\'s Game of Life, running live across 576 cells. Every generation is computed on the device — no loop, no cheat. A screen is allowed to just think.' },
+    ];
 ---
 
 {/* Plus⁵ — Hero-only sandbox for Motion (motion.dev).
@@ -57,6 +83,31 @@ const s = t(locale);
           height="1600"
         />
       </picture>
+      {/* LED canvas — positioned by JS to align with the LED quadrilateral
+          inside the hero photo. The JS uses `object-fit: cover` math
+          against the photo's natural aspect ratio so the canvas tracks
+          the LED panel across any viewport size. The pixograms render on
+          this canvas via renderRgbPhotoreal (same renderer Plus⁴ uses). */}
+      <canvas class="hero__led" data-op5-led width="540" height="540" aria-hidden="true"></canvas>
+      {/* Chapter panel on the left. One container per chapter, all
+          absolute-stacked at the same position; opacity is scrubbed by
+          scroll position so they cross-fade through. */}
+      <div class="hero__chapters" data-op5-chapters>
+        {chapters.map((c, i) => (
+          <div
+            class="hero__chapter"
+            data-op5-chapter
+            data-chapter-index={i}
+            data-chapter-slug={c.slug}
+            data-chapter-file={c.file}
+            data-chapter-fps={c.fps}
+          >
+            <p class="hero__chapter-eyebrow">{c.eyebrow}</p>
+            <h2 class="hero__chapter-title">{c.title}</h2>
+            <p class="hero__chapter-body">{c.body}</p>
+          </div>
+        ))}
+      </div>
       <div class="hero__inner">
         <h1 class="h-display hero__title" data-op5-title>
           {s.hero.title.map((line) => <span>{line}</span>)}
@@ -71,68 +122,234 @@ const s = t(locale);
 
 <script>
   import { scroll, animate } from 'motion';
+  import { parsePxl, type Pixogram } from '../lib/pxl-format';
+  import { renderRgbPhotoreal } from '../lib/pixel-canvas';
+  import { url } from '../lib/url';
 
   const page = document.querySelector<HTMLElement>('[data-op5]');
   if (page) {
     const target = page.querySelector<HTMLElement>('[data-op5-scroll]')!;
+    const hero = target.querySelector<HTMLElement>('.hero')!;
     const title = page.querySelector<HTMLElement>('[data-op5-title]');
     const bg = page.querySelector<HTMLElement>('[data-op5-bg]');
+    const bgImg = bg?.querySelector('img') ?? null;
     const clock = page.querySelector<HTMLElement>('[data-op5-clock]');
+    const led = page.querySelector<HTMLCanvasElement>('[data-op5-led]');
+    const chapterEls = Array.from(
+      page.querySelectorAll<HTMLElement>('[data-op5-chapter]'),
+    );
 
-    // Act 1 spans the first 75vh of scroll against a 400vh spacer
-    // (75 / 400 = 18.75%). Title translates by exactly the scrolled
-    // distance (0 → -75vh) so it leaves at normal page-scroll speed,
-    // fading to 0 in parallel. Background dims to 0.3 brightness — not
-    // fully black — so we keep some scene context. The clock overlay
-    // cross-fades in (opacity 0 → 1) at the same rate the background
-    // dims, so the bright clock appears to "emerge" from the darkening
-    // scene rather than being visible from the start.
+    // Spacer is 700vh; Act 1 still spans 0–75vh of scroll = 10.71% offset
+    // (75 / 700). Title translates by exactly the scrolled distance so it
+    // leaves at normal page-scroll speed; bg dims to 0.3; clock fades in.
     if (title) {
       scroll(
         animate(title, { y: [0, '-75vh'], opacity: [1, 0] }, { ease: 'linear' }),
-        { target, offset: ['start start', '18.75% start'] },
+        { target, offset: ['start start', '10.71% start'] },
       );
     }
-
     if (bg) {
       scroll(
         animate(bg, { filter: ['brightness(1)', 'brightness(0.3)'] }, { ease: 'linear' }),
-        { target, offset: ['start start', '18.75% start'] },
+        { target, offset: ['start start', '10.71% start'] },
       );
     }
-
     if (clock) {
       scroll(
         animate(clock, { opacity: [0, 1] }, { ease: 'linear' }),
-        { target, offset: ['start start', '18.75% start'] },
+        { target, offset: ['start start', '10.71% start'] },
       );
     }
 
-    // Act indicator: maps current scrollY (relative to the spacer) to one
-    // of the four acts and updates the badge. rAF-throttled so we don't
-    // recompute on every scroll event.
+    // ── LED projection ─────────────────────────────────────────────────
+    // The LED panel of the PXL Clock in hero-lifestyle.avif sits at a
+    // fixed axis-aligned quad in IMAGE coordinates (measured once on the
+    // 1989×1119 source). To keep the canvas glued to the LEDs across any
+    // viewport size we replay the CSS `object-fit: cover; object-position:
+    // center 30%` math in JS: find where the image is actually rendered
+    // inside the hero (the cropped/centred region), then map the LED quad
+    // from image-space into that rendered area.
+    const LED_NATURAL = { w: 1989, h: 1119 };
+    const LED_BBOX = { x: 1195, y: 410, w: 480, h: 465 };
+    const OBJECT_POS_X = 0.5;
+    const OBJECT_POS_Y = 0.3;
+    let currentLedHeight = 0; // captured so the chapter loop can scale its translateY range
+    function positionLed(): void {
+      if (!led || !bg || !hero) return;
+      const r = bg.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) return;
+      const imgAR = LED_NATURAL.w / LED_NATURAL.h;
+      const elAR = r.width / r.height;
+      let dispW: number, dispH: number;
+      if (imgAR > elAR) {
+        // image wider than element → element height fills, width overflows
+        dispH = r.height;
+        dispW = dispH * imgAR;
+      } else {
+        dispW = r.width;
+        dispH = dispW / imgAR;
+      }
+      const offX = (r.width - dispW) * OBJECT_POS_X;
+      const offY = (r.height - dispH) * OBJECT_POS_Y;
+      const scale = dispW / LED_NATURAL.w;
+      const ledX = offX + LED_BBOX.x * scale;
+      const ledY = offY + LED_BBOX.y * scale;
+      const ledW = LED_BBOX.w * scale;
+      const ledH = LED_BBOX.h * scale;
+      const heroRect = hero.getBoundingClientRect();
+      const localLeft = r.left + ledX - heroRect.left;
+      const localTop = r.top + ledY - heroRect.top;
+      led.style.left = localLeft + 'px';
+      led.style.top = localTop + 'px';
+      led.style.width = ledW + 'px';
+      led.style.height = ledH + 'px';
+      // Publish geometry to CSS so the chapter panel can vertically align
+      // with the clock without re-doing the cover math in CSS.
+      hero.style.setProperty('--op5-led-top', localTop + 'px');
+      hero.style.setProperty('--op5-led-height', ledH + 'px');
+      currentLedHeight = ledH;
+    }
+    if (led) {
+      positionLed();
+      window.addEventListener('resize', positionLed);
+      // Re-run after the image loads in case the hero hadn't laid out yet.
+      if (bgImg && !bgImg.complete) bgImg.addEventListener('load', positionLed, { once: true });
+    }
+
+    // ── Pixogram playback ──────────────────────────────────────────────
+    // Single canvas, single rAF loop. The "active" pixogram is whichever
+    // chapter has the highest current opacity (computed from scroll). The
+    // canvas's own opacity follows the SUM of all chapter opacities (clamped
+    // to 1) so it dims to 0 outside the chapter range and stays fully
+    // visible during crossfades.
+    const pixCache = new Map<string, Pixogram | null>();
+    async function loadPx(file: string): Promise<Pixogram | null> {
+      if (pixCache.has(file)) return pixCache.get(file) ?? null;
+      try {
+        const res = await fetch(url('/pixograms/' + file));
+        if (!res.ok) throw new Error('http ' + res.status);
+        const pix = parsePxl(await res.text());
+        pixCache.set(file, pix);
+        return pix;
+      } catch (e) {
+        pixCache.set(file, null);
+        return null;
+      }
+    }
+    // Kick off loading all chapter files up front.
+    const chapterMeta = chapterEls.map((el) => ({
+      el,
+      idx: Number(el.dataset.chapterIndex),
+      file: el.dataset.chapterFile || '',
+      fps: Number(el.dataset.chapterFps) || 5,
+    }));
+    chapterMeta.forEach((c) => { void loadPx(c.file); });
+
+    // ── Chapter timing ─────────────────────────────────────────────────
+    // Per-chapter [fadeInStart, fadeInEnd, fadeOutStart, fadeOutEnd] in vh
+    // of scroll. 25vh fade lengths with 100vh holds; ch(N+1)'s fade-in
+    // aligns with ch(N)'s fade-out so they cross-fade.
+    const FADES: Array<[number, number, number, number]> = [
+      [ 75, 100, 150, 175], // ch1: peak 100–150
+      [150, 175, 250, 275], // ch2: peak 175–250
+      [250, 275, 350, 375], // ch3: peak 275–350
+      [350, 375, 450, 475], // ch4: peak 375–450
+    ];
+    function chapterOpacityAt(progressVh: number, i: number): number {
+      const [a, b, c, d] = FADES[i];
+      if (progressVh <= a || progressVh >= d) return 0;
+      if (progressVh >= b && progressVh <= c) return 1;
+      if (progressVh < b) return (progressVh - a) / (b - a);
+      return (d - progressVh) / (d - c);
+    }
+    // translateY for the chapter text. Linear interpolation across the
+    // ENTIRE window — no hold in the middle. The text just scrolls up at
+    // a constant rate while it's the active chapter, the way a normal
+    // paragraph would behave on a non-pinned page. Total travel is
+    // 2 × LED-height (from +H below the clock area to −H above it), which
+    // keeps the motion confined to roughly the clock's vertical extent.
+    const TRAVEL_FACTOR = 1.0; // multiplier on LED-height for each side
+    function chapterTranslateAt(progressVh: number, i: number): number {
+      const [a, _b, _c, d] = FADES[i];
+      const h = currentLedHeight || 400;
+      const t = Math.max(0, Math.min(1, (progressVh - a) / (d - a)));
+      return (1 - 2 * t) * TRAVEL_FACTOR * h;
+    }
+
+    // Animation loop: at every frame, compute opacities, pick the active
+    // chapter (highest opacity), paint its current pixogram frame onto
+    // the canvas. Frame-stepping is fps-throttled per pixogram.
+    const ctx = led?.getContext('2d') ?? null;
+    let lastFrameTs = 0;
+    let frameCounter = 0;
+    let activeIdx = -1;
+    function loop(now: number): void {
+      // Compute current scroll progress (in vh).
+      const rect = target.getBoundingClientRect();
+      const progressVh = -rect.top / window.innerHeight * 100;
+
+      // Per-chapter opacity + translateY, plus sum for canvas mask.
+      let sum = 0;
+      let bestOpacity = -1;
+      let bestIdx = -1;
+      for (let i = 0; i < chapterMeta.length; i++) {
+        const o = chapterOpacityAt(progressVh, i);
+        const ty = chapterTranslateAt(progressVh, i);
+        chapterMeta[i].el.style.opacity = String(o);
+        chapterMeta[i].el.style.transform = `translateY(${ty}px)`;
+        sum += o;
+        if (o > bestOpacity) { bestOpacity = o; bestIdx = i; }
+      }
+      if (led) led.style.opacity = String(Math.min(1, sum));
+
+      // Switch the displayed pixogram if the active chapter changed.
+      if (bestIdx !== activeIdx) {
+        activeIdx = bestIdx;
+        frameCounter = 0;
+        lastFrameTs = now;
+      }
+
+      // Advance & paint at the active chapter's fps.
+      if (activeIdx >= 0 && bestOpacity > 0.01 && led && ctx) {
+        const meta = chapterMeta[activeIdx];
+        const pix = pixCache.get(meta.file);
+        if (pix) {
+          const intervalMs = 1000 / meta.fps;
+          if (now - lastFrameTs >= intervalMs) {
+            frameCounter += 1;
+            lastFrameTs = now - ((now - lastFrameTs) % intervalMs);
+          }
+          const frame = pix.frames[frameCounter % pix.frames.length];
+          renderRgbPhotoreal(led, frame, pix.width, pix.height);
+        }
+      }
+
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    // ── Act badge ──────────────────────────────────────────────────────
     const badgeNum = page.querySelector<HTMLElement>('[data-op5-badge-num]');
     const badgeName = page.querySelector<HTMLElement>('[data-op5-badge-name]');
     if (badgeNum && badgeName) {
-      // Thresholds in "viewport heights of scroll" (so 0.75 = scrolled
-      // 75vh, 2 = scrolled 200vh, etc.). Match the spacer geometry:
-      // spacer is 400vh tall → max progress ≈ 4.
+      // Thresholds in "viewport heights of scroll", matched to the 700vh
+      // spacer geometry (max progress ≈ 7).
       const acts: Array<[number, string, string]> = [
-        // [endViewports exclusive, number, name]
         [0.75, '1', 'Hero out'],
-        [2,    '2', 'Clock'],
-        [3,    '3', 'Variants slide'],
-        [4,    '4', 'Unpin'],
+        [1.75, '2', 'Chapter 1'],
+        [2.75, '3', 'Chapter 2'],
+        [3.75, '4', 'Chapter 3'],
+        [4.75, '5', 'Chapter 4'],
+        [6,    '6', 'Variants slide'],
+        [7,    '7', 'Unpin'],
       ];
       let last = -1;
       let raf = 0;
       const update = () => {
         raf = 0;
         const rect = target.getBoundingClientRect();
-        // doc scroll since the spacer's top entered the viewport top, in
-        // multiples of viewport height.
         const progress = -rect.top / window.innerHeight;
-        let idx = acts.length; // post = beyond last act
+        let idx = acts.length;
         for (let i = 0; i < acts.length; i++) {
           if (progress < acts[i][0]) { idx = i; break; }
         }
@@ -159,6 +376,12 @@ const s = t(locale);
     background: #0a0a0a;
     color: #fff;
     font-family: 'Inter Tight', -apple-system, system-ui, Helvetica, Arial, sans-serif;
+
+    /* Tunable: how far from the left edge the chapter eyebrow/title/body
+       starts. Hero title sits at `padding-left: var(--pad-x)` (= 160px),
+       so the chapter sits slightly to the RIGHT of it. Adjust the
+       additive offset to move chapters left/right. */
+    --op5-chapter-left: calc(var(--pad-x) + 80px);
   }
 
   /* Dev act indicator: pinned to top-right, always above everything. */
@@ -200,20 +423,21 @@ const s = t(locale);
   }
 
   /* === Scroll spacer + sticky hero ========================================
-     Spacer is 4× viewport, splitting the choreography into four 1vh acts:
-       Act 1 (0–100vh):    title scrolls out at natural page speed,
-                           background dims to fully black
-       Act 2 (100–200vh):  black wall — hero pinned, nothing else moves
-                           (the deliberate "delay" before new content)
-       Act 3 (200–300vh):  Variants slides up from below over the still-
-                           pinned blacked-out hero
-       Act 4 (300–400vh):  hero un-pins (sticky container ran out), Variants
-                           continues in normal flow
-     Sticky un-pins at containerHeight − stickyHeight = 400vh − 100vh =
-     300vh, which is exactly where Act 4 begins. */
+     Spacer is 7× viewport. Act layout (all in vh of doc scroll):
+       Act 1 (0–75):     title scrolls out, bg dims to 0.3, clock fades in
+       Act 2 (75–175):   chapter 1 (Our Tiny Sailboat) on the LED canvas
+       Act 3 (175–275):  chapter 2 (Colour Wheel Dynamic)
+       Act 4 (275–375):  chapter 3 (Mythen)
+       Act 5 (375–475):  chapter 4 (Game of Life)
+       Act 6 (475–600):  short hold then Variants slides up over pinned hero
+                         (Variants top is at doc-y 600 via -100vh margin)
+       Act 7 (600–700):  hero un-pins (containerHeight − stickyHeight
+                         = 700 − 100 = 600), both move together
+     Adjacent chapter fades overlap by 25vh on each boundary, producing a
+     smooth crossfade through the LED canvas + text panel. */
   .op5-hero-scroll {
     position: relative;
-    height: 400vh;
+    height: 700vh;
     z-index: 1;
   }
   /* Sticky wrapper sits OUTSIDE the hero section. Keeping it separate
@@ -285,7 +509,7 @@ const s = t(locale);
   }
   :global(.op5-page .hero__inner) {
     position: relative;
-    z-index: 1;
+    z-index: 3;
     width: 100%;
     padding-top: 120px;
     padding-bottom: 80px;
@@ -305,14 +529,80 @@ const s = t(locale);
     :global(.op5-page .hero__inner) { padding-top: 96px; padding-bottom: 48px; }
   }
 
-  /* Variants slides UP over the still-pinned (and now fully blacked-out)
-     hero. With a 400vh spacer, its natural doc position is doc-y 400vh.
-     `margin-top: -100vh` brings the top up to doc-y 300vh — that's the
-     start of Act 3 (one viewport AFTER the blackout finished, giving the
-     deliberate dark-wall delay the user asked for). It enters from the
-     bottom of the viewport at doc scroll 200vh and reaches the viewport
-     top at scroll 300vh, exactly when the hero begins to un-pin. The
-     higher z-index keeps it visually on top during the overlap. */
+  /* LED canvas — absolutely positioned, sized to the rendered LED quad of
+     the hero photo (the JS sets left/top/width/height every resize). The
+     canvas's intrinsic size stays 540×540 (renderRgbPhotoreal handles DPR
+     internally) regardless of how the CSS box is sized. */
+  :global(.op5-page .hero__led) {
+    position: absolute;
+    z-index: 1;
+    pointer-events: none;
+    /* Initial CSS size; JS overrides on layout. Width/height of 0 keeps
+       the canvas invisible until positionLed() has run. */
+    width: 0;
+    height: 0;
+    opacity: 0;
+    will-change: opacity;
+  }
+
+  /* Chapter panel — covers the whole hero; chapters inside are absolutely
+     positioned to align with the LED area on the right and the
+     --op5-chapter-left rail on the left. */
+  :global(.op5-page .hero__chapters) {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    pointer-events: none;
+  }
+  /* Each chapter is positioned at the same X (variable) and Y (top of the
+     LED panel, published by positionLed). All four overlap; JS scrubs
+     opacity and translateY from scroll. The hard-coded `top` fallback
+     keeps the layout sensible BEFORE JS has run (and on browsers without
+     JS). */
+  :global(.op5-page .hero__chapter) {
+    position: absolute;
+    left: var(--op5-chapter-left);
+    width: clamp(280px, 32vw, 440px);
+    top: var(--op5-led-top, clamp(120px, 18vh, 220px));
+    opacity: 0;
+    will-change: opacity, transform;
+  }
+  :global(.op5-page .hero__chapter-eyebrow) {
+    margin: 0 0 0.5rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.78);
+  }
+  :global(.op5-page .hero__chapter-title) {
+    margin: 0 0 0.75rem;
+    font-size: clamp(2rem, 4vw, 3.25rem);
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    color: #fff;
+  }
+  :global(.op5-page .hero__chapter-body) {
+    margin: 0;
+    font-size: clamp(0.95rem, 1.05vw, 1.05rem);
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.86);
+    max-width: 36ch;
+  }
+  @media (max-width: 720px) {
+    :global(.op5-page .hero__chapters) {
+      width: 86%;
+      padding-right: var(--pad-x);
+    }
+  }
+
+  /* Variants slides UP over the still-pinned hero. With a 700vh spacer,
+     its natural doc position is doc-y 700vh; `margin-top: -100vh` brings
+     the top to doc-y 600vh — right at the un-pin moment. It enters the
+     bottom of the viewport at doc scroll 500vh (chapter 4 already done,
+     25vh of hold buffer) and reaches the viewport top at scroll 600vh.
+     The higher z-index keeps it on top of the still-pinned hero during
+     the overlap. */
   :global(.op5-page > section.variants) {
     position: relative;
     z-index: 2;
