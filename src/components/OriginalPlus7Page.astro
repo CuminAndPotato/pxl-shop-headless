@@ -15,12 +15,10 @@ interface Props {
 const { locale } = Astro.props;
 const s = t(locale);
 
-// Story arc — "Was sie alles ist". Six chapters widen the definition of
-// the PXL Clock outwards: clock → light sculpture → storyteller →
-// thinker → furniture → code. Each chapter pairs a fitting pixogram
-// (rendered on the LED canvas overlaid on the hero photo) with the
-// section copy. The optional `glyph` is a small decorative character
-// that floats next to the eyebrow for visual rhythm.
+// Story arc — "Pixel by Pixel". Six chapters walk the reader from
+// "one coloured pixel" through "576 pixels", "a clock", "a stage",
+// "browser simulator", to "the community" — reframing the PXL Clock
+// as a programmable canvas rather than a hardware product.
 interface Chapter {
   slug: string;
   file: string;
@@ -32,56 +30,56 @@ interface Chapter {
 }
 const chapters: Chapter[] = locale === 'de'
   ? [
+      { slug: 'colourwheel',            file: 'colourwheel.pxl',            fps: 5, glyph: '◾',
+        eyebrow: '01 · Anfang',
+        title: 'Es fängt mit einem Pixel an.',
+        body: 'Ein Bildschirm beginnt mit einer Frage: welche Farbe an welcher Stelle? Hier schreibst du die Antwort selbst — in C#, in vier Zeilen.' },
+      { slug: 'colourwheeldynamic',     file: 'colourwheeldynamic.pxl',     fps: 5, glyph: '🟦',
+        eyebrow: '02 · Skalierung',
+        title: 'Aus einem werden 576.',
+        body: '24 × 24. Ein Quadrat. Klein genug, dass jedes Pixel zählt. Groß genug, dass ein Pixel auch mal nichts tun darf.' },
       { slug: 'aroundtheclockcolorful', file: 'aroundtheclockcolorful.pxl', fps: 5, glyph: '⏱',
-        eyebrow: 'Erst einmal',
-        title: 'Sie ist eine Uhr.',
-        body: '576 Pixel, eine neue Sekunde im Sekundentakt. Drei konzentrische Pfade für Stunden, Minuten, Sekunden — gerechnet, nicht aufgezeichnet.' },
-      { slug: 'colourwheeldynamic',     file: 'colourwheeldynamic.pxl',     fps: 5, glyph: '🎨',
-        eyebrow: 'Dann',
-        title: 'Eine Lichtskulptur.',
-        body: 'Wenn keiner zuschaut, hat sie ihre eigenen Ideen. 24 × 24 Felder, ein HSV-Rad, das sich permanent neu sortiert. Farbpalette an der Wand, nebenbei die Sekunde.' },
-      { slug: 'ourtinysailboat',        file: 'ourtinysailboat.pxl',        fps: 5, glyph: '⛵',
-        eyebrow: 'Manchmal',
-        title: 'Eine Geschichten­erzählerin.',
-        body: 'Ein Segelboot, ein Horizont, eine Welle. Pixogramme müssen nicht smart sein. Manchmal reicht ein Bild, das atmet.' },
-      { slug: 'gameoflife',             file: 'gameoflife.pxl',             fps: 5, glyph: '🧠',
-        eyebrow: 'Gelegentlich',
-        title: 'Eine Denkerin.',
-        body: 'Conways Game of Life, live auf 576 Zellen. Jede Generation berechnet die Uhr selbst. Kein Loop, kein Cheat — ein Bildschirm darf auch einfach denken.' },
-      { slug: 'mythen',                 file: 'mythen.pxl',                 fps: 5, glyph: '🪟',
-        eyebrow: 'Immer',
-        title: 'Ein Möbelstück.',
-        body: '27 × 27 × 6 cm. Echtes Glas, Holzrahmen, in Köln gefertigt. Strom rein, WiFi an — den Rest macht sie selbst.' },
-      { slug: 'sailboatopensea',        file: 'sailboatopensea.pxl',        fps: 5, glyph: '⚙',
-        eyebrow: 'Und das alles',
-        title: 'Geschrieben in C#.',
-        body: 'Jedes Pixogramm ist eine kurze C#-Datei. Browser-Simulator, OTA-Updates, NuGet-Library. Open Source, in Köln gebaut, hundert Stück pro Serie.' },
+        eyebrow: '03 · Verwendung',
+        title: 'Aus Pixeln wird eine Uhr.',
+        body: 'Drei konzentrische Pfade: Sekunden, Minuten, Stunden. Die simpelste Implementierung der Welt — und schon hängt da Zeit an der Wand.' },
+      { slug: 'ourtinysailboat',        file: 'ourtinysailboat.pxl',        fps: 5, glyph: '🎭',
+        eyebrow: '04 · Bühne',
+        title: 'Aus der Uhr wird eine Bühne.',
+        body: 'Ein Segelboot ist ein Pixogramm. Eine Bergsilhouette ist eines. Ein Game of Life ist eines. Jeder kann eines schreiben. Auch du.' },
+      { slug: 'gameoflife',             file: 'gameoflife.pxl',             fps: 5, glyph: '⚡',
+        eyebrow: '05 · Workflow',
+        title: 'Browser-Simulator. Hot Reload.',
+        body: 'Du brauchst die Uhr nicht, um anzufangen. Der Simulator zeigt\'s im Browser, live, bei jedem Save. localhost:5001 — dein erstes Pixogramm in fünf Minuten.' },
+      { slug: 'sailboatopensea',        file: 'sailboatopensea.pxl',        fps: 5, glyph: '🤝',
+        eyebrow: '06 · Community',
+        title: 'Open Source. NuGet: Pxl. Discord.',
+        body: 'PXL-JAM — der Community-Hackathon. Hundert Stück pro Serie, Werkstatt in Köln. Library: open. Du, deine C#-Datei, und eine Wand voller Möglichkeiten.' },
     ]
   : [
+      { slug: 'colourwheel',            file: 'colourwheel.pxl',            fps: 5, glyph: '◾',
+        eyebrow: '01 · Origin',
+        title: 'It starts with one pixel.',
+        body: 'A screen begins with a question: which colour goes where? Here you write the answer yourself — in C#, in four lines.' },
+      { slug: 'colourwheeldynamic',     file: 'colourwheeldynamic.pxl',     fps: 5, glyph: '🟦',
+        eyebrow: '02 · Scale',
+        title: 'Then one becomes 576.',
+        body: '24 × 24. A square. Small enough that every pixel matters. Large enough that a pixel is allowed to do nothing, sometimes.' },
       { slug: 'aroundtheclockcolorful', file: 'aroundtheclockcolorful.pxl', fps: 5, glyph: '⏱',
-        eyebrow: 'First of all',
-        title: 'It is a clock.',
-        body: '576 pixels, a new second every second. Three concentric paths for hours, minutes, seconds — computed, not recorded.' },
-      { slug: 'colourwheeldynamic',     file: 'colourwheeldynamic.pxl',     fps: 5, glyph: '🎨',
-        eyebrow: 'Then',
-        title: 'A light sculpture.',
-        body: 'When no one is watching it has ideas of its own. 24 × 24 cells, an HSV wheel that keeps reshuffling itself — a wall palette that happens to know the second.' },
-      { slug: 'ourtinysailboat',        file: 'ourtinysailboat.pxl',        fps: 5, glyph: '⛵',
-        eyebrow: 'Sometimes',
-        title: 'A storyteller.',
-        body: 'A boat, a horizon, a wave. Pixograms do not have to be smart. Sometimes a picture that breathes is enough.' },
-      { slug: 'gameoflife',             file: 'gameoflife.pxl',             fps: 5, glyph: '🧠',
-        eyebrow: 'Occasionally',
-        title: 'A thinker.',
-        body: 'Conway\'s Game of Life, running live across 576 cells. Every generation is computed on the device. No loop, no cheat — a screen is allowed to just think.' },
-      { slug: 'mythen',                 file: 'mythen.pxl',                 fps: 5, glyph: '🪟',
-        eyebrow: 'Always',
-        title: 'A piece of furniture.',
-        body: '27 × 27 × 6 cm. Real glass, wooden frame, made in Cologne. Plug in, connect Wi-Fi — the clock does the rest.' },
-      { slug: 'sailboatopensea',        file: 'sailboatopensea.pxl',        fps: 5, glyph: '⚙',
-        eyebrow: 'And all of it',
-        title: 'Written in C#.',
-        body: 'Every pixogram is a short C# file. Browser simulator, OTA updates, NuGet library. Open source, built in Cologne, a hundred units per run.' },
+        eyebrow: '03 · Use',
+        title: 'Pixels turn into a clock.',
+        body: 'Three concentric paths: seconds, minutes, hours. The simplest implementation in the world — and suddenly there is time on the wall.' },
+      { slug: 'ourtinysailboat',        file: 'ourtinysailboat.pxl',        fps: 5, glyph: '🎭',
+        eyebrow: '04 · Stage',
+        title: 'The clock becomes a stage.',
+        body: 'A sailboat is a pixogram. A mountain silhouette is one. A Game of Life is one. Anyone can write one. So can you.' },
+      { slug: 'gameoflife',             file: 'gameoflife.pxl',             fps: 5, glyph: '⚡',
+        eyebrow: '05 · Workflow',
+        title: 'Browser simulator. Hot reload.',
+        body: 'You don\'t need the clock to start. The simulator shows it in the browser, live, on every save. localhost:5001 — your first pixogram in five minutes.' },
+      { slug: 'sailboatopensea',        file: 'sailboatopensea.pxl',        fps: 5, glyph: '🤝',
+        eyebrow: '06 · Community',
+        title: 'Open source. NuGet: Pxl. Discord.',
+        body: 'PXL-JAM — the community hackathon. A hundred units per run, workshop in Cologne. Library: open. You, your C# file, and a wall full of possibilities.' },
     ];
 ---
 

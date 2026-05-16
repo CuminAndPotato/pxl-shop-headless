@@ -18,6 +18,8 @@ import OriginalPlus2Page from './OriginalPlus2Page.astro';
 import OriginalPlus3Page from './OriginalPlus3Page.astro';
 import OriginalPlus4Page from './OriginalPlus4Page.astro';
 import OriginalPlus5Page from './OriginalPlus5Page.astro';
+import OriginalPlus6Page from './OriginalPlus6Page.astro';
+import OriginalPlus7Page from './OriginalPlus7Page.astro';
 
 // === Single source of truth: layout slug → Astro component =================
 // Adding a new variant is now a TWO-file change: register in page-variants.ts
@@ -39,6 +41,8 @@ const LAYOUT_COMPONENTS = {
   plus3:      OriginalPlus3Page,
   plus4:      OriginalPlus4Page,
   plus5:      OriginalPlus5Page,
+  plus6:      OriginalPlus6Page,
+  plus7:      OriginalPlus7Page,
 } as const;
 
 interface Props {
