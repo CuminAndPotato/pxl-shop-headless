@@ -15,12 +15,19 @@ interface Props {
 const { locale } = Astro.props;
 const s = t(locale);
 
-// Story arc — "Was sie alles ist". Six chapters widen the definition of
-// the PXL Clock outwards: clock → light sculpture → storyteller →
-// thinker → furniture → code. Each chapter pairs a fitting pixogram
-// (rendered on the LED canvas overlaid on the hero photo) with the
-// section copy. The optional `glyph` is a small decorative character
-// that floats next to the eyebrow for visual rhythm.
+// All five scroll-story arcs live here. The user picks one via the
+// Story panel (top-center floating UI); selection is persisted to
+// localStorage and re-read on page load. Every story's chapters are
+// rendered into the DOM and tagged with `data-story`; CSS hides
+// chapters whose `data-story` doesn't match the active one, and the JS
+// builds chapterMeta only from the visible set.
+//
+// Editing notes
+//   • Each chapter is rendered as: eyebrow · glyph · title · body
+//   • Bodies are 3–5 sentences. Concrete nouns; no jargon.
+//   • Every story ends in a CTA chapter — Mk1, €299 (RONALD = €274),
+//     pxlclock.com, Discord, GitHub. Product knowledge → action.
+//   • Glyphs are decorative emoji; CSS adds a subtle float animation.
 interface Chapter {
   slug: string;
   file: string;
@@ -30,59 +37,368 @@ interface Chapter {
   body: string;
   glyph?: string;
 }
-const chapters: Chapter[] = locale === 'de'
-  ? [
+interface Story {
+  id: string;
+  label: string;
+  blurb: string;
+  chapters: Chapter[];
+}
+const STORIES_DE: Story[] = [
+  {
+    id: 'definition',
+    label: 'Was sie alles ist',
+    blurb: 'Vom Offensichtlichen ins Unerwartete. Sechs Definitionen, ein Produkt.',
+    chapters: [
       { slug: 'aroundtheclockcolorful', file: 'aroundtheclockcolorful.pxl', fps: 5, glyph: '⏱',
         eyebrow: 'Erst einmal',
         title: 'Sie ist eine Uhr.',
-        body: '576 Pixel, eine neue Sekunde im Sekundentakt. Drei konzentrische Pfade für Stunden, Minuten, Sekunden — gerechnet, nicht aufgezeichnet.' },
+        body: 'Drei konzentrische Pfade, 576 LEDs, ein neuer Frame pro Sekunde. Stunden, Minuten, Sekunden — gerechnet, nicht aufgezeichnet. Sie kennt die Zeit nicht: sie berechnet sie alle 200 ms direkt auf dem Gerät. Kein Tick, keine Zeiger. Aber doch unmissverständlich eine Uhr.' },
       { slug: 'colourwheeldynamic',     file: 'colourwheeldynamic.pxl',     fps: 5, glyph: '🎨',
-        eyebrow: 'Dann',
+        eyebrow: 'Dann auch',
         title: 'Eine Lichtskulptur.',
-        body: 'Wenn keiner zuschaut, hat sie ihre eigenen Ideen. 24 × 24 Felder, ein HSV-Rad, das sich permanent neu sortiert. Farbpalette an der Wand, nebenbei die Sekunde.' },
+        body: 'Wenn keiner zuschaut, hat sie eigene Ideen. 24 × 24 Felder werden zu einem HSV-Farbrad, das sich permanent neu sortiert — ein kleines, lebendiges Gemälde an der Wand. Sie zeigt nebenbei, dass es 19:42 Uhr ist. Falls jemand fragt.' },
       { slug: 'ourtinysailboat',        file: 'ourtinysailboat.pxl',        fps: 5, glyph: '⛵',
         eyebrow: 'Manchmal',
         title: 'Eine Geschichten­erzählerin.',
-        body: 'Ein Segelboot, ein Horizont, eine Welle. Pixogramme müssen nicht smart sein. Manchmal reicht ein Bild, das atmet.' },
+        body: 'Ein Segelboot, ein Horizont, eine Welle, die immer wiederkommt. 24 × 24 Pixel reichen für eine Landschaft. Pixogramme müssen nicht „smart“ sein — manchmal genügt ein Bild, das atmet, und dein Kopf erzählt sich den Rest dazu. Die schönste Anwendung von 576 LEDs ist oft die ruhigste.' },
       { slug: 'gameoflife',             file: 'gameoflife.pxl',             fps: 5, glyph: '🧠',
         eyebrow: 'Gelegentlich',
         title: 'Eine Denkerin.',
-        body: 'Conways Game of Life, live auf 576 Zellen. Jede Generation berechnet die Uhr selbst. Kein Loop, kein Cheat — ein Bildschirm darf auch einfach denken.' },
+        body: 'Conways Game of Life, live auf 576 Zellen. Jede Generation berechnet die Uhr selbst, in C#, auf dem Raspberry Pi im Rahmen. Kein vorab gerendertes Video, kein Loop, kein Cheat — ein Bildschirm darf auch einfach denken. Sie tut es leise, im Hintergrund, manchmal die ganze Nacht.' },
       { slug: 'mythen',                 file: 'mythen.pxl',                 fps: 5, glyph: '🪟',
-        eyebrow: 'Immer',
+        eyebrow: 'Aber immer',
         title: 'Ein Möbelstück.',
-        body: '27 × 27 × 6 cm. Echtes Glas, Holzrahmen, in Köln gefertigt. Strom rein, WiFi an — den Rest macht sie selbst.' },
-      { slug: 'sailboatopensea',        file: 'sailboatopensea.pxl',        fps: 5, glyph: '⚙',
-        eyebrow: 'Und das alles',
-        title: 'Geschrieben in C#.',
-        body: 'Jedes Pixogramm ist eine kurze C#-Datei. Browser-Simulator, OTA-Updates, NuGet-Library. Open Source, in Köln gebaut, hundert Stück pro Serie.' },
-    ]
-  : [
+        body: '27 × 27 × 6 cm, 2 kg. Echtes Glas, Holzrahmen, in Köln handgefertigt. Sie hängt an der Wand oder steht auf dem Regal — und sieht ausgeschaltet so gut aus wie eingeschaltet. Strom rein, WiFi an: den Rest macht sie selbst. Updates kommen per OTA, neue Pixogramme über die App.' },
+      { slug: 'colourwheelrandom',      file: 'colourwheelrandom.pxl',      fps: 5, glyph: '⚙',
+        eyebrow: 'Programmierbar in C#',
+        title: 'Du schreibst eine Funktion. Sie macht den Rest.',
+        body: 'Jedes der oben gezeigten Bilder ist eine kurze C#-Datei. `GetColor(x, y, step) → Color` — mehr ist die API nicht. Browser-Simulator mit Hot Reload bei jedem Save, VS-Code-Extension v1 mit One-Click-Publish. Du schreibst eine Zeile, der Simulator zeigt sie. Drück Push: sie landet auf der Uhr an deiner Wand.' },
+      { slug: 'sailboatopensea',        file: 'sailboatopensea.pxl',        fps: 5, glyph: '✨',
+        eyebrow: 'Mk1 · €299 · Code RONALD = €274',
+        title: 'Hundert Stück. In Köln gefertigt. Reservier dir eine.',
+        body: 'Die PXL Clock Mk1 wird in einer Serie von hundert Stück bei Cumin & Potato in Köln gefertigt. Versand DHL in 2–4 Werktagen aus Deutschland. App für iOS und Android. NuGet-Library: Pxl. Discord: discord.gg/KDbVdKQh5j. PXL-JAM 2024 — Community-Hackathon, drei Gewinner bekommen je eine Mk1.' },
+    ],
+  },
+  {
+    id: 'daily',
+    label: 'Ein Tag in deinem Zimmer',
+    blurb: '06:42 bis 23:50 — die Uhr als lebendige Präsenz im Raum.',
+    chapters: [
+      { slug: 'letitsnow',              file: 'letitsnow.pxl',              fps: 5, glyph: '🌅',
+        eyebrow: '06:42',
+        title: 'Sie ist das Erste, was du siehst.',
+        body: 'Du wachst auf, drehst dich um. Sie zeigt die Zeit in einem ruhigen Blauton, ohne Klingelton, ohne Schreckstart. Du musst noch nicht aufstehen — aber sie wartet schon. Geduldig, leise, dimmbar. Wenn der erste Sonnenstrahl durchs Fenster kommt, wird sie heller.' },
+      { slug: 'colourwheel',            file: 'colourwheel.pxl',            fps: 5, glyph: '☀',
+        eyebrow: '10:15',
+        title: 'Du arbeitest. Sie leuchtet leise.',
+        body: 'Konzentration. Sie weiß, wann sie sich zurückhalten soll. Farben, die nicht stören. Sekunden, die du nicht hörst. Das Farbrad sortiert sich um, irgendwann wirfst du einen Blick rüber, denkst „schon halb elf“, machst weiter.' },
+      { slug: 'mythen',                 file: 'mythen.pxl',                 fps: 5, glyph: '🏔',
+        eyebrow: '13:30',
+        title: 'Mittagspause. Du schaust auf.',
+        body: 'Eine Bergsilhouette, ein Himmel, der sich verfärbt. Eine kurze Reise nach drüben, ohne Fernreise. 24 × 24 Pixel sind genug für eine Landschaft — wenn man bereit ist, hinzuschauen, statt zu zappen.' },
+      { slug: 'sailboatopensea',        file: 'sailboatopensea.pxl',        fps: 5, glyph: '⛵',
+        eyebrow: '17:00',
+        title: 'Feierabend. Sie wird verspielter.',
+        body: 'Du lehnst dich zurück. Sie zeigt ein Segelboot auf offener See, einen 24-Sekunden-Tag-Nacht-Zyklus. Du musst es nicht erklären — dein Kopf erzählt sich die Geschichte selbst. So funktionieren die schönen Dinge: sie geben dir gerade genug, damit du den Rest dazudenkst.' },
+      { slug: 'colordiamond',           file: 'colordiamond.pxl',           fps: 5, glyph: '🎉',
+        eyebrow: '20:45',
+        title: 'Freunde sind da. „Was IST das?“',
+        body: 'Sie ist Gesprächsanlass. Nested Rectangles, eine Sekunde am Rand, drei Leute drum herum. „Eine Uhr.“ — „Und was zeigt die da gerade?“ — „Conways Game of Life.“ — „Du programmierst die?“ — „Ja, in C#, fünf Zeilen.“ Sie macht die Konversation für dich.' },
+      { slug: 'gameoflife',             file: 'gameoflife.pxl',             fps: 5, glyph: '🌙',
+        eyebrow: '23:50',
+        title: 'Du gehst schlafen. Sie denkt weiter.',
+        body: 'Leise, im Dunkeln. Conways Game of Life, Zelle für Zelle, eine neue Generation alle 200 ms. Du musst sie nicht ausschalten — sie weiß Bescheid, dimmt sich von alleine, wechselt um Mitternacht ins Nacht-Pixogramm. Du schläfst ein. Sie macht weiter. 60 Watt, 576 kleine Feuer.' },
+      { slug: 'aroundtheclockcolorful', file: 'aroundtheclockcolorful.pxl', fps: 5, glyph: '❤',
+        eyebrow: 'Hängt da. Atmet. Mk1 · €299',
+        title: 'Stell sie hin. Sie kümmert sich um den Rest.',
+        body: 'Die PXL Clock kommt aus Köln, von Cumin & Potato GmbH. €299, mit Code RONALD €274. WiFi-Setup unter einer Minute, App für iOS und Android. Hundert Stück pro Serie — näher an einer Möbel-Edition als an einem Gadget. pxlclock.com, Versand DHL 2-4 Tage.' },
+    ],
+  },
+  {
+    id: 'campfire',
+    label: '576 kleine Feuer',
+    blurb: 'Slow-Tech-Erzählung. Ein 60-Watt-Lagerfeuer, kein Bildschirm.',
+    chapters: [
+      { slug: 'fireplace',              file: 'fireplace.pxl',              fps: 5, glyph: '🔥',
+        eyebrow: 'Erstmal anders denken',
+        title: 'Sie ist kein Bildschirm.',
+        body: '576 LEDs, einzeln ansteuerbar, hinter echtem Glas. Kein 4K, keine Streaming-App, kein Algorithmus, der dich runterscrollen lässt. Eine Wand mit Licht — näher an einer Kerze als an einem Monitor. „576 kleine Feuer“ haben wir mal jemanden sagen hören. Wir fanden, das stimmt.' },
+      { slug: 'ourtinysailboat',        file: 'ourtinysailboat.pxl',        fps: 5, glyph: '🪟',
+        eyebrow: 'Sie kämpft nicht um deine Aufmerksamkeit',
+        title: 'Sie macht nichts auf Push.',
+        body: 'Keine Benachrichtigungen. Kein „Schau hier, klick mich, scroll runter“. Sie zeigt, was sie zeigt — ein Pixogramm, eine Uhr, vielleicht eine Landschaft. Wenn du wegguckst, bemerkt sie es nicht. Wenn du hinguckst, beeilt sie sich nicht. Sie ist im selben Tempo wie ein Aquarium.' },
+      { slug: 'sailboatopensea',        file: 'sailboatopensea.pxl',        fps: 5, glyph: '🌬',
+        eyebrow: 'Sie atmet',
+        title: 'Manchmal sind 24 Pixel genug.',
+        body: 'Ein Segelboot auf offener See, ein 24-Sekunden-Tag-Nacht-Zyklus. Sonne, Mond, Sterne, ein Pixel wackelt mit dem Wellengang. Es passiert nicht viel. Genau das ist das Schöne. Pixogramme müssen nicht „smart“ sein — manchmal reicht ein Bild, das atmet.' },
+      { slug: 'mythen',                 file: 'mythen.pxl',                 fps: 5, glyph: '🏔',
+        eyebrow: 'Sie macht nichts richtig',
+        title: 'Aber sie macht es schön.',
+        body: 'Eine Bergsilhouette, ein Himmel, der über zehn Minuten den Farbton wechselt. Keine korrekte Bergkette. Keine echte Wetter-API. Nur ein Pixel-Gemälde, das stetig in Bewegung ist und vielleicht ablenkend wirken WÜRDE — wenn nicht die Bewegung so langsam wäre, dass du sie nur im Augenwinkel mitbekommst.' },
+      { slug: 'gameoflife',             file: 'gameoflife.pxl',             fps: 5, glyph: '🌌',
+        eyebrow: 'Sie passt auf',
+        title: 'Auch wenn niemand zuhört.',
+        body: 'Conways Game of Life, live auf 576 Zellen, jede Generation in 200 ms berechnet. Sie hört nicht auf — auch wenn du schläfst. Sie schickt keine Logs an einen Server. Niemand sieht, was sie gerade rechnet, außer du. Sie ist einer der letzten Bildschirme, die nichts an irgendwen melden.' },
+      { slug: 'colourrain',             file: 'colourrain.pxl',             fps: 5, glyph: '⚙',
+        eyebrow: 'Wenn du willst',
+        title: 'Kannst du selbst was schreiben.',
+        body: 'Aber du musst nicht. Die PXL Clock kommt mit Pixogrammen — du musst nie eine Zeile Code anfassen. Wenn du willst, schreibst du dein eigenes — in C#, vier Zeilen, Browser-Simulator. Wenn nicht, hängt sie einfach da und macht ihren Job.' },
+      { slug: 'fireplace',              file: 'fireplace.pxl',              fps: 5, glyph: '❤',
+        eyebrow: 'Hundert Stück. In Köln. Mk1 · €274 mit Code RONALD',
+        title: '576 kleine Feuer, eine Uhr.',
+        body: 'Die PXL Clock Mk1 — €299 regulär, mit Code RONALD €274. 27 × 27 × 6 cm, 2 kg, echtes Glas, in Köln handgefertigt. Open Source auf GitHub (SchlenkR/pxl-clock), NuGet-Library Pxl, Discord-Community. Eine Serie von hundert Stück. Wenn das Konzept dir gefällt, schreib dich für die nächste Charge ein. pxlclock.com.' },
+    ],
+  },
+  {
+    id: 'diva',
+    label: 'Eine Diva, kein Werkstier',
+    blurb: 'Mini Cooper, kein Porsche. Premium ohne Hochnäsigkeit.',
+    chapters: [
+      { slug: 'colourwheel',            file: 'colourwheel.pxl',            fps: 5, glyph: '🍃',
+        eyebrow: 'Vorab',
+        title: 'Sie ist nicht für jeden.',
+        body: 'Es gibt Uhren, die zeigen die Zeit. Es gibt Uhren, die zählen die Schritte. Und es gibt Uhren, die sind ein bisschen wie ein Mini Cooper — kein Porsche. Wenn du eine Uhr willst, die einfach „funktioniert“, dann brauchst du diese hier nicht. Wenn du eine willst, die ein bisschen Charakter mitbringt: lies weiter.' },
+      { slug: 'mythen',                 file: 'mythen.pxl',                 fps: 5, glyph: '📦',
+        eyebrow: 'Was du kriegst',
+        title: 'Ein 27-cm-Quadrat, in Köln gefertigt.',
+        body: '576 LEDs, echtes Glas, Holzrahmen, ein Raspberry Pi im Inneren. Versand DHL aus Köln, Lieferung in 2–4 Werktagen, Wandschraube inklusive. WiFi-Setup in unter einer Minute über die App. Sie macht aus dem Karton nichts Verrücktes — sie zeigt die Zeit. Den Rest entdeckst du.' },
+      { slug: 'ourtinysailboat',        file: 'ourtinysailboat.pxl',        fps: 5, glyph: '🎨',
+        eyebrow: 'Was sie kann',
+        title: 'Pixogramme aus der Community.',
+        body: '576 Felder, eine neue Farbe pro Sekunde. Sie kommt mit einer Auswahl Pixogramme, die wir und die Community geschrieben haben — Segelboote, Bergsilhouetten, Game of Life, ein paar verspielte Farbräder. Du wählst über die App, was sie gerade zeigt. Oder lässt sie automatisch wechseln, wenn dir das lieber ist.' },
+      { slug: 'gameoflife',             file: 'gameoflife.pxl',             fps: 5, glyph: '⚙',
+        eyebrow: 'Was du selbst tun kannst',
+        title: 'Wenn du C# kennst: schreibst du was Eigenes.',
+        body: 'API ist eine einzelne Funktion: `GetColor(x, y, step) → Color`. Vier Zeilen pro Pixogramm. Browser-Simulator mit Hot Reload. VS-Code-Extension v1, kostenlos im Marketplace. Es gibt 17 Tutorial-Apps von „Hello Pixel“ bis „Pixel Access“. Niemand zwingt dich. Aber falls du willst, ist die Tür weit auf.' },
+      { slug: 'colourwheelrandom',      file: 'colourwheelrandom.pxl',      fps: 5, glyph: '🌐',
+        eyebrow: 'Was die anderen machen',
+        title: 'Es gibt eine Community.',
+        body: 'PXL-JAM 2024: ein Hackathon im Rahmen des F# Advent Calendar (Host: Sergey Tihon), drei Gewinner bekommen je eine Mk1. Discord-Server (discord.gg/KDbVdKQh5j) für Pixogramm-Talk. GitHub: SchlenkR/pxl-clock. Hashtag: #pxlclock. Wir sind noch klein. Aber wir sind echt.' },
+      { slug: 'nicosdog',               file: 'nicosdog.pxl',               fps: 5, glyph: '❤',
+        eyebrow: 'Wer wir sind',
+        title: 'Ronald und Sefa, aus Köln.',
+        body: 'Cumin & Potato GmbH. Zwei Leute, ein Werkraum, ein Passion-Project, das mittlerweile groß genug ist, dass wir hundert Stück pro Charge fertigen. Wir sind nicht profitabel. Wir bauen die Mk1 aus Liebe zur Sache. Wenn dir das auch so geht, sind wir uns wahrscheinlich ähnlich.' },
+      { slug: 'aroundtheclock',         file: 'aroundtheclock.pxl',         fps: 5, glyph: '✨',
+        eyebrow: 'Mk1 · €299 · Code RONALD = €25 Rabatt',
+        title: 'Hundert Stück. Reservier dir eine.',
+        body: 'PXL Clock Mk1 — €299 regulär, mit Code RONALD €274. 27 × 27 × 6 cm, 576 LEDs, echtes Glas, in Köln gefertigt, App für iOS + Android, OTA-Updates, NuGet-Library Pxl, VS-Code-Extension v1, Discord-Community. Bestellbar bei pxlclock.com. DHL-Versand in 2–4 Tagen aus Köln.' },
+    ],
+  },
+  {
+    id: 'maker',
+    label: 'Pixel by Pixel',
+    blurb: 'Von einem Pixel bis zur Community. Tech-Story, Maker-Winkel.',
+    chapters: [
+      { slug: 'bootingdot',             file: 'bootingdot.pxl',             fps: 5, glyph: '◾',
+        eyebrow: '01 · Anfang',
+        title: 'Es fängt mit einem Pixel an.',
+        body: 'Jeder Bildschirm beginnt mit einer Frage: welche Farbe an welcher Stelle? Hier schreibst du die Antwort selbst. `GetColor(x, y, step) → Color`. Vier Zeilen C#, eine Funktion pro Pixogramm. Mehr ist die API nicht. Der Browser-Simulator zeigt dir sofort, was dein Pixel macht — bei jedem Save.' },
+      { slug: 'colourwheeldynamic',     file: 'colourwheeldynamic.pxl',     fps: 5, glyph: '🟦',
+        eyebrow: '02 · Skalierung',
+        title: 'Aus einem werden 576.',
+        body: '24 × 24 Pixel. Ein Quadrat, klein genug, dass jedes Pixel zählt — groß genug, dass ein Pixel auch mal nichts tun darf. Es ist eine bewusste Einschränkung: weniger Auflösung, mehr Entscheidung. Was wirklich nötig ist, was nur Lärm wäre.' },
+      { slug: 'aroundtheclockcolorful', file: 'aroundtheclockcolorful.pxl', fps: 5, glyph: '⏱',
+        eyebrow: '03 · Verwendung',
+        title: 'Aus Pixeln wird eine Uhr.',
+        body: 'Drei konzentrische Pfade: Sekunden außen, Minuten dazwischen, Stunden innen. Eine der einfachsten Implementierungen der Welt — und auf einmal hängt da Zeit an der Wand. Du brauchst keine Bibliothek für Time-of-Day, kein NTP. Die Uhr weiß, was sie tut.' },
+      { slug: 'ourtinysailboat',        file: 'ourtinysailboat.pxl',        fps: 5, glyph: '🎭',
+        eyebrow: '04 · Bühne',
+        title: 'Aus der Uhr wird eine Bühne.',
+        body: 'Ein Segelboot ist ein Pixogramm. Eine Bergsilhouette ist eines. Ein Game of Life ist eines. Du schreibst dein eigenes, lädst es per One-Click-Publish auf die Uhr im Wohnzimmer. Browser-Simulator zeigt’s vor, VS-Code-Extension fügt’s hinzu, die App veröffentlicht’s. Drei Klicks, ein Pixogramm.' },
+      { slug: 'gameoflife',             file: 'gameoflife.pxl',             fps: 5, glyph: '⚡',
+        eyebrow: '05 · Workflow',
+        title: 'Browser-Simulator. Hot Reload. VS Code.',
+        body: 'Du brauchst die Uhr nicht, um anzufangen. localhost:5001 startet einen Simulator im Browser — Hot Reload bei jedem Save. Die VS-Code-Extension v1 hat den Simulator eingebaut, plus File-Tree, Run/Stop, One-Click-Publish übers LAN. Dein erstes Pixogramm: in drei Minuten gemacht.' },
+      { slug: 'colourwheelrandom',      file: 'colourwheelrandom.pxl',      fps: 5, glyph: '🤝',
+        eyebrow: '06 · Community',
+        title: 'PXL-JAM. Discord. Open Source.',
+        body: 'Open Source auf GitHub: SchlenkR/pxl-clock. Die Library heißt Pxl auf NuGet. Discord-Community: discord.gg/KDbVdKQh5j. PXL-JAM 2024 — Community-Hackathon, gehostet von Sergey Tihon als Teil des F# Advent Calendar. Drei Gewinner bekommen je eine Mk1. Wenn du C# oder F# schreibst, du gehörst dazu.' },
+      { slug: 'sailboatopensea',        file: 'sailboatopensea.pxl',        fps: 5, glyph: '✨',
+        eyebrow: '07 · CTA · €299 · Code RONALD = €274',
+        title: 'Eine Mk1 reservieren.',
+        body: 'Cumin & Potato GmbH fertigt hundert Stück pro Serie, in Köln. €299, mit Code RONALD €274. App im App Store und bei Google Play. Versand DHL in 2–4 Tagen aus Deutschland. Wenn du Pixogramme schreiben willst: VS-Code-Extension, die Library Pxl, der Discord-Server, der GitHub. Du fängst mit einem Pixel an. Den Rest entdeckst du.' },
+    ],
+  },
+];
+const STORIES_EN: Story[] = [
+  {
+    id: 'definition',
+    label: 'What it actually is',
+    blurb: 'From the obvious to the unexpected. Six definitions, one product.',
+    chapters: [
       { slug: 'aroundtheclockcolorful', file: 'aroundtheclockcolorful.pxl', fps: 5, glyph: '⏱',
         eyebrow: 'First of all',
         title: 'It is a clock.',
-        body: '576 pixels, a new second every second. Three concentric paths for hours, minutes, seconds — computed, not recorded.' },
+        body: 'Three concentric paths, 576 LEDs, a new frame every second. Hours, minutes, seconds — computed, not recorded. It doesn\'t know the time: it recalculates it every 200 ms on the device. No tick, no hands. But undeniably a clock.' },
       { slug: 'colourwheeldynamic',     file: 'colourwheeldynamic.pxl',     fps: 5, glyph: '🎨',
-        eyebrow: 'Then',
+        eyebrow: 'Also',
         title: 'A light sculpture.',
-        body: 'When no one is watching it has ideas of its own. 24 × 24 cells, an HSV wheel that keeps reshuffling itself — a wall palette that happens to know the second.' },
+        body: 'When no one is watching, it has its own ideas. 24 × 24 cells turn into an HSV wheel that keeps reshuffling itself — a small living painting on the wall. It happens to know it is 7:42 PM. If anyone asks.' },
       { slug: 'ourtinysailboat',        file: 'ourtinysailboat.pxl',        fps: 5, glyph: '⛵',
         eyebrow: 'Sometimes',
         title: 'A storyteller.',
-        body: 'A boat, a horizon, a wave. Pixograms do not have to be smart. Sometimes a picture that breathes is enough.' },
+        body: 'A sailboat, a horizon, a wave that keeps coming back. 24 × 24 pixels are enough for a landscape. Pixograms don\'t have to be "smart" — sometimes a quiet picture is enough, and your head fills in the rest. The most beautiful use of 576 LEDs is often the quietest.' },
       { slug: 'gameoflife',             file: 'gameoflife.pxl',             fps: 5, glyph: '🧠',
         eyebrow: 'Occasionally',
         title: 'A thinker.',
-        body: 'Conway\'s Game of Life, running live across 576 cells. Every generation is computed on the device. No loop, no cheat — a screen is allowed to just think.' },
+        body: 'Conway\'s Game of Life, running live across 576 cells. Every generation is computed on the device, in C#, on the Raspberry Pi inside the frame. No prerendered video, no loop, no cheat — a screen is allowed to just think. It does, quietly, sometimes all night.' },
       { slug: 'mythen',                 file: 'mythen.pxl',                 fps: 5, glyph: '🪟',
-        eyebrow: 'Always',
+        eyebrow: 'But always',
         title: 'A piece of furniture.',
-        body: '27 × 27 × 6 cm. Real glass, wooden frame, made in Cologne. Plug in, connect Wi-Fi — the clock does the rest.' },
-      { slug: 'sailboatopensea',        file: 'sailboatopensea.pxl',        fps: 5, glyph: '⚙',
-        eyebrow: 'And all of it',
-        title: 'Written in C#.',
-        body: 'Every pixogram is a short C# file. Browser simulator, OTA updates, NuGet library. Open source, built in Cologne, a hundred units per run.' },
-    ];
+        body: '27 × 27 × 6 cm, 2 kg. Real glass, wooden frame, handcrafted in Cologne. It hangs on the wall or sits on a shelf — and looks as good switched off as it does on. Plug in, connect Wi-Fi: it does the rest. Updates ship OTA, new pixograms ship through the app.' },
+      { slug: 'colourwheelrandom',      file: 'colourwheelrandom.pxl',      fps: 5, glyph: '⚙',
+        eyebrow: 'Programmable in C#',
+        title: 'You write a function. It does the rest.',
+        body: 'Every image above is a short C# file. `GetColor(x, y, step) → Color` — that\'s the whole API. Browser simulator with hot reload on every save, VS Code extension v1 with one-click publish. You write one line, the simulator shows it. Push it — it lands on the clock on your wall.' },
+      { slug: 'sailboatopensea',        file: 'sailboatopensea.pxl',        fps: 5, glyph: '✨',
+        eyebrow: 'Mk1 · €299 · code RONALD = €274',
+        title: 'A hundred units. Made in Cologne. Reserve one.',
+        body: 'The PXL Clock Mk1 is made by Cumin & Potato in Cologne, in a run of one hundred. DHL shipping in 2–4 business days from Germany. iOS and Android apps. NuGet library: Pxl. Discord: discord.gg/KDbVdKQh5j. PXL-JAM 2024 — community hackathon, three winners each get an Mk1.' },
+    ],
+  },
+  {
+    id: 'daily',
+    label: 'A day in your room',
+    blurb: '06:42 to 23:50 — the clock as a living presence in the room.',
+    chapters: [
+      { slug: 'letitsnow',              file: 'letitsnow.pxl',              fps: 5, glyph: '🌅',
+        eyebrow: '06:42',
+        title: 'The first thing you see.',
+        body: 'You wake up, you turn around. It shows the time in a soft blue, no ringtone, no shock. You don\'t have to get up yet — but it\'s already waiting. Patient, quiet, dimmable. When the first sunbeam hits the window, it brightens.' },
+      { slug: 'colourwheel',            file: 'colourwheel.pxl',            fps: 5, glyph: '☀',
+        eyebrow: '10:15',
+        title: 'You work. It glows quietly.',
+        body: 'Focus mode. It knows when to step back. Colours that don\'t distract. Seconds you don\'t hear. The colour wheel keeps reshuffling, eventually you glance over, think "half past ten already", and keep going.' },
+      { slug: 'mythen',                 file: 'mythen.pxl',                 fps: 5, glyph: '🏔',
+        eyebrow: '13:30',
+        title: 'Lunch break. You look up.',
+        body: 'A mountain silhouette, a sky that shifts colour. A brief trip elsewhere, without leaving the room. 24 × 24 pixels are enough for a landscape — if you are willing to look at it instead of scrolling past.' },
+      { slug: 'sailboatopensea',        file: 'sailboatopensea.pxl',        fps: 5, glyph: '⛵',
+        eyebrow: '17:00',
+        title: 'End of the day. It turns playful.',
+        body: 'You lean back. It shows a sailboat on the open sea, a 24-second day-night cycle. You don\'t have to explain it — your head tells the story on its own. Beautiful things work like this: they give you just enough, so you fill in the rest.' },
+      { slug: 'colordiamond',           file: 'colordiamond.pxl',           fps: 5, glyph: '🎉',
+        eyebrow: '20:45',
+        title: 'Friends arrive. "What IS that?"',
+        body: 'It becomes a conversation. Nested rectangles, a second running along the border, three people standing around it. "A clock." — "And what\'s it doing now?" — "Conway\'s Game of Life." — "You programmed it?" — "Yeah, in C#, five lines." It does the conversation for you.' },
+      { slug: 'gameoflife',             file: 'gameoflife.pxl',             fps: 5, glyph: '🌙',
+        eyebrow: '23:50',
+        title: 'You sleep. It keeps thinking.',
+        body: 'Quietly, in the dark. Conway\'s Game of Life, cell by cell, a new generation every 200 ms. You don\'t need to switch it off — it knows, dims itself, switches to the night pixogram at midnight. You fall asleep. It carries on. 60 watts, 576 little fires.' },
+      { slug: 'aroundtheclockcolorful', file: 'aroundtheclockcolorful.pxl', fps: 5, glyph: '❤',
+        eyebrow: 'It hangs there. Breathes. Mk1 · €299',
+        title: 'Put it up. It handles the rest.',
+        body: 'The PXL Clock comes from Cologne, made by Cumin & Potato GmbH. €299, with code RONALD €274. Wi-Fi setup in under a minute, apps for iOS and Android. A hundred units per run — closer to a small furniture edition than a gadget. pxlclock.com, DHL shipping 2–4 days.' },
+    ],
+  },
+  {
+    id: 'campfire',
+    label: '576 little fires',
+    blurb: 'Slow-tech narrative. A 60-watt campfire, not a screen.',
+    chapters: [
+      { slug: 'fireplace',              file: 'fireplace.pxl',              fps: 5, glyph: '🔥',
+        eyebrow: 'Think of it differently',
+        title: 'It is not a screen.',
+        body: '576 LEDs, individually addressable, behind real glass. No 4K, no streaming app, no algorithm to keep you scrolling. A wall of light — closer to a candle than to a monitor. "576 little fires", someone once said. We thought that fits.' },
+      { slug: 'ourtinysailboat',        file: 'ourtinysailboat.pxl',        fps: 5, glyph: '🪟',
+        eyebrow: 'It does not fight for your attention',
+        title: 'Nothing pushes you anywhere.',
+        body: 'No notifications. No "look here, click me, scroll down". It shows what it shows — a pixogram, a clock, maybe a landscape. If you look away, it doesn\'t notice. If you look back, it doesn\'t hurry. It moves at the speed of an aquarium.' },
+      { slug: 'sailboatopensea',        file: 'sailboatopensea.pxl',        fps: 5, glyph: '🌬',
+        eyebrow: 'It breathes',
+        title: 'Sometimes 24 pixels are enough.',
+        body: 'A sailboat on the open sea, a 24-second day-night cycle. Sun, moon, stars, one pixel rocking with the waves. Not much happens. That\'s exactly the point. Pixograms don\'t have to be "smart" — sometimes a picture that breathes is enough.' },
+      { slug: 'mythen',                 file: 'mythen.pxl',                 fps: 5, glyph: '🏔',
+        eyebrow: 'It does nothing right',
+        title: 'But it does it beautifully.',
+        body: 'A mountain silhouette, a sky that shifts colour over ten minutes. Not an accurate mountain range. No real weather API. Just a pixel painting in slow motion that WOULD be distracting — if the motion weren\'t so slow that you only catch it in the corner of your eye.' },
+      { slug: 'gameoflife',             file: 'gameoflife.pxl',             fps: 5, glyph: '🌌',
+        eyebrow: 'It keeps watch',
+        title: 'Even when no one is watching.',
+        body: 'Conway\'s Game of Life, running live across 576 cells, a new generation every 200 ms. It doesn\'t stop — even while you sleep. It doesn\'t send logs to a server. No one sees what it\'s computing except you. It\'s one of the last screens that doesn\'t report anything to anyone.' },
+      { slug: 'colourrain',             file: 'colourrain.pxl',             fps: 5, glyph: '⚙',
+        eyebrow: 'If you want',
+        title: 'You can write your own.',
+        body: 'But you don\'t have to. The PXL Clock ships with pixograms — you never have to touch a line of code. If you want, you write your own — in C#, four lines, browser simulator. If not, it just hangs there and does its job.' },
+      { slug: 'fireplace',              file: 'fireplace.pxl',              fps: 5, glyph: '❤',
+        eyebrow: 'A hundred units. Made in Cologne. Mk1 · €274 with code RONALD',
+        title: '576 little fires, one clock.',
+        body: 'The PXL Clock Mk1 — €299 regular, with code RONALD €274. 27 × 27 × 6 cm, 2 kg, real glass, handcrafted in Cologne. Open source on GitHub (SchlenkR/pxl-clock), NuGet library Pxl, Discord community. A run of one hundred. If the idea fits you, sign up for the next batch. pxlclock.com.' },
+    ],
+  },
+  {
+    id: 'diva',
+    label: 'A diva, not a workhorse',
+    blurb: 'Mini Cooper, not Porsche. Premium without the snobbery.',
+    chapters: [
+      { slug: 'colourwheel',            file: 'colourwheel.pxl',            fps: 5, glyph: '🍃',
+        eyebrow: 'Heads-up',
+        title: 'It is not for everyone.',
+        body: 'There are clocks that tell the time. There are clocks that count your steps. And there are clocks that are a bit like a Mini Cooper — not a Porsche. If you want a clock that just "works", you don\'t need this one. If you want one with a bit of personality: read on.' },
+      { slug: 'mythen',                 file: 'mythen.pxl',                 fps: 5, glyph: '📦',
+        eyebrow: 'What you get',
+        title: 'A 27 cm square, made in Cologne.',
+        body: '576 LEDs, real glass, wooden frame, a Raspberry Pi inside. DHL shipping from Cologne, delivery in 2–4 business days, wall screw included. Wi-Fi setup in under a minute via the app. Out of the box it doesn\'t do anything wild — it tells you the time. The rest you discover.' },
+      { slug: 'ourtinysailboat',        file: 'ourtinysailboat.pxl',        fps: 5, glyph: '🎨',
+        eyebrow: 'What it does',
+        title: 'Pixograms from the community.',
+        body: '576 cells, a new colour every second. It ships with a curated set of pixograms — sailboats, mountain silhouettes, Game of Life, a few playful colour wheels — written by us and the community. Pick what plays via the app. Or let it rotate automatically, if you prefer.' },
+      { slug: 'gameoflife',             file: 'gameoflife.pxl',             fps: 5, glyph: '⚙',
+        eyebrow: 'What you can do yourself',
+        title: 'If you know C#: write your own.',
+        body: 'The API is a single function: `GetColor(x, y, step) → Color`. Four lines per pixogram. Browser simulator with hot reload. VS Code extension v1, free in the Marketplace. 17 tutorial apps from "Hello Pixel" to "Pixel Access". No one is forcing you. But the door is wide open.' },
+      { slug: 'colourwheelrandom',      file: 'colourwheelrandom.pxl',      fps: 5, glyph: '🌐',
+        eyebrow: 'What the others do',
+        title: 'There is a community.',
+        body: 'PXL-JAM 2024: a hackathon as part of the F# Advent Calendar (host: Sergey Tihon), three winners each get an Mk1. Discord (discord.gg/KDbVdKQh5j) for pixogram talk. GitHub: SchlenkR/pxl-clock. Hashtag: #pxlclock. We\'re still small. But we\'re real.' },
+      { slug: 'nicosdog',               file: 'nicosdog.pxl',               fps: 5, glyph: '❤',
+        eyebrow: 'Who we are',
+        title: 'Ronald and Sefa, from Cologne.',
+        body: 'Cumin & Potato GmbH. Two people, one workshop, a passion project that\'s become big enough to ship a hundred units per run. We\'re not profitable. We build the Mk1 because we love it. If that sounds familiar, we probably have something in common.' },
+      { slug: 'aroundtheclock',         file: 'aroundtheclock.pxl',         fps: 5, glyph: '✨',
+        eyebrow: 'Mk1 · €299 · code RONALD = €25 off',
+        title: 'A hundred units. Reserve yours.',
+        body: 'PXL Clock Mk1 — €299 regular, with code RONALD €274. 27 × 27 × 6 cm, 576 LEDs, real glass, made in Cologne, apps for iOS and Android, OTA updates, NuGet library Pxl, VS Code extension v1, Discord community. Order at pxlclock.com. DHL shipping 2–4 days from Cologne.' },
+    ],
+  },
+  {
+    id: 'maker',
+    label: 'Pixel by pixel',
+    blurb: 'From one pixel to a community. Tech story, maker angle.',
+    chapters: [
+      { slug: 'bootingdot',             file: 'bootingdot.pxl',             fps: 5, glyph: '◾',
+        eyebrow: '01 · Origin',
+        title: 'It starts with one pixel.',
+        body: 'Every screen starts with one question: which colour goes where? Here you write the answer yourself. `GetColor(x, y, step) → Color`. Four lines of C#, one function per pixogram. That\'s the whole API. The browser simulator shows your pixel immediately — on every save.' },
+      { slug: 'colourwheeldynamic',     file: 'colourwheeldynamic.pxl',     fps: 5, glyph: '🟦',
+        eyebrow: '02 · Scale',
+        title: 'Then one becomes 576.',
+        body: '24 × 24 pixels. A square, small enough that every pixel matters — large enough that a pixel is allowed to do nothing, sometimes. It\'s a deliberate constraint: less resolution, more decision. What is necessary, what would be noise.' },
+      { slug: 'aroundtheclockcolorful', file: 'aroundtheclockcolorful.pxl', fps: 5, glyph: '⏱',
+        eyebrow: '03 · Use',
+        title: 'Pixels turn into a clock.',
+        body: 'Three concentric paths: seconds outside, minutes between, hours inside. One of the simplest implementations in the world — and suddenly there is time on the wall. You don\'t need a time library, no NTP. The clock knows what it\'s doing.' },
+      { slug: 'ourtinysailboat',        file: 'ourtinysailboat.pxl',        fps: 5, glyph: '🎭',
+        eyebrow: '04 · Stage',
+        title: 'The clock becomes a stage.',
+        body: 'A sailboat is a pixogram. A mountain silhouette is one. A Game of Life is one. You write your own, push it with one click to the clock in the living room. Browser simulator previews it, VS Code extension pulls it in, the app publishes it. Three clicks, one pixogram.' },
+      { slug: 'gameoflife',             file: 'gameoflife.pxl',             fps: 5, glyph: '⚡',
+        eyebrow: '05 · Workflow',
+        title: 'Browser simulator. Hot reload. VS Code.',
+        body: 'You don\'t need the clock to start. localhost:5001 spins up the simulator in the browser — hot reload on every save. The VS Code extension v1 includes the simulator, plus file tree, run/stop, one-click publish over LAN. Your first pixogram: three minutes.' },
+      { slug: 'colourwheelrandom',      file: 'colourwheelrandom.pxl',      fps: 5, glyph: '🤝',
+        eyebrow: '06 · Community',
+        title: 'PXL-JAM. Discord. Open source.',
+        body: 'Open source on GitHub: SchlenkR/pxl-clock. The library is Pxl on NuGet. Discord: discord.gg/KDbVdKQh5j. PXL-JAM 2024 — the community hackathon, hosted by Sergey Tihon as part of the F# Advent Calendar. Three winners each get an Mk1. If you write C# or F#, you\'re part of it.' },
+      { slug: 'sailboatopensea',        file: 'sailboatopensea.pxl',        fps: 5, glyph: '✨',
+        eyebrow: '07 · CTA · €299 · code RONALD = €274',
+        title: 'Reserve an Mk1.',
+        body: 'Cumin & Potato GmbH builds a hundred units per run, in Cologne. €299, with code RONALD €274. Apps in the App Store and on Google Play. DHL shipping 2–4 days from Germany. If you want to write pixograms: VS Code extension, the Pxl library, the Discord, the GitHub. You start with one pixel. The rest you discover.' },
+    ],
+  },
+];
+const stories: Story[] = locale === 'de' ? STORIES_DE : STORIES_EN;
+const DEFAULT_STORY_ID = 'definition';
 ---
 
 {/* Plus⁵ — Hero-only sandbox for Motion (motion.dev).
@@ -167,6 +483,27 @@ const chapters: Chapter[] = locale === 'de'
       </div>
     </div>
   </aside>
+
+  {/* Story switcher — secondary panel pinned to the top-center. Five
+      narrative arcs share the same scroll choreography; pick one and
+      the page reloads with that story's chapters + pixograms wired up.
+      State persists to localStorage (settings.activeStory). */}
+  <aside class="op5-story" data-op5-story>
+    <p class="op5-story__label">{locale === 'de' ? 'Story' : 'Story'}</p>
+    <div class="op5-story__buttons">
+      {stories.map((story) => (
+        <button
+          type="button"
+          class="op5-story__btn"
+          data-op5-story-btn
+          data-story-id={story.id}
+          title={story.blurb}
+        >{story.label}</button>
+      ))}
+    </div>
+    <p class="op5-story__blurb" data-op5-story-blurb></p>
+  </aside>
+
   <div class="op5-hero-scroll" data-op5-scroll>
     <div class="op5-hero-sticky">
     <section class="hero">
@@ -223,11 +560,12 @@ const chapters: Chapter[] = locale === 'de'
       {/* Chapter panel on the left. One container per chapter, all
           absolute-stacked at the same position; opacity is scrubbed by
           scroll position so they cross-fade through. */}
-      <div class="hero__chapters" data-op5-chapters>
-        {chapters.map((c, i) => (
+      <div class="hero__chapters" data-op5-chapters data-active-story={DEFAULT_STORY_ID}>
+        {stories.map((story) => story.chapters.map((c, i) => (
           <div
             class="hero__chapter"
             data-op5-chapter
+            data-story={story.id}
             data-chapter-index={i}
             data-chapter-slug={c.slug}
             data-chapter-file={c.file}
@@ -240,7 +578,7 @@ const chapters: Chapter[] = locale === 'de'
             <h2 class="hero__chapter-title">{c.title}</h2>
             <p class="hero__chapter-body">{c.body}</p>
           </div>
-        ))}
+        )))}
       </div>
       <div class="hero__inner">
         <h1 class="h-display hero__title" data-op5-title>
@@ -288,8 +626,27 @@ const chapters: Chapter[] = locale === 'de'
     const ledWrap = page.querySelector<HTMLElement>('[data-op5-led-wrap]');
     const ledGrid = page.querySelector<HTMLElement>('[data-op5-led-grid]');
     const ledCells = ledGrid ? Array.from(ledGrid.children) as HTMLElement[] : [];
+    // Peek at localStorage for the active story BEFORE the full Settings
+    // block runs (the loop + chapter queries below need to filter by
+    // story-id, but Settings has TDZ rules and isn't declared yet).
+    // CSS already handles the visibility hiding via data-active-story,
+    // and the rAF loop will only walk chapters of the active story.
+    const VALID_STORY_IDS = ['definition', 'daily', 'campfire', 'diva', 'maker'] as const;
+    type StoryId = typeof VALID_STORY_IDS[number];
+    let activeStoryId: StoryId = 'definition';
+    try {
+      const raw = localStorage.getItem('op5-settings-v5');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed.activeStory === 'string' && (VALID_STORY_IDS as readonly string[]).includes(parsed.activeStory)) {
+          activeStoryId = parsed.activeStory as StoryId;
+        }
+      }
+    } catch {}
+    const chaptersHost = page.querySelector<HTMLElement>('[data-op5-chapters]');
+    if (chaptersHost) chaptersHost.dataset.activeStory = activeStoryId;
     const chapterEls = Array.from(
-      page.querySelectorAll<HTMLElement>('[data-op5-chapter]'),
+      page.querySelectorAll<HTMLElement>(`[data-op5-chapter][data-story="${activeStoryId}"]`),
     );
 
     // Act 1 animations (title out, dim in, clock fade in) were previously
@@ -506,6 +863,11 @@ const chapters: Chapter[] = locale === 'de'
        *  coordinate system (CANVAS_BASE = 600). Smaller = tighter
        *  pixels, more "panel-like"; larger = more visible trenches. */
       gridGap: number;
+      /** Selected story arc id (must match one of the entries in the
+       *  `stories` array in the frontmatter). The page's chapter set
+       *  switches with this value — persisted so reloads keep the
+       *  selection. */
+      activeStory: string;
     }
     // v5 schema kept so previous tweaks survive; new fields read as
     // defaults if the stored object pre-dates them.
@@ -520,6 +882,7 @@ const chapters: Chapter[] = locale === 'de'
       cropRight: 0.8,
       cornerTop: 3,
       gridGap: 2,
+      activeStory: 'definition',
     };
     function cloneQuad(q: Quad): Quad {
       return { tl: { ...q.tl }, tr: { ...q.tr }, br: { ...q.br }, bl: { ...q.bl } };
@@ -532,6 +895,7 @@ const chapters: Chapter[] = locale === 'de'
         cropRight: DEFAULT_SETTINGS.cropRight,
         cornerTop: DEFAULT_SETTINGS.cornerTop,
         gridGap: DEFAULT_SETTINGS.gridGap,
+        activeStory: DEFAULT_SETTINGS.activeStory,
       };
     }
     function loadSettings(): Settings {
@@ -552,6 +916,7 @@ const chapters: Chapter[] = locale === 'de'
           cropRight: typeof parsed.cropRight === 'number' ? parsed.cropRight : DEFAULT_SETTINGS.cropRight,
           cornerTop: typeof parsed.cornerTop === 'number' ? parsed.cornerTop : DEFAULT_SETTINGS.cornerTop,
           gridGap: typeof parsed.gridGap === 'number' ? parsed.gridGap : DEFAULT_SETTINGS.gridGap,
+          activeStory: typeof parsed.activeStory === 'string' ? parsed.activeStory : DEFAULT_SETTINGS.activeStory,
         };
       } catch {
         return freshSettings();
@@ -979,6 +1344,48 @@ const chapters: Chapter[] = locale === 'de'
       }, 500);
     }
 
+    // ── Story switcher panel ──────────────────────────────────────────
+    // Persist the click to localStorage, then reload. Reloading is the
+    // simplest way to re-init the rAF loop with the new chapter set —
+    // chapterMeta + lastChStr + FADES are all derived from chapterEls
+    // at script start, and dynamic re-binding would touch too many
+    // closures.
+    const storyPanel = page.querySelector<HTMLElement>('[data-op5-story]');
+    if (storyPanel) {
+      const storyBtns = Array.from(storyPanel.querySelectorAll<HTMLButtonElement>('[data-op5-story-btn]'));
+      const storyBlurb = storyPanel.querySelector<HTMLElement>('[data-op5-story-blurb]');
+      // Story metadata pulled inline so the panel doesn't need to re-import
+      // the frontmatter `stories`. Order/labels match the markup.
+      const STORY_BLURBS: Record<string, string> = {
+        definition: storyBtns.find((b) => b.dataset.storyId === 'definition')?.title ?? '',
+        daily:      storyBtns.find((b) => b.dataset.storyId === 'daily')?.title ?? '',
+        campfire:   storyBtns.find((b) => b.dataset.storyId === 'campfire')?.title ?? '',
+        diva:       storyBtns.find((b) => b.dataset.storyId === 'diva')?.title ?? '',
+        maker:      storyBtns.find((b) => b.dataset.storyId === 'maker')?.title ?? '',
+      };
+      function syncStoryActive(): void {
+        storyBtns.forEach((b) => {
+          b.classList.toggle('is-active', b.dataset.storyId === activeStoryId);
+        });
+        if (storyBlurb) storyBlurb.textContent = STORY_BLURBS[activeStoryId] ?? '';
+      }
+      storyBtns.forEach((b) => {
+        b.addEventListener('click', () => {
+          const next = b.dataset.storyId;
+          if (!next || next === activeStoryId) return;
+          // Read current settings, override activeStory, persist, reload.
+          try {
+            const raw = localStorage.getItem('op5-settings-v5');
+            const parsed = raw ? JSON.parse(raw) : {};
+            parsed.activeStory = next;
+            localStorage.setItem('op5-settings-v5', JSON.stringify(parsed));
+          } catch {}
+          location.reload();
+        });
+      });
+      syncStoryActive();
+    }
+
     // ── Act badge ──────────────────────────────────────────────────────
     const badgeNum = page.querySelector<HTMLElement>('[data-op5-badge-num]');
     const badgeName = page.querySelector<HTMLElement>('[data-op5-badge-name]');
@@ -1072,6 +1479,72 @@ const chapters: Chapter[] = locale === 'de'
   .op5-act-badge [data-op5-badge-name] {
     opacity: 0.85;
   }
+
+  /* === Story switcher panel ==============================================
+     Top-center floating chip with the five story arcs as buttons. The
+     active story is highlighted; clicking another button persists the
+     choice and reloads the page so the new chapter set wires up cleanly
+     (the rAF loop is set up at page init, easier to re-bind via reload
+     than to dynamically rewire chapter elements). */
+  .op5-story {
+    position: fixed;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9998;
+    max-width: 92vw;
+    padding: 8px 12px;
+    background: rgba(10, 12, 18, 0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    color: #fff;
+    font: 12px/1.4 ui-monospace, 'SF Mono', Menlo, monospace;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+  }
+  .op5-story__label {
+    margin: 0;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    opacity: 0.65;
+  }
+  .op5-story__buttons {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .op5-story__btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.8);
+    padding: 5px 11px;
+    font: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .op5-story__btn:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
+  .op5-story__btn.is-active {
+    background: #fff;
+    color: #000;
+    border-color: #fff;
+    font-weight: 700;
+  }
+  .op5-story__blurb {
+    margin: 0;
+    font-size: 11px;
+    opacity: 0.7;
+    text-align: center;
+    max-width: 540px;
+  }
+  .op5-story__blurb:empty { display: none; }
 
   /* === Dev tweak panel ====================================================
      Pinned top-left so it doesn't fight the act badge top-right. Wider so
@@ -1419,6 +1892,18 @@ const chapters: Chapter[] = locale === 'de'
     z-index: 2;
     inset: 0;
     pointer-events: none;
+  }
+  /* Show only chapters whose data-story matches the active story. All
+     other chapters stay in DOM but are display-collapsed so they don't
+     consume rAF cycles or take up layout space. The JS query for the
+     animation loop also filters by [data-story="..."], so collapsed
+     chapters are never visited. */
+  :global(.op5-page .hero__chapters[data-active-story="definition"] .hero__chapter:not([data-story="definition"])),
+  :global(.op5-page .hero__chapters[data-active-story="daily"]      .hero__chapter:not([data-story="daily"])),
+  :global(.op5-page .hero__chapters[data-active-story="campfire"]   .hero__chapter:not([data-story="campfire"])),
+  :global(.op5-page .hero__chapters[data-active-story="diva"]       .hero__chapter:not([data-story="diva"])),
+  :global(.op5-page .hero__chapters[data-active-story="maker"]      .hero__chapter:not([data-story="maker"])) {
+    display: none;
   }
   /* Each chapter is positioned at the same X (--op5-chapter-left) and Y
      (--op5-chapter-top). The Y default puts the chapter roughly in the

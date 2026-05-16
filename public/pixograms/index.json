@@ -4,7 +4,7 @@
   "height": 24,
   "duration": 60,
   "fps": 5,
-  "count": 16,
+  "count": 18,
   "items": [
     {
       "slug": "aroundtheclock",
@@ -180,6 +180,28 @@
       "appType": "Scene",
       "type": "Scene",
       "duration": 60,
+      "fps": 5
+    },
+    {
+      "slug": "fireplace",
+      "file": "fireplace.pxl",
+      "displayName": "Fireplace",
+      "author": "Cumin & Potato",
+      "description": "576 little fires — flickering campfire with warm logs at the bottom",
+      "appType": "Scene",
+      "type": "Scene",
+      "duration": 12,
+      "fps": 5
+    },
+    {
+      "slug": "bootingdot",
+      "file": "bootingdot.pxl",
+      "displayName": "Booting Dot",
+      "author": "Cumin & Potato",
+      "description": "A single pixel grows into a small constellation and collapses back — the \"starts with one pixel\" idea",
+      "appType": "Scene",
+      "type": "Scene",
+      "duration": 12,
       "fps": 5
     }
   ]
