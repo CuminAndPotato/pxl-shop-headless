@@ -428,86 +428,144 @@ const DEFAULT_STORY_ID = 'definition';
       <button type="button" data-op5-tweak-toggle aria-label="Expand">+</button>
     </header>
     <div class="op5-tweak__body">
-      <div class="op5-tweak__row">
-        <span>FPS</span>
-        <output data-op5-tweak-fps>—</output>
+      <div class="op5-tweak__tabs" role="tablist">
+        <button type="button" class="op5-tweak__tab is-active" data-op5-tab="render" role="tab" aria-selected="true">Render</button>
+        <button type="button" class="op5-tweak__tab" data-op5-tab="pacing" role="tab" aria-selected="false">Pacing</button>
+        <button type="button" class="op5-tweak__tab" data-op5-tab="story" role="tab" aria-selected="false">Story</button>
       </div>
-      <div class="op5-tweak__row">
-        <span>Render</span>
-        <div class="op5-tweak__seg" data-op5-tweak-mode>
-          <button type="button" data-mode="photoreal">Photoreal</button>
-          <button type="button" data-mode="flat">Flat</button>
-          <button type="button" data-mode="off">Off</button>
+
+      <div class="op5-tweak__panel" data-op5-tab-panel="render">
+        <div class="op5-tweak__row">
+          <span>FPS</span>
+          <output data-op5-tweak-fps>—</output>
+        </div>
+        <div class="op5-tweak__row op5-tweak__row--column">
+          <span>Render</span>
+          <div class="op5-tweak__styles" data-op5-tweak-cellstyle role="radiogroup" aria-label="Render style">
+            <button type="button" data-style="off" title="Off · panel paints a uniform off tint, no pixogram content">Off</button>
+            <button type="button" data-style="0" title="Lift · vertical multiply, top brightened to ×1.30, bottom dimmed to ×0.80">Lift</button>
+            <button type="button" data-style="1" title="Diag · diagonal multiply, top-left ×1.35, bottom-right ×0.72 (studio light)">Diag</button>
+            <button type="button" data-style="2" title="Bowl · radial multiply, centre lifted ×1.32, edges sunk to ×0.72">Bowl</button>
+            <button type="button" data-style="3" title="Tilt · Bowl with perspective shift — gradient origin walks across the panel">Tilt</button>
+            <button type="button" data-style="13" title="Mid · halfway between Tilt and Smooth (×1.26 / ×0.77, radius 0.78)">Mid</button>
+            <button type="button" data-style="10" title="Smooth · Tilt with lower contrast (×1.20 / ×0.82), wider falloff radius 0.90">Smooth</button>
+            <button type="button" data-style="11" title="Deep · Tilt with higher contrast (×1.45 / ×0.62), tighter focus radius 0.55">Deep</button>
+            <button type="button" data-style="12" title="Wide · Tilt with stronger perspective shift (0.30) — hotspot drift is very visible">Wide</button>
+            <button type="button" data-style="4" title="Rim · bright cell border ×1.22, slightly dimmed body ×0.90 (rim light)">Rim</button>
+            <button type="button" data-style="5" title="Halo · soft radial multiply + axial neighbour-colour bleed">Halo</button>
+            <button type="button" data-style="6" title="Inset · full body, sharp dark band around the border (recessed LED feel)">Inset</button>
+            <button type="button" data-style="7" title="Split · two-tone vertical, top half ×1.20, bottom half ×0.82, steep mid transition">Split</button>
+            <button type="button" data-style="8" title="Soft · gentle radial with perspective, low contrast (×1.12 / ×0.88)">Soft</button>
+            <button type="button" data-style="9" title="Glass · Bowl + diagonal additive sheen strip (the look you liked)">Glass</button>
+          </div>
+        </div>
+        <div class="op5-tweak__row op5-tweak__row--slider">
+          <span>Crop top</span>
+          <input type="range" data-op5-tweak-croptop min="0" max="5" step="0.1">
+          <output data-op5-tweak-croptop-out>0</output>%
+        </div>
+        <div class="op5-tweak__row op5-tweak__row--slider">
+          <span>Crop right</span>
+          <input type="range" data-op5-tweak-cropright min="0" max="5" step="0.1">
+          <output data-op5-tweak-cropright-out>0</output>%
+        </div>
+        <div class="op5-tweak__row op5-tweak__row--slider">
+          <span>Corner top</span>
+          <input type="range" data-op5-tweak-cornertop min="0" max="50" step="1">
+          <output data-op5-tweak-cornertop-out>0</output>px
+        </div>
+        <div class="op5-tweak__row op5-tweak__row--slider">
+          <span>Grid gap</span>
+          <input type="range" data-op5-tweak-gridgap min="0" max="10" step="0.1">
+          <output data-op5-tweak-gridgap-out>2</output>px
+        </div>
+        <fieldset class="op5-tweak__fs">
+          <legend>LED corners (image-px)</legend>
+          <label>TL x <input type="number" data-corner="tl" data-axis="x" step="1"></label>
+          <label>TL y <input type="number" data-corner="tl" data-axis="y" step="1"></label>
+          <label>TR x <input type="number" data-corner="tr" data-axis="x" step="1"></label>
+          <label>TR y <input type="number" data-corner="tr" data-axis="y" step="1"></label>
+          <label>BR x <input type="number" data-corner="br" data-axis="x" step="1"></label>
+          <label>BR y <input type="number" data-corner="br" data-axis="y" step="1"></label>
+          <label>BL x <input type="number" data-corner="bl" data-axis="x" step="1"></label>
+          <label>BL y <input type="number" data-corner="bl" data-axis="y" step="1"></label>
+        </fieldset>
+        <div class="op5-tweak__row">
+          <label class="op5-tweak__check">
+            <input type="checkbox" data-op5-tweak-grippers>
+            Show corner grippers
+          </label>
+        </div>
+        <div class="op5-tweak__actions">
+          <button type="button" data-op5-tweak-reset>Reset</button>
+          <button type="button" data-op5-tweak-copy>Copy</button>
         </div>
       </div>
-      <div class="op5-tweak__row op5-tweak__row--slider">
-        <span>Crop top</span>
-        <input type="range" data-op5-tweak-croptop min="0" max="5" step="0.1">
-        <output data-op5-tweak-croptop-out>0</output>%
-      </div>
-      <div class="op5-tweak__row op5-tweak__row--slider">
-        <span>Crop right</span>
-        <input type="range" data-op5-tweak-cropright min="0" max="5" step="0.1">
-        <output data-op5-tweak-cropright-out>0</output>%
-      </div>
-      <div class="op5-tweak__row op5-tweak__row--slider">
-        <span>Corner top</span>
-        <input type="range" data-op5-tweak-cornertop min="0" max="50" step="1">
-        <output data-op5-tweak-cornertop-out>0</output>px
-      </div>
-      <div class="op5-tweak__row op5-tweak__row--slider">
-        <span>Grid gap</span>
-        <input type="range" data-op5-tweak-gridgap min="0" max="10" step="0.1">
-        <output data-op5-tweak-gridgap-out>2</output>px
-      </div>
-      <fieldset class="op5-tweak__fs">
-        <legend>LED corners (image-px)</legend>
-        <label>TL x <input type="number" data-corner="tl" data-axis="x" step="1"></label>
-        <label>TL y <input type="number" data-corner="tl" data-axis="y" step="1"></label>
-        <label>TR x <input type="number" data-corner="tr" data-axis="x" step="1"></label>
-        <label>TR y <input type="number" data-corner="tr" data-axis="y" step="1"></label>
-        <label>BR x <input type="number" data-corner="br" data-axis="x" step="1"></label>
-        <label>BR y <input type="number" data-corner="br" data-axis="y" step="1"></label>
-        <label>BL x <input type="number" data-corner="bl" data-axis="x" step="1"></label>
-        <label>BL y <input type="number" data-corner="bl" data-axis="y" step="1"></label>
-      </fieldset>
-      <div class="op5-tweak__row">
-        <label class="op5-tweak__check">
-          <input type="checkbox" data-op5-tweak-grippers>
-          Show corner grippers
-        </label>
-      </div>
-      <div class="op5-tweak__actions">
-        <button type="button" data-op5-tweak-reset>Reset</button>
-        <button type="button" data-op5-tweak-copy>Copy</button>
-      </div>
-    </div>
-  </aside>
 
-  {/* Story switcher — secondary panel pinned to the top-center. Five
-      narrative arcs share the same scroll choreography; pick one and
-      the page reloads with that story's chapters + pixograms wired up.
-      State persists to localStorage (settings.activeStory). */}
-  <aside class="op5-story is-collapsed" data-op5-story>
-    <header class="op5-story__head">
-      <span class="op5-story__label">
-        Story · <span class="op5-story__current" data-op5-story-current></span>
-      </span>
-      <button type="button" class="op5-story__toggle" data-op5-story-toggle aria-label="Expand">+</button>
-    </header>
-    <div class="op5-story__body">
-      <div class="op5-story__buttons">
-        {stories.map((story) => (
-          <button
-            type="button"
-            class="op5-story__btn"
-            data-op5-story-btn
-            data-story-id={story.id}
-            title={story.blurb}
-          >{story.label}</button>
-        ))}
+      <div class="op5-tweak__panel is-hidden" data-op5-tab-panel="pacing">
+        <div class="op5-tweak__row op5-tweak__row--slider">
+          <span title="vh, wo Hero KOMPLETT verschwunden ist (Title + Clock-Foto + Dim)">Hero end</span>
+          <input type="range" data-op5-pacing="heroend" min="20" max="150" step="1">
+          <output data-op5-pacing-out="heroend">50</output>vh
+        </div>
+        <div class="op5-tweak__row op5-tweak__row--slider">
+          <span title="vh, wo Akt 1 zentral (REST) liegt — Spacer = Start − Hero end − Text fade">Start</span>
+          <input type="range" data-op5-pacing="start" min="25" max="300" step="1">
+          <output data-op5-pacing-out="start">120</output>vh
+        </div>
+        <div class="op5-tweak__row op5-tweak__row--slider">
+          <span title="Abstand Akt-zu-Akt">Spacing</span>
+          <input type="range" data-op5-pacing="spacing" min="30" max="300" step="1">
+          <output data-op5-pacing-out="spacing">100</output>vh
+        </div>
+        <div class="op5-tweak__row op5-tweak__row--slider">
+          <span title="Länge des Text-Crossfades vor Rest-Position">Text fade</span>
+          <input type="range" data-op5-pacing="textfade" min="0" max="120" step="1">
+          <output data-op5-pacing-out="textfade">30</output>vh
+        </div>
+        <div class="op5-tweak__row op5-tweak__row--slider">
+          <span title="0 = Activation am Fade-In-Start, 0.5 = mid-fade (~50% Opazität), 1 = Activation = Rest (voll sichtbar)">Activation</span>
+          <input type="range" data-op5-pacing="activation" min="0" max="1" step="0.05">
+          <output data-op5-pacing-out="activation">0.5</output>
+        </div>
+        <div class="op5-tweak__row op5-tweak__row--slider">
+          <span title="Dauer des Pixogramm-Crossfades">Pix transition</span>
+          <input type="range" data-op5-pacing="pixtransition" min="1" max="80" step="1">
+          <output data-op5-pacing-out="pixtransition">20</output>vh
+        </div>
+        <div class="op5-tweak__row op5-tweak__row--slider">
+          <span title="Pixogramm-Transition ist X vh VOR der nächsten Activation fertig">Pix margin</span>
+          <input type="range" data-op5-pacing="pixmargin" min="-40" max="80" step="1">
+          <output data-op5-pacing-out="pixmargin">10</output>vh
+        </div>
+        <div class="op5-tweak__row op5-tweak__row--slider">
+          <span title="Zusätzlicher vh-Abstand nach dem letzten Akt, bevor der nächste Abschnitt (Variants) reinscrollt">Tail hold</span>
+          <input type="range" data-op5-pacing="tailhold" min="0" max="200" step="1">
+          <output data-op5-pacing-out="tailhold">30</output>vh
+        </div>
+        <div class="op5-tweak__actions">
+          <button type="button" data-op5-pacing-reset>Reset</button>
+        </div>
       </div>
-      <p class="op5-story__blurb" data-op5-story-blurb></p>
+
+      <div class="op5-tweak__panel is-hidden" data-op5-tab-panel="story">
+        <div class="op5-tweak__row">
+          <span>Aktiv</span>
+          <strong data-op5-story-current></strong>
+        </div>
+        <div class="op5-tweak__story-buttons">
+          {stories.map((story) => (
+            <button
+              type="button"
+              class="op5-tweak__story-btn"
+              data-op5-story-btn
+              data-story-id={story.id}
+              title={story.blurb}
+            >{story.label}</button>
+          ))}
+        </div>
+        <p class="op5-tweak__story-blurb" data-op5-story-blurb></p>
+      </div>
     </div>
   </aside>
 
@@ -543,24 +601,13 @@ const DEFAULT_STORY_ID = 'definition';
         />
       </picture>
       {/* LED stage — a wrapper div carries the matrix3d transform; the
-          actual LEDs are a 24×24 HTML grid of <div>s. Per frame the JS
-          only sets `--r/--g/--b` CSS custom properties on cells whose
-          colour changed, so the main-thread work is just N setProperty
-          calls (N typically 100–300, NOT 576). The browser handles cell
-          rasterisation + bloom on its compositor/raster thread. */}
-      <div class="hero__led-wrap" data-op5-led-wrap data-front="A" aria-hidden="true">
-        {/* Two stacked grids share one wrap. The JS keeps the BACK slot
-            at opacity 1 (showing the previous pixogram) while the FRONT
-            slot fades 0 → 1 with its new pixogram. After the fade
-            completes, the back drops to 0, hidden behind the front. At
-            no point during the cross-fade is the wrap interior less than
-            fully opaque, so the bg image never shows through. */}
-        <div class="hero__led-grid" data-op5-led-grid data-slot="A" style="opacity: 1">
-          {Array.from({ length: 576 }).map(() => <div class="hero__led-cell"></div>)}
-        </div>
-        <div class="hero__led-grid" data-op5-led-grid data-slot="B" style="opacity: 0">
-          {Array.from({ length: 576 }).map(() => <div class="hero__led-cell"></div>)}
-        </div>
+          actual LEDs are rendered by a single WebGL canvas. The fragment
+          shader paints all 576 cells (per-cell hotspot, gap, rounded
+          corners) and crossfades two slot textures, so the per-frame
+          main-thread cost is one ~1.7 KB texSubImage2D upload + one
+          drawArrays call instead of up to 1728 CSS setProperty calls. */}
+      <div class="hero__led-wrap" data-op5-led-wrap aria-hidden="true">
+        <canvas class="hero__led-canvas" data-op5-led-canvas></canvas>
       </div>
       {/* Corner grippers — visible only when the tweak panel's "Show
           corner grippers" is on. Each gripper is offset diagonally
@@ -576,6 +623,20 @@ const DEFAULT_STORY_ID = 'definition';
       {/* Chapter panel on the left. One container per chapter, all
           absolute-stacked at the same position; opacity is scrubbed by
           scroll position so they cross-fade through. */}
+      {/* Vertical chapter timeline. Seven dots in a column, sitting in
+          the gap between the text panel (left) and the LED projection
+          (right). Each dot = one chapter; the active one is brighter
+          + larger and a thin "progress" line fills upward to the
+          active dot's position. JS updates `is-active` per scroll. */}
+      <div class="hero__timeline" data-op5-timeline aria-hidden="true">
+        <div class="hero__timeline-line"></div>
+        <div class="hero__timeline-line hero__timeline-line--fill" data-op5-timeline-fill></div>
+        {Array.from({ length: 7 }).map((_, i) => (
+          <div class="hero__timeline-dot" data-op5-timeline-dot data-idx={i}>
+            <span class="hero__timeline-num">{i + 1}</span>
+          </div>
+        ))}
+      </div>
       <div class="hero__chapters" data-op5-chapters data-active-story={DEFAULT_STORY_ID}>
         {stories.map((story) => story.chapters.map((c, i) => (
           <div
@@ -607,10 +668,12 @@ const DEFAULT_STORY_ID = 'definition';
 
   <Variants locale={locale} />
 
-  {/* Hidden SVG defs — the bloom filter applied to the LED grid in
-      Photoreal mode. feGaussianBlur is GPU-accelerated by modern
-      browsers; feComposite arithmetic adds the blurred copy back on
-      top of the source for an additive halo. */}
+  {/* Hidden SVG defs — additive bloom filter applied to the LED
+      canvas's composite output. With one filter source rect (the canvas
+      itself, already GPU-rasterised by WebGL) and no per-child paint
+      invalidation, the filter cost is fixed per frame and stays on the
+      compositor thread. feComposite arithmetic adds the blurred copy
+      back on top of the source for a halo. */}
   <svg class="op5-defs" aria-hidden="true" focusable="false">
     <defs>
       <filter id="op5-led-bloom" x="-25%" y="-25%" width="150%" height="150%">
@@ -623,12 +686,74 @@ const DEFAULT_STORY_ID = 'definition';
 
 <script>
   import { parsePxl, type Pixogram } from '../lib/pxl-format';
-  // Canvas-based renderers are no longer used — we paint the LED grid as
-  // 576 HTML divs whose colour is set via CSS custom properties. The
-  // browser does the cell rasterisation and a single SVG feGaussianBlur
-  // filter pass for the bloom halo, all on the compositor/raster thread.
+  // The 24×24 LED panel is rendered by a single WebGL canvas — one draw
+  // call per frame, two slot textures composited in the fragment shader.
+  // See src/lib/pxl-webgl-renderer.ts for the implementation.
+  import { PxlLedRenderer } from '../lib/pxl-webgl-renderer';
   import { cornersToMatrix3d } from '../lib/pxlib-perspective';
   import { url } from '../lib/url';
+  import {
+    computePacing,
+    opacityAt,
+    textTranslatePx,
+    activeIdxAt,
+    type Win,
+  } from '../lib/op5-pacing';
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ▼▼▼  PACING-KNOBS — Scroll-Choreographie für Plus⁵            ▼▼▼
+  // ═══════════════════════════════════════════════════════════════════
+  //
+  // Modell:  Jeder Akt hat genau einen ACTIVATION-Punkt auf der Scroll-
+  // Achse. Bei Akt N's Activation übernimmt der Akt offiziell — Timeline-
+  // Dot springt auf N, Text-Opacity ist 1, Pixogramm zeigt Akt N.
+  //
+  //         Activation 0       Activation 1       Activation 2
+  //              │                  │                  │
+  //   ───────────●──────────────────●──────────────────●──────────  →
+  //              │←──── SPACING ───→│←──── SPACING ───→│
+  //              ↑
+  //              START
+  //
+  // Pro Akt gibt es zwei Bezugspunkte auf der Scroll-Achse:
+  //   REST[i]        = Text-FOKUS (Translation 0, Opazität 1, zentral).
+  //   ACTIVATIONS[i] = wo der Akt offiziell als "aktiv" gilt (Timeline-
+  //                    Dot wechselt, Pixogramm-Crossfade endet hier −
+  //                    abzgl. MARGIN).
+  //
+  // START_VH — doc-scroll vh, wo der Fokus von Akt 1 liegt (= Text
+  //   zentral, 100% sichtbar).
+  //
+  // SPACING_VH — Abstand zwischen aufeinanderfolgenden Fokus-Punkten.
+  //   Groß = viel Scroll zwischen den Akten, klein = schnelle Folge.
+  //
+  // TEXT_FADE_VH — Länge des Text-Crossfades in vh. Der Text fadet die
+  //   letzten TEXT_FADE vor seiner Rest-Position ein (0 → 1) und die
+  //   ersten TEXT_FADE vor der nächsten Rest-Position wieder aus
+  //   (synchron zum Fade-In des nächsten Akts = 1:1-Crossfade).
+  //
+  // ACTIVATION_FRAC — wo im Text-Fade-In die Activation-Linie sitzt:
+  //   0.0 = Activation am Fade-In-Anfang (Text taucht auf, ~0%)
+  //   0.5 = Activation in der Mitte (Text bei ~50% Opazität, im Anflug)
+  //   1.0 = Activation = Rest-Position (Text voll sichtbar, zentral)
+  //
+  // PIXOGRAM_TRANSITION_VH — Dauer des Pixogramm-Crossfades in vh.
+  //
+  // PIXOGRAM_MARGIN_VH — wieviel vh die Pixogramm-Transition VOR der
+  //   nächsten Activation FERTIG ist. 0 = endet exakt auf der Activation,
+  //   positiv = Pixogramm steht schon, wenn der Akt offiziell übernimmt.
+  // ═══════════════════════════════════════════════════════════════════
+  // Defaults; the Tweak panel (Pacing tab) overrides at runtime and
+  // persists via localStorage (settings.pacing.*).
+  let HERO_END_VH = 49;
+  let START_VH = 59;
+  let SPACING_VH = 68;
+  let TEXT_FADE_VH = 41;
+  let ACTIVATION_FRAC = 1;
+  let PIXOGRAM_TRANSITION_VH = 15;
+  let PIXOGRAM_MARGIN_VH = 8;
+  let TAIL_HOLD_VH = 30;
+  // ═══════════════════════════════════════════════════════════════════
 
   const page = document.querySelector<HTMLElement>('[data-op5]');
   if (page) {
@@ -640,13 +765,24 @@ const DEFAULT_STORY_ID = 'definition';
     const dim = page.querySelector<HTMLElement>('[data-op5-dim]');
     const clock = page.querySelector<HTMLElement>('[data-op5-clock]');
     const ledWrap = page.querySelector<HTMLElement>('[data-op5-led-wrap]');
-    // Two stacked grids — slot A is the default front (opacity 1 in
-    // markup); slot B is the back (opacity 0). Chapter swaps cross-fade
-    // by flipping which slot is the front; see repaint().
-    const ledGridA = page.querySelector<HTMLElement>('[data-op5-led-grid][data-slot="A"]');
-    const ledGridB = page.querySelector<HTMLElement>('[data-op5-led-grid][data-slot="B"]');
-    const ledCellsA = ledGridA ? Array.from(ledGridA.children) as HTMLElement[] : [];
-    const ledCellsB = ledGridB ? Array.from(ledGridB.children) as HTMLElement[] : [];
+    // The 24×24 LED panel is a single WebGL canvas driven by PxlLedRenderer.
+    // It holds two slot textures internally; the shader composites them in
+    // a single draw call per frame. See src/lib/pxl-webgl-renderer.ts.
+    //
+    // Construction is wrapped in try/catch so a shader compile/link error
+    // or WebGL-unavailable environment doesn't take the rest of the scroll
+    // experience down with it — title, text crossfades, timeline, dev panel
+    // all keep working even if the LED canvas itself can't be initialised.
+    const ledCanvas = page.querySelector<HTMLCanvasElement>('[data-op5-led-canvas]');
+    let ledRenderer: PxlLedRenderer | null = null;
+    if (ledCanvas) {
+      try {
+        ledRenderer = new PxlLedRenderer(ledCanvas);
+      } catch (e) {
+        console.error('PxlLedRenderer init failed:', e);
+        ledCanvas.style.display = 'none';
+      }
+    }
     // Peek at localStorage for the active story BEFORE the full Settings
     // block runs (the loop + chapter queries below need to filter by
     // story-id, but Settings has TDZ rules and isn't declared yet).
@@ -718,9 +854,6 @@ const DEFAULT_STORY_ID = 'definition';
     let currentLedScale = 1; // viewport-px per image-px (uniform under cover)
     let currentLedHeight = 0; // avg vertical span of the live quad, for chapter motion amplitude
 
-    let dirty = true;
-    let lastPaintedKey = '';
-    function markDirty(): void { dirty = true; lastPaintedKey = ''; }
     let onLedRectChanged: () => void = () => {};
 
     function positionLed(): void {
@@ -762,7 +895,9 @@ const DEFAULT_STORY_ID = 'definition';
       const leftH = viewQuad.bl.y - viewQuad.tl.y;
       const rightH = viewQuad.br.y - viewQuad.tr.y;
       currentLedHeight = (leftH + rightH) / 2;
-      markDirty();
+      // Sync the GL backbuffer size to the canvas's CSS dimensions × DPR.
+      // No-op when nothing changed; cheap enough to call every layout.
+      ledRenderer?.resize();
       onLedRectChanged();
     }
     if (ledWrap) {
@@ -813,41 +948,56 @@ const DEFAULT_STORY_ID = 'definition';
     chapterMeta.forEach((c) => { void loadPx(c.file); });
 
     // ── Chapter timing ─────────────────────────────────────────────────
-    // ▼▼▼ THE pacing knobs — tweak here, FADES is derived from these. ▼▼▼
-    //   CHAPTER_START_VH  doc-scroll vh where ch1's fade-in starts
-    //                     (= end of Act 1, normally 75)
-    //   CHAPTER_FADE_VH   length of each fade-in and fade-out
-    //   CHAPTER_HOLD_VH   how long the chapter is FULLY visible
+    // ACTIVATIONS[i] = scroll-vh where act i is fully active (text at
+    //                  rest position AND opacity 1).
     //
-    //   Per-chapter window  = 2·fade + hold
-    //   Start-to-start dist = fade + hold  (= "how soon does the next
-    //                         chapter start fading in")
+    // TEXT_FADES[i] = [a, b, c, d]:
+    //   a = Activation_i - TEXT_FADE  (fade-in start, opacity 0)
+    //   b = Activation_i              (fade-in end, opacity 1 — REST POS)
+    //   c = Activation_{i+1} - TEXT_FADE  (fade-out start)
+    //   d = Activation_{i+1}          (fade-out end, opacity 0)
     //
-    //   Adjacent chapters overlap by exactly CHAPTER_FADE_VH so the
-    //   fade-out of N coincides 1:1 with the fade-in of N+1 (cross-fade).
+    // Adjacent acts crossfade 1:1 during the last TEXT_FADE before the
+    // next activation: act N ramps 1 → 0 while act N+1 ramps 0 → 1, so
+    // at Activation_{N+1} the new act is fully visible at its rest pos.
     //
-    // TODO responsiveness: on narrow viewports these vh-based windows
-    // map to less actual pixel distance — may feel hectic on mobile.
-    // Future fix: scale via a media query or compute against an
-    // effective-viewport multiplier.
-    const CHAPTER_START_VH = 75;
-    const CHAPTER_FADE_VH = 20;
-    const CHAPTER_HOLD_VH = 30;
-    const CHAPTER_WINDOW_VH = 2 * CHAPTER_FADE_VH + CHAPTER_HOLD_VH;
-    const CHAPTER_STEP_VH = CHAPTER_FADE_VH + CHAPTER_HOLD_VH;
-    const FADES: Array<[number, number, number, number]> = Array.from(
-      { length: chapterMeta.length },
-      (_, i) => {
-        const s = CHAPTER_START_VH + i * CHAPTER_STEP_VH;
-        return [s, s + CHAPTER_FADE_VH, s + CHAPTER_FADE_VH + CHAPTER_HOLD_VH, s + CHAPTER_WINDOW_VH];
-      },
-    );
+    // PIX_FADES[i] = [a, b, c, d]: same shape but shifted so the
+    //   pixogram crossfade ENDS at (Activation_i - MARGIN). With
+    //   MARGIN > 0 the pixogram is already in place before the text
+    //   officially activates.
+    let REST_VHS: number[] = [];
+    let ACTIVATIONS: number[] = [];
+    let TEXT_FADES: Win[] = [];
+    let PIX_FADES: Win[] = [];
+    let HERO_END = 1;
+    let TOTAL_VH = 700;
+    function recomputeFades(): void {
+      const p = computePacing(
+        {
+          heroEndVh: HERO_END_VH,
+          startVh: START_VH,
+          spacingVh: SPACING_VH,
+          textFadeVh: TEXT_FADE_VH,
+          activationFrac: ACTIVATION_FRAC,
+          pixTransitionVh: PIXOGRAM_TRANSITION_VH,
+          pixMarginVh: PIXOGRAM_MARGIN_VH,
+          tailHoldVh: TAIL_HOLD_VH,
+        },
+        chapterMeta.length,
+      );
+      REST_VHS = p.REST_VHS;
+      ACTIVATIONS = p.ACTIVATIONS;
+      TEXT_FADES = p.TEXT_FADES;
+      PIX_FADES = p.PIX_FADES;
+      HERO_END = p.heroEnd;
+      TOTAL_VH = p.totalVh;
+    }
+    recomputeFades();
     function chapterOpacityAt(progressVh: number, i: number): number {
-      const [a, b, c, d] = FADES[i];
-      if (progressVh <= a || progressVh >= d) return 0;
-      if (progressVh >= b && progressVh <= c) return 1;
-      if (progressVh < b) return (progressVh - a) / (b - a);
-      return (d - progressVh) / (d - c);
+      return opacityAt(progressVh, TEXT_FADES[i]);
+    }
+    function chapterPixogramOpacityAt(progressVh: number, i: number): number {
+      return opacityAt(progressVh, PIX_FADES[i]);
     }
     // translateY for the chapter text. Linear interpolation across the
     // ENTIRE window, scaled to MATCH NORMAL PAGE SCROLL SPEED 1:1 — i.e.
@@ -858,21 +1008,19 @@ const DEFAULT_STORY_ID = 'definition';
     // Math: over (d − a) vh of scroll, the user moves the page by
     // (d − a) × vh / 100 px. We translate the text by the same amount,
     // centred so its rest position is at the middle of the window.
-    const TRAVEL_FACTOR = 1.0; // 1.0 = exact 1:1 with page scroll
     function chapterTranslateAt(progressVh: number, i: number): number {
-      const [a, _b, _c, d] = FADES[i];
-      const t = Math.max(0, Math.min(1, (progressVh - a) / (d - a)));
-      const windowVh = d - a;
-      const totalTravelPx = (windowVh * vh / 100) * TRAVEL_FACTOR;
-      return (0.5 - t) * totalTravelPx;
+      return textTranslatePx(progressVh, REST_VHS[i], vh);
     }
 
     // ── Settings (persisted) ───────────────────────────────────────────
-    // Render-mode + LED quad corners are user-tweakable via the dev
+    // Display switch + LED quad corners are user-tweakable via the dev
     // panel. State lives in `settings` and persists to localStorage.
-    type RenderMode = 'photoreal' | 'flat' | 'off';
     interface Settings {
-      mode: RenderMode;
+      /** Master display switch. `false` = the panel renders a uniform
+       *  off tint regardless of pixogram content / cell style.
+       *  Replaced the old 3-way Photoreal/Flat/Off toggle — the cell
+       *  style picker IS the look choice now, this is just on/off. */
+      enabled: boolean;
       quad: Quad;
       /** 0–100. Percent of the LED wrap height that gets clipped off
        *  the top via `clip-path: inset(N% 0 0 0)`. Purely visual; does
@@ -893,34 +1041,65 @@ const DEFAULT_STORY_ID = 'definition';
        *  switches with this value — persisted so reloads keep the
        *  selection. */
       activeStory: string;
+      /** LED cell rendering style — 0..9. Each value selects a different
+       *  CSS gradient pattern for the cell hotspot (Soft Bulb, Pure Dot,
+       *  Backlight, Crystal, Pillow, Hot Core, Frosted, CRT, Matte,
+       *  Wide Glow). Applied via `data-cell-style` on both grid slots. */
+      cellStyle: number;
+      /** Scroll-pacing knobs. Override the defaults declared at the top
+       *  of the script via the Tweak panel's Pacing tab. Stored as a
+       *  nested object so missing fields fall back cleanly. */
+      pacing: {
+        heroEndVh: number;
+        startVh: number;
+        spacingVh: number;
+        textFadeVh: number;
+        activationFrac: number;
+        pixTransitionVh: number;
+        pixMarginVh: number;
+        tailHoldVh: number;
+      };
     }
-    // v5 schema kept so previous tweaks survive; new fields read as
-    // defaults if the stored object pre-dates them.
-    const SETTINGS_KEY = 'op5-settings-v5';
+    // v11: added tailHoldVh — extra scroll padding after the last act's
+    // REST before the next section slides in.
+    const SETTINGS_KEY = 'op5-settings-v11';
     const DEFAULT_SETTINGS: Settings = {
-      mode: 'photoreal',
+      enabled: true,
       quad: {
         tl: { ...DEFAULT_QUAD.tl }, tr: { ...DEFAULT_QUAD.tr },
         br: { ...DEFAULT_QUAD.br }, bl: { ...DEFAULT_QUAD.bl },
       },
       cropTop: 1,
       cropRight: 0.8,
-      cornerTop: 3,
-      gridGap: 2,
+      cornerTop: 4,
+      gridGap: 1.7,
       activeStory: 'definition',
+      cellStyle: 13,
+      pacing: {
+        heroEndVh: HERO_END_VH,
+        startVh: START_VH,
+        spacingVh: SPACING_VH,
+        textFadeVh: TEXT_FADE_VH,
+        activationFrac: ACTIVATION_FRAC,
+        pixTransitionVh: PIXOGRAM_TRANSITION_VH,
+        pixMarginVh: PIXOGRAM_MARGIN_VH,
+        tailHoldVh: TAIL_HOLD_VH,
+      },
     };
     function cloneQuad(q: Quad): Quad {
       return { tl: { ...q.tl }, tr: { ...q.tr }, br: { ...q.br }, bl: { ...q.bl } };
     }
     function freshSettings(): Settings {
       return {
-        mode: DEFAULT_SETTINGS.mode,
+        enabled: DEFAULT_SETTINGS.enabled,
         quad: cloneQuad(DEFAULT_SETTINGS.quad),
         cropTop: DEFAULT_SETTINGS.cropTop,
         cropRight: DEFAULT_SETTINGS.cropRight,
         cornerTop: DEFAULT_SETTINGS.cornerTop,
         gridGap: DEFAULT_SETTINGS.gridGap,
         activeStory: DEFAULT_SETTINGS.activeStory,
+        cellStyle: DEFAULT_SETTINGS.cellStyle,
+        pacing: { ...DEFAULT_SETTINGS.pacing },
       };
     }
     function loadSettings(): Settings {
@@ -930,7 +1109,7 @@ const DEFAULT_STORY_ID = 'definition';
         const parsed = JSON.parse(raw);
         const q = parsed.quad ?? {};
         return {
-          mode: parsed.mode ?? DEFAULT_SETTINGS.mode,
+          enabled: typeof parsed.enabled === 'boolean' ? parsed.enabled : DEFAULT_SETTINGS.enabled,
           quad: {
             tl: { ...DEFAULT_SETTINGS.quad.tl, ...(q.tl ?? {}) },
             tr: { ...DEFAULT_SETTINGS.quad.tr, ...(q.tr ?? {}) },
@@ -942,6 +1121,17 @@ const DEFAULT_STORY_ID = 'definition';
           cornerTop: typeof parsed.cornerTop === 'number' ? parsed.cornerTop : DEFAULT_SETTINGS.cornerTop,
           gridGap: typeof parsed.gridGap === 'number' ? parsed.gridGap : DEFAULT_SETTINGS.gridGap,
           activeStory: typeof parsed.activeStory === 'string' ? parsed.activeStory : DEFAULT_SETTINGS.activeStory,
+          cellStyle: typeof parsed.cellStyle === 'number' ? parsed.cellStyle : DEFAULT_SETTINGS.cellStyle,
+          pacing: {
+            heroEndVh: typeof parsed.pacing?.heroEndVh === 'number' ? parsed.pacing.heroEndVh : DEFAULT_SETTINGS.pacing.heroEndVh,
+            startVh: typeof parsed.pacing?.startVh === 'number' ? parsed.pacing.startVh : DEFAULT_SETTINGS.pacing.startVh,
+            spacingVh: typeof parsed.pacing?.spacingVh === 'number' ? parsed.pacing.spacingVh : DEFAULT_SETTINGS.pacing.spacingVh,
+            textFadeVh: typeof parsed.pacing?.textFadeVh === 'number' ? parsed.pacing.textFadeVh : DEFAULT_SETTINGS.pacing.textFadeVh,
+            activationFrac: typeof parsed.pacing?.activationFrac === 'number' ? parsed.pacing.activationFrac : DEFAULT_SETTINGS.pacing.activationFrac,
+            pixTransitionVh: typeof parsed.pacing?.pixTransitionVh === 'number' ? parsed.pacing.pixTransitionVh : DEFAULT_SETTINGS.pacing.pixTransitionVh,
+            pixMarginVh: typeof parsed.pacing?.pixMarginVh === 'number' ? parsed.pacing.pixMarginVh : DEFAULT_SETTINGS.pacing.pixMarginVh,
+            tailHoldVh: typeof parsed.pacing?.tailHoldVh === 'number' ? parsed.pacing.tailHoldVh : DEFAULT_SETTINGS.pacing.tailHoldVh,
+          },
         };
       } catch {
         return freshSettings();
@@ -951,6 +1141,18 @@ const DEFAULT_STORY_ID = 'definition';
       try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch {}
     }
     const settings: Settings = loadSettings();
+    // Apply pacing overrides from settings to the runtime knobs and
+    // rebuild the FADES table so the loaded values take effect right
+    // away (the panel binds two-way later).
+    HERO_END_VH = settings.pacing.heroEndVh;
+    START_VH = settings.pacing.startVh;
+    SPACING_VH = settings.pacing.spacingVh;
+    TEXT_FADE_VH = settings.pacing.textFadeVh;
+    ACTIVATION_FRAC = settings.pacing.activationFrac;
+    PIXOGRAM_TRANSITION_VH = settings.pacing.pixTransitionVh;
+    PIXOGRAM_MARGIN_VH = settings.pacing.pixMarginVh;
+    TAIL_HOLD_VH = settings.pacing.tailHoldVh;
+    recomputeFades();
     // After loading, point positionLed at the loaded quad by mutating
     // LED_QUAD in place (positionLed already reads from it).
     (['tl', 'tr', 'br', 'bl'] as const).forEach((k) => {
@@ -963,42 +1165,54 @@ const DEFAULT_STORY_ID = 'definition';
     page.style.setProperty('--op5-led-crop-top', settings.cropTop + '%');
     page.style.setProperty('--op5-led-crop-right', settings.cropRight + '%');
     page.style.setProperty('--op5-led-corner-top', settings.cornerTop + 'px');
-    page.style.setProperty('--op5-led-grid-gap', settings.gridGap + 'px');
+    // Grid gap + cell style live as shader uniforms now; push the initial
+    // values into the renderer (the Tweak panel updates them on edit).
+    if (ledRenderer) {
+      ledRenderer.setGridGap(settings.gridGap);
+      ledRenderer.setCellStyle(settings.cellStyle);
+      ledRenderer.setEnabled(settings.enabled);
+    }
 
     // ── Animation loop ─────────────────────────────────────────────────
-    // The canvas paint is the expensive part. We ONLY repaint when the
-    // pixogram's frame index actually advances (fps-throttled) — not on
-    // every rAF — which on a 5fps pixogram cuts paints by ~12×. The rest
-    // of the loop body (opacity + translateY for 4 chapter elements) is
-    // composited and cheap.
-    let lastFrameTs = 0;
-    let frameCounter = 0;
+    // Per-frame work is now: build a 1.7 KB RGB scratch buffer for each
+    // active slot, hand it to the WebGL renderer (which diffs against its
+    // own mirror and skips redundant texSubImage2D uploads), and submit
+    // one drawArrays. The rAF body's expensive parts are the per-chapter
+    // opacity / transform writes, not the LED paint.
     let activeIdx = -1;
-    // Per-cell colour cache — packed rgb (24-bit) for each of the 576
-    // cells, ONE cache per slot. Diff against the new frame so we only
-    // touch the DOM for cells whose colour actually changed.
-    const lastRgbA: Int32Array = new Int32Array(ledCellsA.length);
-    const lastRgbB: Int32Array = new Int32Array(ledCellsB.length);
-    lastRgbA.fill(-1);
-    lastRgbB.fill(-1);
     const OFF_R = 12, OFF_G = 13, OFF_B = 16;
-    // Cross-fade state. `frontSlot` is the visible slot; `frontChapterIdx`
-    // is the chapter that slot is currently rendering. When the active
-    // chapter changes mid-scroll, we paint the new chapter onto the
-    // BACK slot, fade it in (CSS transition), then drop the old slot.
-    let frontSlot: 'A' | 'B' = 'A';
+    // Slot assignment state. Each slot holds the currently-rendered
+    // chapter id (or -1 for unassigned). The two slots crossfade: the
+    // slot holding the dominant chapter (highest opacity) is kept at
+    // opacity 1 underneath; the slot holding the secondary chapter sits
+    // on top with opacity = its raw chapter opacity. Because adjacent
+    // chapter fade windows overlap 1:1 (oA + oB ≈ 1 during a transition),
+    // the opaque underlayer guarantees the wrap is always fully covered.
+    type SlotKey = 'A' | 'B';
+    interface SlotState {
+      chapterIdx: number;
+    }
+    const slots: Record<SlotKey, SlotState> = {
+      A: { chapterIdx: -1 },
+      B: { chapterIdx: -1 },
+    };
+    // Scratch buffer per slot. The chapter's frame bytes go in, dark cells
+    // get rewritten to the OFF tint (so the off-cell background colour
+    // matches the on-cell substrate), then the buffer is uploaded to the
+    // renderer. The renderer keeps its own CPU mirror + diffs against it,
+    // so re-uploading an identical buffer is a cheap no-op.
+    const slotBuf: Record<SlotKey, Uint8Array> = {
+      A: new Uint8Array(576 * 3),
+      B: new Uint8Array(576 * 3),
+    };
+    let frontSlot: SlotKey = 'A';
     let frontChapterIdx = -1;
-    let pendingDropTimer = 0;
-    const CROSSFADE_MS = 320; // matches the CSS transition on .hero__led-grid
 
-    // Mode classes applied to BOTH grids so a swap between slots
-    // mid-mode-change doesn't reveal a stale styling on the back.
-    function applyGridModeClass(): void {
-      [ledGridA, ledGridB].forEach((g) => {
-        if (!g) return;
-        g.classList.toggle('is-flat', settings.mode === 'flat');
-        g.classList.toggle('is-off',  settings.mode === 'off');
-      });
+    // Push the master display switch into the renderer. When disabled
+    // the shader short-circuits to a uniform off tint regardless of
+    // pixogram content or cell style.
+    function applyEnabled(): void {
+      ledRenderer?.setEnabled(settings.enabled);
     }
 
     // Cache target's document-Y so the rAF loop never has to call
@@ -1008,6 +1222,13 @@ const DEFAULT_STORY_ID = 'definition';
     function recomputeTargetDocY(): void {
       targetDocY = target.getBoundingClientRect().top + window.scrollY;
     }
+    // Spacer height: sized so the Variants section can slide in only
+    // AFTER the last act has finished. Updated whenever pacing changes
+    // (see applyPacing). Must come before the initial targetDocY read.
+    function applySpacerHeight(): void {
+      target.style.height = TOTAL_VH + 'vh';
+    }
+    applySpacerHeight();
     recomputeTargetDocY();
     window.addEventListener('resize', recomputeTargetDocY);
 
@@ -1016,6 +1237,15 @@ const DEFAULT_STORY_ID = 'definition';
     // the property setter call on hot paths.
     const lastChStr: Array<{ o: string; t: string }> = chapterMeta.map(() => ({ o: '', t: '' }));
     let lastLedOpacityStr = '';
+    // Timeline state (chapter act indicator)
+    const timelineEl = page.querySelector<HTMLElement>('[data-op5-timeline]');
+    const timelineDots = Array.from(
+      page.querySelectorAll<HTMLElement>('[data-op5-timeline-dot]'),
+    );
+    const timelineFill = page.querySelector<HTMLElement>('[data-op5-timeline-fill]');
+    let lastTimelineActive = -2;
+    let lastTimelineFill = '';
+    let lastTimelineVisible = false;
     // Per-element caches for the Act 1 animations folded into the loop.
     let lastTitleTransform = '';
     let lastTitleOpacity = '';
@@ -1027,99 +1257,102 @@ const DEFAULT_STORY_ID = 'definition';
     let vh = window.innerHeight;
     window.addEventListener('resize', () => { vh = window.innerHeight; });
 
-    // Paint one frame to ONE slot. Used for both normal frame ticks (on
-    // the front slot) and chapter-swap "prepare back slot" calls (on the
-    // soon-to-be-front slot, before flipping).
-    function renderToSlot(slot: 'A' | 'B', frame: Uint8Array): void {
-      const cells = slot === 'A' ? ledCellsA : ledCellsB;
-      const last = slot === 'A' ? lastRgbA : lastRgbB;
-      if (cells.length === 0) return;
-      if (settings.mode === 'off') {
-        for (let i = 0; i < cells.length; i++) {
-          if (last[i] === 0) continue;
-          last[i] = 0;
-          const cell = cells[i];
-          cell.style.setProperty('--r', String(OFF_R));
-          cell.style.setProperty('--g', String(OFF_G));
-          cell.style.setProperty('--b', String(OFF_B));
-        }
-        return;
+    function repaint(progressVh: number, now: number, topA_i: number, topA_o: number, topB_i: number, topB_o: number): void {
+      if (!ledRenderer) return;
+      // Slot (re)assignment: ensure both the dominant chapter (topA) and
+      // the secondary chapter (topB, if any) own a slot. The slot not
+      // currently holding either gets reused for the incoming chapter.
+      const ensureAssigned = (chIdx: number): void => {
+        if (chIdx < 0) return;
+        if (chIdx === slots.A.chapterIdx || chIdx === slots.B.chapterIdx) return;
+        const targetKey: SlotKey =
+          slots.A.chapterIdx === -1 ? 'A'
+          : slots.B.chapterIdx === -1 ? 'B'
+          : (frontSlot === 'A' ? 'B' : 'A');
+        slots[targetKey].chapterIdx = chIdx;
+      };
+      ensureAssigned(topA_i);
+      ensureAssigned(topB_i);
+
+      // Determine which physical slot holds the dominant vs. secondary
+      // chapter. Dominant slot = opacity 1, lies underneath. Secondary
+      // slot = opacity = topB_o (its raw chapter opacity), lies on top.
+      // The opaque underlayer guarantees 100% wrap coverage during the
+      // crossfade.
+      let dominantKey: SlotKey | null = null;
+      let secondaryKey: SlotKey | null = null;
+      if (topA_i >= 0) {
+        dominantKey = slots.A.chapterIdx === topA_i ? 'A' : 'B';
+        secondaryKey = dominantKey === 'A' ? 'B' : 'A';
       }
-      const total = cells.length;
-      for (let i = 0; i < total; i++) {
-        const off = i * 3;
-        const r = frame[off];
-        const g = frame[off + 1];
-        const b = frame[off + 2];
-        const dark = r + g + b < 12;
-        const er = dark ? OFF_R : r;
-        const eg = dark ? OFF_G : g;
-        const eb = dark ? OFF_B : b;
-        const packed = (er << 16) | (eg << 8) | eb;
-        if (last[i] === packed) continue;
-        last[i] = packed;
-        const cell = cells[i];
-        cell.style.setProperty('--r', String(er));
-        cell.style.setProperty('--g', String(eg));
-        cell.style.setProperty('--b', String(eb));
+      // Per-slot opacity going INTO the shader composite. Inactive slots
+      // collapse to 0 (the shader falls back to the off tint).
+      const wA = dominantKey === 'A' ? 1 : (secondaryKey === 'A' && slots.A.chapterIdx === topB_i && topB_i >= 0 ? topB_o : 0);
+      const wB = dominantKey === 'B' ? 1 : (secondaryKey === 'B' && slots.B.chapterIdx === topB_i && topB_i >= 0 ? topB_o : 0);
+      ledRenderer.setOpacities(wA, wB);
+      // The shader composites bottom→top in the order dictated by uTopIsB;
+      // the SECONDARY slot is the one whose opacity floats from 0→1→0
+      // through the fade, so it rides on top to match the old DOM stack.
+      if (secondaryKey) ledRenderer.setTopSlot(secondaryKey);
+
+      // Track activeIdx → frontSlot for the timeline/badge logic. Slot
+      // bindings are already established by ensureAssigned above; here we
+      // just keep frontSlot pointing at whichever slot holds the
+      // officially-active chapter.
+      if (activeIdx !== frontChapterIdx) {
+        if (activeIdx < 0) {
+          frontChapterIdx = -1;
+        } else if (activeIdx === slots.A.chapterIdx) {
+          frontSlot = 'A';
+          frontChapterIdx = activeIdx;
+        } else if (activeIdx === slots.B.chapterIdx) {
+          frontSlot = 'B';
+          frontChapterIdx = activeIdx;
+        }
+      }
+
+      // Per-slot paint: prepare the current frame for each slot's assigned
+      // chapter and hand it to the renderer. Slots whose pixogram is
+      // outside its fade window are skipped — the texture stays at its
+      // previous frame, but the slot's opacity uniform is already 0 so
+      // nothing's visible.
+      for (const key of ['A', 'B'] as const) {
+        const chIdx = slots[key].chapterIdx;
+        if (chIdx < 0) continue;
+        const [aPix, _b, _c, dPix] = PIX_FADES[chIdx];
+        if (progressVh <= aPix - 1 || progressVh >= dPix + 1) continue;
+        const meta = chapterMeta[chIdx];
+        const pix = pixCache.get(meta.file);
+        if (!pix) continue;
+        const intervalMs = 1000 / meta.fps;
+        const frameIdx = Math.floor(now / intervalMs) % pix.frames.length;
+        const frame = pix.frames[frameIdx];
+        uploadSlotFrame(key, frame);
       }
     }
-
-    function repaint(): void {
-      if (activeIdx < 0) return;
-      const meta = chapterMeta[activeIdx];
-      const pix = pixCache.get(meta.file);
-      if (!pix) return;
-      const frame = pix.frames[frameCounter % pix.frames.length];
-
-      // Chapter swap path: when the active chapter differs from the one
-      // currently in the front slot, paint the new chapter on the BACK
-      // slot, flip data-front (changes z-index ordering), fade the new
-      // front in, and schedule the old front to drop to 0 after the
-      // transition completes.
-      if (activeIdx !== frontChapterIdx) {
-        if (frontChapterIdx === -1) {
-          // First-ever chapter activation — no crossfade, just paint on
-          // the default front (slot A) and record the state.
-          frontChapterIdx = activeIdx;
-          renderToSlot(frontSlot, frame);
-          return;
+    function uploadSlotFrame(key: SlotKey, frame: Uint8Array): void {
+      if (!ledRenderer) return;
+      const buf = slotBuf[key];
+      // The off-state is handled in the shader via setEnabled(false) —
+      // we don't pre-darken the buffer here. We DO still rewrite very
+      // dark cells to the off tint so the on-state doesn't show as
+      // pure black holes (matches the original look).
+      {
+        for (let i = 0; i < 576; i += 1) {
+          const off = i * 3;
+          const r = frame[off];
+          const g = frame[off + 1];
+          const b = frame[off + 2];
+          // Sub-threshold pixels would render as near-black holes between
+          // the lit cells. Substitute the off tint so unlit cells share
+          // the same substrate colour as the panel bg.
+          const dark = r + g + b < 12;
+          buf[off]     = dark ? OFF_R : r;
+          buf[off + 1] = dark ? OFF_G : g;
+          buf[off + 2] = dark ? OFF_B : b;
         }
-        // Real swap.
-        const oldFront: 'A' | 'B' = frontSlot;
-        const newFront: 'A' | 'B' = oldFront === 'A' ? 'B' : 'A';
-        // Reset the back slot's colour cache — its cells likely hold
-        // stale colours from a prior swap. Force a full repaint.
-        (newFront === 'A' ? lastRgbA : lastRgbB).fill(-1);
-        renderToSlot(newFront, frame);
-        // Flip stacking order on the next animation frame so the cell
-        // updates have a chance to commit before the CSS transition
-        // starts. (Setting opacity in the same tick as a style write
-        // can occasionally batch awkwardly in some browsers.)
-        const newEl = newFront === 'A' ? ledGridA : ledGridB;
-        const oldEl = oldFront === 'A' ? ledGridA : ledGridB;
-        requestAnimationFrame(() => {
-          if (ledWrap) ledWrap.dataset.front = newFront;
-          if (newEl) newEl.style.opacity = '1';
-        });
-        // Cancel any pending drop from a previous (interrupted) swap so
-        // we don't accidentally drop the wrong slot.
-        if (pendingDropTimer) {
-          clearTimeout(pendingDropTimer);
-          pendingDropTimer = 0;
-        }
-        pendingDropTimer = window.setTimeout(() => {
-          if (oldEl) oldEl.style.opacity = '0';
-          pendingDropTimer = 0;
-        }, CROSSFADE_MS + 20);
-        frontSlot = newFront;
-        frontChapterIdx = activeIdx;
-        return;
       }
-
-      // Normal frame tick — paint the active chapter's current frame on
-      // the front slot.
-      renderToSlot(frontSlot, frame);
+      ledRenderer.uploadFrame(key, buf);
     }
 
     function loop(now: number): void {
@@ -1128,11 +1361,22 @@ const DEFAULT_STORY_ID = 'definition';
       const progressPx = window.scrollY - targetDocY;
       const progressVh = progressPx / vh * 100;
 
-      // ── Act 1: title out + dim in + clock fade in (0–75vh) ────────
-      // translate3d (not translateY) so the browser keeps the title on
-      // a dedicated GPU compositor layer — same trick used below for
-      // chapters and the LED canvas.
-      const act1 = progressVh <= 0 ? 0 : progressVh >= 75 ? 1 : progressVh / 75;
+      // ── Hero phase: title out + dim in + clock fade in ───────────────
+      // The Hero lives entirely BEFORE the first chapter act. It ends
+      // at HERO_END (= REST_VHS[0] - TEXT_FADE_VH) so there's no overlap
+      // between "Hero leaving" and "Act 0 arriving".
+      const act1 = progressVh <= 0 ? 0 : progressVh >= HERO_END ? 1 : progressVh / HERO_END;
+      // dim is the BG-dimming layer — it fades in across the Hero phase
+      // and STAYS at 0.7 throughout the act phase (atmosphere).
+      // clock is the photo of the PXL Clock — a pure HERO element. It
+      // runs a TRAPEZOID: fade in in the first half of the Hero phase,
+      // fade out in the second half. At HERO_END the photo is gone, so
+      // there's no Hero overlap with the act phase.
+      const heroHalf = HERO_END / 2;
+      const clockTrap = progressVh <= 0 ? 0
+        : progressVh >= HERO_END ? 0
+        : progressVh <= heroHalf ? progressVh / heroHalf
+        : (HERO_END - progressVh) / heroHalf;
       if (title) {
         const tyPx = -act1 * 0.75 * vh;
         const tStr = `translate3d(0,${tyPx.toFixed(1)}px,0)`;
@@ -1141,62 +1385,115 @@ const DEFAULT_STORY_ID = 'definition';
         if (oStr !== lastTitleOpacity)   { title.style.opacity   = oStr; lastTitleOpacity   = oStr; }
       }
       if (dim) {
+        // Linear fade-in across Hero, then STAYS at 0.7 for the rest of
+        // the scroll (atmosphere during the act phase).
         const oStr = (act1 * 0.7).toFixed(3);
         if (oStr !== lastDimOpacity) { dim.style.opacity = oStr; lastDimOpacity = oStr; }
       }
       if (clock) {
-        const oStr = act1.toFixed(3);
+        const oStr = clockTrap.toFixed(3);
         if (oStr !== lastClockOpacity) { clock.style.opacity = oStr; lastClockOpacity = oStr; }
       }
 
       // ── Acts 2–5: chapter cross-fades + scroll-up motion ──────────
+      // TEXT  side (oText, ty)        — drives the text element's opacity
+      //                                  + transform; follows the raw act
+      //                                  window so the text scrolls 1:1.
+      // PIXOGRAM side (oPix, sum, topA/topB) — drives the slot opacities
+      //                                  + wrap visibility; uses the
+      //                                  delayed window so the swap
+      //                                  happens later in the act.
+      // candidateIdx = sticky pick for timeline/badge — follows the TEXT
+      //                window (activation should fire when the text is
+      //                in view, not when the pixogram is swapping).
       let sum = 0;
-      let bestOpacity = -1;
-      let bestIdx = -1;
+      let topA_i = -1, topA_o = 0;
+      let topB_i = -1, topB_o = 0;
       for (let i = 0; i < chapterMeta.length; i++) {
-        const o = chapterOpacityAt(progressVh, i);
+        const oText = chapterOpacityAt(progressVh, i);
+        const oPix = chapterPixogramOpacityAt(progressVh, i);
         const ty = chapterTranslateAt(progressVh, i);
-        const oStr = o.toFixed(3);
+        const oStr = oText.toFixed(3);
         const tStr = `translate3d(0,${ty.toFixed(1)}px,0)`;
         const cache = lastChStr[i];
         if (cache.o !== oStr) { chapterMeta[i].el.style.opacity = oStr; cache.o = oStr; }
         if (cache.t !== tStr) { chapterMeta[i].el.style.transform = tStr; cache.t = tStr; }
-        sum += o;
-        if (o > bestOpacity) { bestOpacity = o; bestIdx = i; }
+        sum += oPix;
+        if (oPix > topA_o) { topB_i = topA_i; topB_o = topA_o; topA_i = i; topA_o = oPix; }
+        else if (oPix > topB_o) { topB_i = i; topB_o = oPix; }
       }
+      const candidateIdx = activeIdxAt(progressVh, ACTIVATIONS);
       const ledOp = Math.min(1, sum).toFixed(3);
-      // Opacity goes on the WRAPPER (matrix3d carrier). The canvases
-      // inside stay opaque so the compositor can keep them as static
-      // 2D layers behind the wrapper's transform.
+      // Wrap opacity gates the whole canvas in/out (before chapter 1
+      // and after the last chapter, sum → 0). During transitions
+      // oA + oB ≈ 1, so the wrap is always at full opacity while any
+      // chapter is active — the per-slot opacities handle the actual
+      // crossfade underneath.
       if (ledWrap && ledOp !== lastLedOpacityStr) {
         ledWrap.style.opacity = ledOp;
         lastLedOpacityStr = ledOp;
       }
 
-      if (bestIdx !== activeIdx) {
-        activeIdx = bestIdx;
-        frameCounter = 0;
-        lastFrameTs = now;
-        markDirty();
+      if (candidateIdx !== activeIdx) {
+        activeIdx = candidateIdx;
       }
 
-      // Repaint ONLY when frame advances or chapter swaps. Also skip
-      // entirely when the canvas is invisible (opacity ≈ 0).
-      if (activeIdx >= 0 && bestOpacity > 0.01) {
-        const meta = chapterMeta[activeIdx];
-        const intervalMs = 1000 / meta.fps;
-        if (now - lastFrameTs >= intervalMs) {
-          frameCounter += 1;
-          lastFrameTs = now - ((now - lastFrameTs) % intervalMs);
-          markDirty();
+      // Repaint every rAF tick when the wrap is visible. Skip when no
+      // chapter has nonzero opacity (off-screen) — wasted work.
+      if (topA_o > 0.01) {
+        repaint(progressVh, now, topA_i, topA_o, topB_i, topB_o);
+      }
+
+      // Timeline: highlight active dot + fill the connector line up to
+      // it. Smooth scroll-progress fill = fractional position along the
+      // dot count (0..N-1).
+      if (timelineDots.length > 0) {
+        const total = chapterMeta.length;
+        // Timeline visibility: only show once the first act is officially
+        // active. During the Hero phase (activeIdx < 0) it stays hidden
+        // and fades in via the .is-visible class.
+        const shouldShow = activeIdx >= 0;
+        if (shouldShow !== lastTimelineVisible) {
+          if (timelineEl) timelineEl.classList.toggle('is-visible', shouldShow);
+          lastTimelineVisible = shouldShow;
         }
-        const key = activeIdx + ':' + frameCounter;
-        if (dirty || key !== lastPaintedKey) {
-          repaint();
-          lastPaintedKey = key;
-          dirty = false;
+        // Timeline is locked to ACTIVATIONS:
+        //   · Active dot = activeIdx (the sticky activation pick — jumps
+        //     to N+1 exactly when progressVh crosses ACTIVATIONS[N+1]).
+        //   · Fill bar = smooth lerp between activeIdx's activation and
+        //     the next chapter's activation. Inside one act the bar
+        //     fills 0 → 100% over a SPACING_VH stretch of scroll.
+        const activeIdxClamped = activeIdx < 0 ? 0 : activeIdx;
+        if (activeIdxClamped !== lastTimelineActive) {
+          for (let i = 0; i < timelineDots.length; i++) {
+            timelineDots[i].classList.toggle('is-active', i === activeIdxClamped);
+          }
+          lastTimelineActive = activeIdxClamped;
+        }
+        if (timelineFill) {
+          let frac = 0;
+          if (activeIdx >= 0) {
+            const curAct = ACTIVATIONS[activeIdx];
+            const nextAct = activeIdx + 1 < total
+              ? ACTIVATIONS[activeIdx + 1]
+              : curAct + SPACING_VH;
+            const span = Math.max(1, nextAct - curAct);
+            const localT = Math.max(0, Math.min(1, (progressVh - curAct) / span));
+            frac = activeIdx + localT;
+          }
+          const fillPct = total > 1 ? (frac / (total - 1)) * 100 : 0;
+          const fillStr = fillPct.toFixed(1) + '%';
+          if (fillStr !== lastTimelineFill) {
+            timelineFill.style.height = fillStr;
+            lastTimelineFill = fillStr;
+          }
         }
       }
+
+      // Submit the WebGL draw. The renderer is internally dirty-checked
+      // (skips drawArrays + texSubImage2D when nothing changed since the
+      // previous tick), so calling this every rAF is cheap.
+      ledRenderer?.render();
 
       fpsTick(now);
       requestAnimationFrame(loop);
@@ -1232,7 +1529,7 @@ const DEFAULT_STORY_ID = 'definition';
     if (panel) {
       type CornerKey = 'tl' | 'tr' | 'br' | 'bl';
       type Axis = 'x' | 'y';
-      const modeButtons = Array.from(panel.querySelectorAll<HTMLButtonElement>('[data-op5-tweak-mode] button'));
+      const cellStyleButtons = Array.from(panel.querySelectorAll<HTMLButtonElement>('[data-op5-tweak-cellstyle] button'));
       const fpsOut = panel.querySelector<HTMLOutputElement>('[data-op5-tweak-fps]');
       const cornerInputs = Array.from(panel.querySelectorAll<HTMLInputElement>('[data-corner]'));
       const cropTopInput = panel.querySelector<HTMLInputElement>('[data-op5-tweak-croptop]');
@@ -1250,8 +1547,14 @@ const DEFAULT_STORY_ID = 'definition';
       const grippers = grippersHost ? Array.from(grippersHost.querySelectorAll<HTMLButtonElement>('[data-grip]')) : [];
 
       function syncControls(): void {
-        modeButtons.forEach((b) => {
-          b.classList.toggle('is-active', b.dataset.mode === settings.mode);
+        cellStyleButtons.forEach((b) => {
+          // The "Off" pseudo-style highlights when the panel is disabled.
+          // Real styles only highlight when enabled AND their index matches.
+          if (b.dataset.style === 'off') {
+            b.classList.toggle('is-active', !settings.enabled);
+          } else {
+            b.classList.toggle('is-active', settings.enabled && Number(b.dataset.style) === settings.cellStyle);
+          }
         });
         cornerInputs.forEach((inp) => {
           if (document.activeElement === inp) return;
@@ -1284,15 +1587,25 @@ const DEFAULT_STORY_ID = 'definition';
         syncControls();
       }
       function applyGridGap(): void {
-        page.style.setProperty('--op5-led-grid-gap', settings.gridGap + 'px');
+        ledRenderer?.setGridGap(settings.gridGap);
         saveSettings();
         syncControls();
       }
-      function applyMode(m: RenderMode): void {
-        settings.mode = m;
+      function applyCellStyle(style: number): void {
+        // Picking a real style implicitly turns the panel on; only the
+        // explicit Off button leaves enabled=false.
+        const s = Math.max(0, Math.min(13, Math.floor(style)));
+        settings.cellStyle = s;
+        settings.enabled = true;
+        ledRenderer?.setCellStyle(s);
+        applyEnabled();
         saveSettings();
-        applyGridModeClass();
-        markDirty();
+        syncControls();
+      }
+      function applyOff(): void {
+        settings.enabled = false;
+        applyEnabled();
+        saveSettings();
         syncControls();
       }
       function applyQuad(): void {
@@ -1305,11 +1618,21 @@ const DEFAULT_STORY_ID = 'definition';
         syncControls();
       }
 
-      modeButtons.forEach((b) => {
-        b.addEventListener('click', () => applyMode(b.dataset.mode as RenderMode));
+      // Style picker. The "Off" pseudo-button has data-style="off"; the
+      // 10 real styles carry data-style="0".."9". Clicking a real style
+      // implicitly turns the panel on, picking Off turns it off.
+      cellStyleButtons.forEach((b) => {
+        b.addEventListener('click', () => {
+          if (b.dataset.style === 'off') {
+            applyOff();
+          } else {
+            const v = Number(b.dataset.style);
+            if (Number.isFinite(v)) applyCellStyle(v);
+          }
+        });
       });
-      // Apply mode class on initial mount.
-      applyGridModeClass();
+      // Push initial enabled state into the renderer.
+      applyEnabled();
       cornerInputs.forEach((inp) => {
         inp.addEventListener('input', () => {
           const c = inp.dataset.corner as CornerKey;
@@ -1350,24 +1673,41 @@ const DEFAULT_STORY_ID = 'definition';
         }
       });
       resetBtn?.addEventListener('click', () => {
-        settings.mode = DEFAULT_SETTINGS.mode;
+        settings.enabled = DEFAULT_SETTINGS.enabled;
         settings.quad = cloneQuad(DEFAULT_SETTINGS.quad);
         settings.cropTop = DEFAULT_SETTINGS.cropTop;
         settings.cropRight = DEFAULT_SETTINGS.cropRight;
         settings.cornerTop = DEFAULT_SETTINGS.cornerTop;
         settings.gridGap = DEFAULT_SETTINGS.gridGap;
+        settings.cellStyle = DEFAULT_SETTINGS.cellStyle;
         applyQuad();
         applyCropTop();
         applyCropRight();
         applyCornerTop();
         applyGridGap();
-        applyMode(settings.mode);
+        applyCellStyle(settings.cellStyle);  // also calls applyEnabled
       });
       copyBtn?.addEventListener('click', () => {
-        // Whole settings object (mode, quad, cropTop, cropRight,
-        // cornerTop). Paste-friendly for dropping straight back into
-        // DEFAULT_SETTINGS or for sharing tunings.
-        navigator.clipboard?.writeText(JSON.stringify(settings, null, 2));
+        // Copies the entire `settings` object — covers every tab:
+        //   Render  → enabled, cellStyle, quad, cropTop, cropRight,
+        //             cornerTop, gridGap
+        //   Pacing  → pacing.{heroEndVh, startVh, spacingVh, textFadeVh,
+        //             activationFrac, pixTransitionVh, pixMarginVh}
+        //   Story   → activeStory
+        // Paste this into a chat to share a full tuning snapshot.
+        const json = JSON.stringify(settings, null, 2);
+        const originalLabel = copyBtn.textContent;
+        const flash = (msg: string): void => {
+          copyBtn.textContent = msg;
+          setTimeout(() => { copyBtn.textContent = originalLabel; }, 900);
+        };
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(json)
+            .then(() => flash('Copied'))
+            .catch(() => flash('Failed'));
+        } else {
+          flash('No clipboard');
+        }
       });
       toggleBtn?.addEventListener('click', () => {
         panel.classList.toggle('is-collapsed');
@@ -1427,38 +1767,123 @@ const DEFAULT_STORY_ID = 'definition';
         });
       }
 
+      // ── Tab switcher (Render / Pacing / Story) ──────────────────────
+      const tabButtons = Array.from(panel.querySelectorAll<HTMLButtonElement>('[data-op5-tab]'));
+      const tabPanels = Array.from(panel.querySelectorAll<HTMLElement>('[data-op5-tab-panel]'));
+      tabButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const targetTab = btn.dataset.op5Tab;
+          tabButtons.forEach((b) => {
+            const active = b.dataset.op5Tab === targetTab;
+            b.classList.toggle('is-active', active);
+            b.setAttribute('aria-selected', active ? 'true' : 'false');
+          });
+          tabPanels.forEach((p) => {
+            p.classList.toggle('is-hidden', p.dataset.op5TabPanel !== targetTab);
+          });
+        });
+      });
+
+      // ── Pacing tab — live tweaks for the scroll choreography ─────────
+      const pacingInputs = Array.from(panel.querySelectorAll<HTMLInputElement>('[data-op5-pacing]'));
+      const pacingOuts: Record<string, HTMLOutputElement | null> = {
+        heroend:       panel.querySelector<HTMLOutputElement>('[data-op5-pacing-out="heroend"]'),
+        start:         panel.querySelector<HTMLOutputElement>('[data-op5-pacing-out="start"]'),
+        spacing:       panel.querySelector<HTMLOutputElement>('[data-op5-pacing-out="spacing"]'),
+        textfade:      panel.querySelector<HTMLOutputElement>('[data-op5-pacing-out="textfade"]'),
+        activation:    panel.querySelector<HTMLOutputElement>('[data-op5-pacing-out="activation"]'),
+        pixtransition: panel.querySelector<HTMLOutputElement>('[data-op5-pacing-out="pixtransition"]'),
+        pixmargin:     panel.querySelector<HTMLOutputElement>('[data-op5-pacing-out="pixmargin"]'),
+        tailhold:      panel.querySelector<HTMLOutputElement>('[data-op5-pacing-out="tailhold"]'),
+      };
+      const pacingResetBtn = panel.querySelector<HTMLButtonElement>('[data-op5-pacing-reset]');
+      function pacingValueFor(key: string): number {
+        switch (key) {
+          case 'heroend':       return HERO_END_VH;
+          case 'start':         return START_VH;
+          case 'spacing':       return SPACING_VH;
+          case 'textfade':      return TEXT_FADE_VH;
+          case 'activation':    return ACTIVATION_FRAC;
+          case 'pixtransition': return PIXOGRAM_TRANSITION_VH;
+          case 'pixmargin':     return PIXOGRAM_MARGIN_VH;
+          case 'tailhold':      return TAIL_HOLD_VH;
+          default:              return 0;
+        }
+      }
+      function syncPacingControls(): void {
+        pacingInputs.forEach((inp) => {
+          const key = inp.dataset.op5Pacing ?? '';
+          const val = pacingValueFor(key);
+          if (document.activeElement !== inp) inp.value = String(val);
+          const out = pacingOuts[key];
+          if (out) out.value = key === 'activation' ? val.toFixed(2) : String(val);
+        });
+      }
+      function applyPacing(): void {
+        HERO_END_VH = settings.pacing.heroEndVh;
+        START_VH = settings.pacing.startVh;
+        SPACING_VH = settings.pacing.spacingVh;
+        TEXT_FADE_VH = settings.pacing.textFadeVh;
+        ACTIVATION_FRAC = settings.pacing.activationFrac;
+        PIXOGRAM_TRANSITION_VH = settings.pacing.pixTransitionVh;
+        PIXOGRAM_MARGIN_VH = settings.pacing.pixMarginVh;
+        TAIL_HOLD_VH = settings.pacing.tailHoldVh;
+        recomputeFades();
+        applySpacerHeight();
+        recomputeTargetDocY();
+        // Invalidate per-chapter style write caches so the next rAF tick
+        // pushes fresh opacity/transform values (the new FADES window
+        // shifts what those should be).
+        lastChStr.forEach((c) => { c.o = ''; c.t = ''; });
+        saveSettings();
+        syncPacingControls();
+      }
+      pacingInputs.forEach((inp) => {
+        inp.addEventListener('input', () => {
+          const key = inp.dataset.op5Pacing ?? '';
+          const v = Number(inp.value);
+          if (!Number.isFinite(v) || !key) return;
+          switch (key) {
+            case 'heroend':       settings.pacing.heroEndVh = v; break;
+            case 'start':         settings.pacing.startVh = v; break;
+            case 'spacing':       settings.pacing.spacingVh = v; break;
+            case 'textfade':      settings.pacing.textFadeVh = v; break;
+            case 'activation':    settings.pacing.activationFrac = v; break;
+            case 'pixtransition': settings.pacing.pixTransitionVh = v; break;
+            case 'pixmargin':     settings.pacing.pixMarginVh = v; break;
+            case 'tailhold':      settings.pacing.tailHoldVh = v; break;
+          }
+          applyPacing();
+        });
+      });
+      pacingResetBtn?.addEventListener('click', () => {
+        settings.pacing = { ...DEFAULT_SETTINGS.pacing };
+        applyPacing();
+      });
+      syncPacingControls();
+
       syncControls();
       setInterval(() => {
         if (fpsOut) fpsOut.value = fpsDisplay > 0 ? String(fpsDisplay) : '—';
       }, 500);
     }
 
-    // ── Story switcher panel ──────────────────────────────────────────
+    // ── Story switcher (inside Tweak panel, "Story" tab) ──────────────
     // Persist the click to localStorage, then reload. Reloading is the
     // simplest way to re-init the rAF loop with the new chapter set —
     // chapterMeta + lastChStr + FADES are all derived from chapterEls
     // at script start, and dynamic re-binding would touch too many
     // closures.
-    const storyPanel = page.querySelector<HTMLElement>('[data-op5-story]');
-    if (storyPanel) {
-      const storyBtns = Array.from(storyPanel.querySelectorAll<HTMLButtonElement>('[data-op5-story-btn]'));
-      const storyBlurb = storyPanel.querySelector<HTMLElement>('[data-op5-story-blurb]');
-      const storyCurrent = storyPanel.querySelector<HTMLElement>('[data-op5-story-current]');
-      const storyToggle = storyPanel.querySelector<HTMLButtonElement>('[data-op5-story-toggle]');
-      const STORY_BLURBS: Record<string, string> = {
-        definition: storyBtns.find((b) => b.dataset.storyId === 'definition')?.title ?? '',
-        daily:      storyBtns.find((b) => b.dataset.storyId === 'daily')?.title ?? '',
-        campfire:   storyBtns.find((b) => b.dataset.storyId === 'campfire')?.title ?? '',
-        diva:       storyBtns.find((b) => b.dataset.storyId === 'diva')?.title ?? '',
-        maker:      storyBtns.find((b) => b.dataset.storyId === 'maker')?.title ?? '',
-      };
-      const STORY_LABELS: Record<string, string> = {
-        definition: storyBtns.find((b) => b.dataset.storyId === 'definition')?.textContent?.trim() ?? 'Definition',
-        daily:      storyBtns.find((b) => b.dataset.storyId === 'daily')?.textContent?.trim() ?? 'Daily',
-        campfire:   storyBtns.find((b) => b.dataset.storyId === 'campfire')?.textContent?.trim() ?? 'Campfire',
-        diva:       storyBtns.find((b) => b.dataset.storyId === 'diva')?.textContent?.trim() ?? 'Diva',
-        maker:      storyBtns.find((b) => b.dataset.storyId === 'maker')?.textContent?.trim() ?? 'Maker',
-      };
+    if (panel) {
+      const storyBtns = Array.from(panel.querySelectorAll<HTMLButtonElement>('[data-op5-story-btn]'));
+      const storyBlurb = panel.querySelector<HTMLElement>('[data-op5-story-blurb]');
+      const storyCurrent = panel.querySelector<HTMLElement>('[data-op5-story-current]');
+      const STORY_BLURBS: Record<string, string> = Object.fromEntries(
+        storyBtns.map((b) => [b.dataset.storyId ?? '', b.title ?? '']),
+      );
+      const STORY_LABELS: Record<string, string> = Object.fromEntries(
+        storyBtns.map((b) => [b.dataset.storyId ?? '', b.textContent?.trim() ?? b.dataset.storyId ?? '']),
+      );
       function syncStoryActive(): void {
         storyBtns.forEach((b) => {
           b.classList.toggle('is-active', b.dataset.storyId === activeStoryId);
@@ -1478,11 +1903,6 @@ const DEFAULT_STORY_ID = 'definition';
           } catch {}
           location.reload();
         });
-      });
-      storyToggle?.addEventListener('click', () => {
-        storyPanel.classList.toggle('is-collapsed');
-        storyToggle.textContent = storyPanel.classList.contains('is-collapsed') ? '+' : '–';
-        storyToggle.setAttribute('aria-label', storyPanel.classList.contains('is-collapsed') ? 'Expand' : 'Collapse');
       });
       syncStoryActive();
     }
@@ -1581,66 +2001,45 @@ const DEFAULT_STORY_ID = 'definition';
     opacity: 0.85;
   }
 
-  /* === Story switcher panel ==============================================
-     Top-center floating chip. Collapsed by default: shows just "Story ·
-     {current label}" with a `+` toggle. Expanded: full button row and
-     blurb. */
-  .op5-story {
-    position: fixed;
-    top: 14px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 9998;
-    max-width: 92vw;
-    padding: 6px 10px;
-    background: rgba(10, 12, 18, 0.92);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 10px;
-    color: #fff;
-    font: 12px/1.4 ui-monospace, 'SF Mono', Menlo, monospace;
+  /* === Tweak-panel tab headers + tab panels ============================== */
+  .op5-tweak__tabs {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    align-items: stretch;
+    gap: 2px;
+    padding: 0 10px;
+    margin-top: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
-  .op5-story.is-collapsed .op5-story__body { display: none; }
-  .op5-story__head {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    justify-content: space-between;
-  }
-  .op5-story__label {
-    font-size: 11px;
-    letter-spacing: 0.04em;
-    opacity: 0.9;
-    white-space: nowrap;
-  }
-  .op5-story__current { color: #fff; font-weight: 600; }
-  .op5-story__toggle {
-    width: 22px; height: 22px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 5px;
-    color: #fff;
-    font: 600 14px/1 ui-monospace, monospace;
+  .op5-tweak__tab {
+    flex: 1;
+    background: transparent;
+    border: 0;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 6px 8px;
+    font: inherit;
     cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
   }
-  .op5-story__body {
+  .op5-tweak__tab:hover { color: #fff; }
+  .op5-tweak__tab.is-active {
+    color: #fff;
+    border-bottom-color: #fff;
+    font-weight: 600;
+  }
+  .op5-tweak__panel {
+    padding: 10px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    align-items: center;
+    gap: 10px;
   }
-  .op5-story__buttons {
+  .op5-tweak__panel.is-hidden { display: none; }
+  /* Story tab buttons */
+  .op5-tweak__story-buttons {
     display: flex;
     gap: 4px;
     flex-wrap: wrap;
-    justify-content: center;
   }
-  .op5-story__btn {
+  .op5-tweak__story-btn {
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 6px;
@@ -1651,21 +2050,19 @@ const DEFAULT_STORY_ID = 'definition';
     white-space: nowrap;
     transition: background 0.15s, color 0.15s, border-color 0.15s;
   }
-  .op5-story__btn:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
-  .op5-story__btn.is-active {
+  .op5-tweak__story-btn:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
+  .op5-tweak__story-btn.is-active {
     background: #fff;
     color: #000;
     border-color: #fff;
     font-weight: 700;
   }
-  .op5-story__blurb {
+  .op5-tweak__story-blurb {
     margin: 0;
     font-size: 11px;
     opacity: 0.7;
-    text-align: center;
-    max-width: 540px;
   }
-  .op5-story__blurb:empty { display: none; }
+  .op5-tweak__story-blurb:empty { display: none; }
 
   /* === Dev tweak panel ====================================================
      Pinned top-left so it doesn't fight the act badge top-right. Wider so
@@ -1702,7 +2099,7 @@ const DEFAULT_STORY_ID = 'definition';
     font: 600 14px/1 ui-monospace, monospace;
     cursor: pointer;
   }
-  .op5-tweak__body { padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+  .op5-tweak__body { display: flex; flex-direction: column; }
   .op5-tweak__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .op5-tweak__row--slider { gap: 6px; }
   .op5-tweak__row--slider input[type="range"] { flex: 1; min-width: 0; }
@@ -1726,6 +2123,40 @@ const DEFAULT_STORY_ID = 'definition';
     background: #fff;
     color: #000;
     font-weight: 700;
+  }
+  /* Cell-style picker: 5×2 grid of small toggles. Same active-state
+     treatment as the segment control so the panel reads consistently. */
+  .op5-tweak__row--column {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .op5-tweak__row--column > span { opacity: 0.75; font-size: 11px; }
+  .op5-tweak__styles {
+    display: grid;
+    /* 5 columns × 3 rows = 15 slots. 14 buttons (Off + 13 styles)
+       fit with one empty slot at the end of the third row. Wider
+       columns keep the labels legible. */
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+  }
+  .op5-tweak__styles button {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.7);
+    padding: 5px 4px;
+    font: inherit;
+    font-size: 11px;
+    border-radius: 5px;
+    cursor: pointer;
+    min-width: 0;
+  }
+  .op5-tweak__styles button:hover { color: #fff; border-color: rgba(255, 255, 255, 0.24); }
+  .op5-tweak__styles button.is-active {
+    background: #fff;
+    color: #000;
+    font-weight: 700;
+    border-color: #fff;
   }
   .op5-tweak__fs {
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -1823,7 +2254,10 @@ const DEFAULT_STORY_ID = 'definition';
      smooth crossfade through the LED canvas + text panel. */
   .op5-hero-scroll {
     position: relative;
-    height: 700vh;
+    /* Height is set dynamically by JS (see recomputeFades →
+       target.style.height = TOTAL_VH + 'vh'). Default fallback only
+       applies if the script hasn't run yet. */
+    height: 800vh;
     z-index: 1;
   }
   /* Sticky wrapper sits OUTSIDE the hero section. Keeping it separate
@@ -1959,57 +2393,24 @@ const DEFAULT_STORY_ID = 'definition';
       round var(--op5-led-corner-top, 0) var(--op5-led-corner-top, 0) 0 0
     );
   }
-  /* HTML LED grid — 24×24 cells. Photoreal mode applies the SVG bloom
-     filter; Flat strips both the filter AND the per-cell highlight; Off
-     paints every cell dark (the JS still updates lastRgb so a return to
-     a paint mode triggers a clean diff). */
-  :global(.op5-page .hero__led-grid) {
+  /* WebGL LED canvas — single element, single draw call per frame. The
+     fragment shader paints the 24×24 cell grid (per-cell hotspot, gap,
+     rounded corners) and crossfades between two slot textures, so all
+     the per-cell styling that used to live in CSS now lives in
+     pxl-webgl-renderer.ts. CSS only handles layout.
+
+     Bloom: NOT applied here. SVG `filter: url(#…)` on a <canvas>
+     forces many browsers to fall off the GPU compositor fast-path
+     (readback every frame) — that's the stutter. The cell hotspot
+     and a small inline blur live in the fragment shader instead, so
+     everything stays on the GPU. */
+  :global(.op5-page .hero__led-canvas) {
     position: absolute;
     inset: 0;
-    display: grid;
-    grid-template-columns: repeat(24, 1fr);
-    grid-template-rows: repeat(24, 1fr);
     width: 100%;
     height: 100%;
-    padding: 4px;
-    gap: var(--op5-led-grid-gap, 2px);
-    background: #050608;
-    box-sizing: border-box;
-    filter: url(#op5-led-bloom);
-    /* Dual-stack cross-fade — both slots start at opacity 0; the JS sets
-       opacity inline. The 320ms CSS transition handles the interpolation.
-       The OUTGOING slot holds 1 throughout the fade, the INCOMING slot
-       ramps 0→1, so at every instant at least one slot is fully opaque.
-       After the fade, the back slot is dropped to 0 (hidden behind the
-       front). */
-    opacity: 0;
-    transition: opacity 320ms linear;
-  }
-  /* Z-index follows the data-front attribute so the new pixogram always
-     renders on top of the old one during a swap. */
-  :global(.op5-page .hero__led-wrap[data-front="A"] .hero__led-grid[data-slot="A"]) { z-index: 2; }
-  :global(.op5-page .hero__led-wrap[data-front="A"] .hero__led-grid[data-slot="B"]) { z-index: 1; }
-  :global(.op5-page .hero__led-wrap[data-front="B"] .hero__led-grid[data-slot="B"]) { z-index: 2; }
-  :global(.op5-page .hero__led-wrap[data-front="B"] .hero__led-grid[data-slot="A"]) { z-index: 1; }
-  :global(.op5-page .hero__led-grid.is-flat) { filter: none; }
-  :global(.op5-page .hero__led-grid.is-off)  { filter: none; }
-  :global(.op5-page .hero__led-cell) {
-    border-radius: 12%;
-    /* Layered backgrounds: the radial-gradient overlay is a constant
-       (browser caches the pattern), so changing only --r/--g/--b on the
-       solid base lets the compositor re-rasterise just the flat fill. */
-    background:
-      radial-gradient(circle at 50% 50%,
-        rgba(255, 255, 255, 0.18) 0%,
-        rgba(255, 255, 255, 0.06) 45%,
-        transparent 75%),
-      rgb(var(--r, 12), var(--g, 13), var(--b, 16));
-  }
-  :global(.op5-page .hero__led-grid.is-flat .hero__led-cell) {
-    background: rgb(var(--r, 12), var(--g, 13), var(--b, 16));
-  }
-  :global(.op5-page .hero__led-grid.is-off .hero__led-cell) {
-    background: rgb(12, 13, 16);
+    display: block;
+    will-change: opacity;
   }
 
   /* Hidden SVG defs container (filter lives here). */
@@ -2019,6 +2420,77 @@ const DEFAULT_STORY_ID = 'definition';
     height: 0;
     overflow: hidden;
     pointer-events: none;
+  }
+
+  /* Vertical chapter timeline. Sits in the gap between the text panel
+     (left rail) and the LED projection (right). One dot per chapter,
+     vertically distributed; the active one is enlarged + bright. A
+     thin secondary line fills from top down to the active dot to
+     visualise scroll progress through the act sequence. */
+  :global(.op5-page .hero__timeline) {
+    position: absolute;
+    z-index: 3;
+    pointer-events: none;
+    left: calc(var(--op5-chapter-left) + clamp(280px, 32vw, 440px) + 32px);
+    top: var(--op5-chapter-top, clamp(180px, 38vh, 360px));
+    width: 18px;
+    height: clamp(220px, 36vh, 380px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 240ms ease;
+  }
+  :global(.op5-page .hero__timeline.is-visible) { opacity: 1; }
+  :global(.op5-page .hero__timeline-line) {
+    position: absolute;
+    left: 50%;
+    top: 4px;
+    bottom: 4px;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.16);
+    transform: translateX(-50%);
+  }
+  :global(.op5-page .hero__timeline-line--fill) {
+    background: rgba(255, 255, 255, 0.78);
+    bottom: auto;
+    height: 0%;
+    transition: height 0.32s ease-out;
+  }
+  :global(.op5-page .hero__timeline-dot) {
+    position: relative;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.28);
+    transition: background 0.32s ease-out, transform 0.32s ease-out, box-shadow 0.32s ease-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  :global(.op5-page .hero__timeline-dot.is-active) {
+    background: #fff;
+    transform: scale(1.6);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.45);
+  }
+  :global(.op5-page .hero__timeline-num) {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    font: 600 10px/1 ui-monospace, 'SF Mono', Menlo, monospace;
+    color: rgba(255, 255, 255, 0.5);
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.32s ease-out;
+  }
+  :global(.op5-page .hero__timeline-dot.is-active .hero__timeline-num) {
+    opacity: 0.9;
+    color: #fff;
+  }
+  @media (max-width: 720px) {
+    :global(.op5-page .hero__timeline) { display: none; }
   }
 
   /* Chapter panel — covers the whole hero; chapters inside are absolutely
